@@ -9,7 +9,7 @@ import {
     LoginButton
 } from './styled.js'
 import { useState } from "react";
-import AuthBackground from "../../../Components/AuthBackground/AuthBackground.jsx";
+import AuthBackground from "../../Components/AuthBackground/AuthBackground.jsx";
 
 const Login = () => {
   const [username,setUsername] = useState('');

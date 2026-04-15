@@ -10,7 +10,7 @@ import {
     LoginBack
 } from './styled.js'
 import { useState } from "react";
-import AuthBackground from "../../../Components/AuthBackground/AuthBackground.jsx";
+import AuthBackground from "../../Components/AuthBackground/AuthBackground.jsx";
 
 const Signup = () => {
   const [username, setUsername] = useState('');
