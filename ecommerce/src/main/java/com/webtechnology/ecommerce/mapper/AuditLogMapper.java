@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface AuditLogMapper {
 
+    @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "userName", source = "user.fullName")
     AuditLogResponse toResponse(AuditLog auditLog);
 

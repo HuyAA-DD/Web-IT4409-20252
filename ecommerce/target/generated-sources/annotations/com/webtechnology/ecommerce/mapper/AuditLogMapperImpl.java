@@ -4,12 +4,13 @@ import com.webtechnology.ecommerce.dto.AuditLogRequest;
 import com.webtechnology.ecommerce.dto.AuditLogResponse;
 import com.webtechnology.ecommerce.entity.AuditLog;
 import com.webtechnology.ecommerce.entity.User;
+import java.util.UUID;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-19T22:44:18+0700",
+    date = "2026-04-19T22:54:17+0700",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.18 (Ubuntu)"
 )
 @Component
@@ -23,6 +24,7 @@ public class AuditLogMapperImpl implements AuditLogMapper {
 
         AuditLogResponse.AuditLogResponseBuilder auditLogResponse = AuditLogResponse.builder();
 
+        auditLogResponse.userId( auditLogUserId( auditLog ) );
         auditLogResponse.userName( auditLogUserFullName( auditLog ) );
         auditLogResponse.id( auditLog.getId() );
         auditLogResponse.action( auditLog.getAction() );
@@ -52,6 +54,21 @@ public class AuditLogMapperImpl implements AuditLogMapper {
         auditLog.ipAddress( request.getIpAddress() );
 
         return auditLog.build();
+    }
+
+    private UUID auditLogUserId(AuditLog auditLog) {
+        if ( auditLog == null ) {
+            return null;
+        }
+        User user = auditLog.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        UUID id = user.getId();
+        if ( id == null ) {
+            return null;
+        }
+        return id;
     }
 
     private String auditLogUserFullName(AuditLog auditLog) {
