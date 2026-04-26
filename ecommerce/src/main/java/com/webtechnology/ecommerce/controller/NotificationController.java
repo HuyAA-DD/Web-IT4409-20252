@@ -25,93 +25,94 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NotificationController {
 
-    private final NotificationService notificationService;
+        private final NotificationService notificationService;
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<NotificationResponse>> createNotification(
-            @Valid @RequestBody NotificationRequest request
-    ) {
-        NotificationResponse response = notificationService.createNotification(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<NotificationResponse>builder()
-                        .success(true)
-                        .message("Notification created successfully")
-                        .data(response)
-                        .build());
-    }
+        @PostMapping
+        public ResponseEntity<ApiResponse<NotificationResponse>> createNotification(
+                        @Valid @RequestBody NotificationRequest request) {
+                NotificationResponse response = notificationService.createNotification(request);
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.<NotificationResponse>builder()
+                                                .success(true)
+                                                .message("Notification created successfully")
+                                                .data(response)
+                                                .build());
+        }
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getAllNotifications() {
-        return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
-                .success(true)
-                .message("Notifications retrieved successfully")
-                .data(notificationService.getAllNotifications())
-                .build());
-    }
+        @GetMapping
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<List<NotificationResponse>>> getAllNotifications() {
+                return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
+                                .success(true)
+                                .message("Notifications retrieved successfully")
+                                .data(notificationService.getAllNotifications())
+                                .build());
+        }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<NotificationResponse>> getNotificationById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
-                .success(true)
-                .message("Notification retrieved successfully")
-                .data(notificationService.getNotificationById(id))
-                .build());
-    }
+        @GetMapping("/{id}")
+        public ResponseEntity<ApiResponse<NotificationResponse>> getNotificationById(@PathVariable UUID id) {
+                return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
+                                .success(true)
+                                .message("Notification retrieved successfully")
+                                .data(notificationService.getNotificationById(id))
+                                .build());
+        }
 
-    @GetMapping("/by-user/{userId}")
-    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getNotificationsByUserId(@PathVariable UUID userId) {
-        return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
-                .success(true)
-                .message("Notifications retrieved successfully")
-                .data(notificationService.getNotificationsByUserId(userId))
-                .build());
-    }
+        @GetMapping("/by-user/{userId}")
+        public ResponseEntity<ApiResponse<List<NotificationResponse>>> getNotificationsByUserId(
+                        @PathVariable UUID userId) {
+                return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
+                                .success(true)
+                                .message("Notifications retrieved successfully")
+                                .data(notificationService.getNotificationsByUserId(userId))
+                                .build());
+        }
 
-    @GetMapping("/by-user/{userId}/unread")
-    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadNotificationsByUserId(@PathVariable UUID userId) {
-        return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
-                .success(true)
-                .message("Unread notifications retrieved successfully")
-                .data(notificationService.getUnreadNotificationsByUserId(userId))
-                .build());
-    }
+        @GetMapping("/by-user/{userId}/unread")
+        public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadNotificationsByUserId(
+                        @PathVariable UUID userId) {
+                return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
+                                .success(true)
+                                .message("Unread notifications retrieved successfully")
+                                .data(notificationService.getUnreadNotificationsByUserId(userId))
+                                .build());
+        }
 
-    @PutMapping("/{id}/mark-as-read")
-    public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
-                .success(true)
-                .message("Notification marked as read")
-                .data(notificationService.markAsRead(id))
-                .build());
-    }
+        @PutMapping("/{id}/mark-as-read")
+        public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(@PathVariable UUID id) {
+                return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
+                                .success(true)
+                                .message("Notification marked as read")
+                                .data(notificationService.markAsRead(id))
+                                .build());
+        }
 
-    @PutMapping("/{id}/mark-as-sent")
-    public ResponseEntity<ApiResponse<NotificationResponse>> markAsSent(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
-                .success(true)
-                .message("Notification marked as sent")
-                .data(notificationService.markAsSent(id))
-                .build());
-    }
+        @PutMapping("/{id}/mark-as-sent")
+        public ResponseEntity<ApiResponse<NotificationResponse>> markAsSent(@PathVariable UUID id) {
+                return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
+                                .success(true)
+                                .message("Notification marked as sent")
+                                .data(notificationService.markAsSent(id))
+                                .build());
+        }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable UUID id) {
-        notificationService.deleteNotification(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Notification deleted successfully")
-                .data(null)
-                .build());
-    }
+        @DeleteMapping("/{id}")
+        public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable UUID id) {
+                notificationService.deleteNotification(id);
+                return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                .success(true)
+                                .message("Notification deleted successfully")
+                                .data(null)
+                                .build());
+        }
 
-    @DeleteMapping("/by-user/{userId}")
-    public ResponseEntity<ApiResponse<Void>> deleteNotificationsByUserId(@PathVariable UUID userId) {
-        notificationService.deleteNotificationsByUserId(userId);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Notifications deleted successfully")
-                .data(null)
-                .build());
-    }
+        @DeleteMapping("/by-user/{userId}")
+        public ResponseEntity<ApiResponse<Void>> deleteNotificationsByUserId(@PathVariable UUID userId) {
+                notificationService.deleteNotificationsByUserId(userId);
+                return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                .success(true)
+                                .message("Notifications deleted successfully")
+                                .data(null)
+                                .build());
+        }
 }
