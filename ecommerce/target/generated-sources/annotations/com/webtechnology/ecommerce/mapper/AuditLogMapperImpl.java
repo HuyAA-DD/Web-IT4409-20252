@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-19T22:54:17+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.18 (Ubuntu)"
+    date = "2026-04-26T14:41:27+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class AuditLogMapperImpl implements AuditLogMapper {
@@ -26,14 +26,14 @@ public class AuditLogMapperImpl implements AuditLogMapper {
 
         auditLogResponse.userId( auditLogUserId( auditLog ) );
         auditLogResponse.userName( auditLogUserFullName( auditLog ) );
-        auditLogResponse.id( auditLog.getId() );
         auditLogResponse.action( auditLog.getAction() );
-        auditLogResponse.entityType( auditLog.getEntityType() );
-        auditLogResponse.entityId( auditLog.getEntityId() );
-        auditLogResponse.oldValue( auditLog.getOldValue() );
-        auditLogResponse.newValue( auditLog.getNewValue() );
-        auditLogResponse.ipAddress( auditLog.getIpAddress() );
         auditLogResponse.createdAt( auditLog.getCreatedAt() );
+        auditLogResponse.entityId( auditLog.getEntityId() );
+        auditLogResponse.entityType( auditLog.getEntityType() );
+        auditLogResponse.id( auditLog.getId() );
+        auditLogResponse.ipAddress( auditLog.getIpAddress() );
+        auditLogResponse.newValue( auditLog.getNewValue() );
+        auditLogResponse.oldValue( auditLog.getOldValue() );
 
         return auditLogResponse.build();
     }
@@ -47,11 +47,11 @@ public class AuditLogMapperImpl implements AuditLogMapper {
         AuditLog.AuditLogBuilder auditLog = AuditLog.builder();
 
         auditLog.action( request.getAction() );
-        auditLog.entityType( request.getEntityType() );
         auditLog.entityId( request.getEntityId() );
-        auditLog.oldValue( request.getOldValue() );
-        auditLog.newValue( request.getNewValue() );
+        auditLog.entityType( request.getEntityType() );
         auditLog.ipAddress( request.getIpAddress() );
+        auditLog.newValue( request.getNewValue() );
+        auditLog.oldValue( request.getOldValue() );
 
         return auditLog.build();
     }

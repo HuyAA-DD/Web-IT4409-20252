@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-19T22:54:17+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.18 (Ubuntu)"
+    date = "2026-04-26T14:41:27+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class NotificationMapperImpl implements NotificationMapper {
@@ -25,15 +25,15 @@ public class NotificationMapperImpl implements NotificationMapper {
         NotificationResponse.NotificationResponseBuilder notificationResponse = NotificationResponse.builder();
 
         notificationResponse.userId( notificationUserId( notification ) );
+        notificationResponse.createdAt( notification.getCreatedAt() );
         notificationResponse.id( notification.getId() );
-        notificationResponse.title( notification.getTitle() );
-        notificationResponse.message( notification.getMessage() );
-        notificationResponse.type( notification.getType() );
-        notificationResponse.relatedEntityType( notification.getRelatedEntityType() );
-        notificationResponse.relatedEntityId( notification.getRelatedEntityId() );
         notificationResponse.isRead( notification.getIsRead() );
         notificationResponse.isSent( notification.getIsSent() );
-        notificationResponse.createdAt( notification.getCreatedAt() );
+        notificationResponse.message( notification.getMessage() );
+        notificationResponse.relatedEntityId( notification.getRelatedEntityId() );
+        notificationResponse.relatedEntityType( notification.getRelatedEntityType() );
+        notificationResponse.title( notification.getTitle() );
+        notificationResponse.type( notification.getType() );
         notificationResponse.updatedAt( notification.getUpdatedAt() );
 
         return notificationResponse.build();
@@ -47,11 +47,11 @@ public class NotificationMapperImpl implements NotificationMapper {
 
         Notification.NotificationBuilder notification = Notification.builder();
 
-        notification.title( request.getTitle() );
         notification.message( request.getMessage() );
-        notification.type( request.getType() );
-        notification.relatedEntityType( request.getRelatedEntityType() );
         notification.relatedEntityId( request.getRelatedEntityId() );
+        notification.relatedEntityType( request.getRelatedEntityType() );
+        notification.title( request.getTitle() );
+        notification.type( request.getType() );
 
         return notification.build();
     }

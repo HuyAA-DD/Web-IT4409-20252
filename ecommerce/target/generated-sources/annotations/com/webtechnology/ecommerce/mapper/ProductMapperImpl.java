@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-19T22:54:17+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.18 (Ubuntu)"
+    date = "2026-04-26T14:41:28+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class ProductMapperImpl implements ProductMapper {
@@ -34,11 +34,11 @@ public class ProductMapperImpl implements ProductMapper {
         productResponse.categoryName( productCategoryName( product ) );
         productResponse.sellerId( productSellerId( product ) );
         productResponse.sellerName( productSellerFullName( product ) );
+        productResponse.createdAt( product.getCreatedAt() );
+        productResponse.description( product.getDescription() );
         productResponse.id( product.getId() );
         productResponse.name( product.getName() );
-        productResponse.description( product.getDescription() );
         productResponse.status( product.getStatus() );
-        productResponse.createdAt( product.getCreatedAt() );
         productResponse.updatedAt( product.getUpdatedAt() );
 
         return productResponse.build();
@@ -52,14 +52,14 @@ public class ProductMapperImpl implements ProductMapper {
 
         ProductVariantResponse.ProductVariantResponseBuilder productVariantResponse = ProductVariantResponse.builder();
 
-        productVariantResponse.id( productVariant.getId() );
-        productVariantResponse.sku( productVariant.getSku() );
-        productVariantResponse.price( productVariant.getPrice() );
-        productVariantResponse.stock( productVariant.getStock() );
         Map<String, Object> map = productVariant.getAttributes();
         if ( map != null ) {
             productVariantResponse.attributes( new LinkedHashMap<String, Object>( map ) );
         }
+        productVariantResponse.id( productVariant.getId() );
+        productVariantResponse.price( productVariant.getPrice() );
+        productVariantResponse.sku( productVariant.getSku() );
+        productVariantResponse.stock( productVariant.getStock() );
 
         return productVariantResponse.build();
     }
@@ -72,8 +72,8 @@ public class ProductMapperImpl implements ProductMapper {
 
         Product.ProductBuilder product = Product.builder();
 
-        product.name( request.getName() );
         product.description( request.getDescription() );
+        product.name( request.getName() );
         product.status( request.getStatus() );
 
         return product.build();
@@ -85,11 +85,11 @@ public class ProductMapperImpl implements ProductMapper {
             return;
         }
 
-        if ( request.getName() != null ) {
-            product.setName( request.getName() );
-        }
         if ( request.getDescription() != null ) {
             product.setDescription( request.getDescription() );
+        }
+        if ( request.getName() != null ) {
+            product.setName( request.getName() );
         }
         if ( request.getStatus() != null ) {
             product.setStatus( request.getStatus() );
@@ -104,13 +104,13 @@ public class ProductMapperImpl implements ProductMapper {
 
         ProductVariant.ProductVariantBuilder productVariant = ProductVariant.builder();
 
-        productVariant.sku( request.getSku() );
-        productVariant.price( request.getPrice() );
-        productVariant.stock( request.getStock() );
         Map<String, Object> map = request.getAttributes();
         if ( map != null ) {
             productVariant.attributes( new LinkedHashMap<String, Object>( map ) );
         }
+        productVariant.price( request.getPrice() );
+        productVariant.sku( request.getSku() );
+        productVariant.stock( request.getStock() );
 
         return productVariant.build();
     }

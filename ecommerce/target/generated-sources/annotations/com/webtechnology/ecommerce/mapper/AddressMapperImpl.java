@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-19T22:54:17+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.18 (Ubuntu)"
+    date = "2026-04-26T14:41:27+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class AddressMapperImpl implements AddressMapper {
@@ -25,19 +25,19 @@ public class AddressMapperImpl implements AddressMapper {
         AddressResponse.AddressResponseBuilder addressResponse = AddressResponse.builder();
 
         addressResponse.userId( addressUserId( address ) );
+        addressResponse.addressType( address.getAddressType() );
+        addressResponse.country( address.getCountry() );
+        addressResponse.createdAt( address.getCreatedAt() );
+        addressResponse.district( address.getDistrict() );
         addressResponse.id( address.getId() );
+        addressResponse.isDefault( address.getIsDefault() );
+        addressResponse.postalCode( address.getPostalCode() );
+        addressResponse.province( address.getProvince() );
         addressResponse.recipientName( address.getRecipientName() );
         addressResponse.recipientPhone( address.getRecipientPhone() );
         addressResponse.street( address.getStreet() );
-        addressResponse.ward( address.getWard() );
-        addressResponse.district( address.getDistrict() );
-        addressResponse.province( address.getProvince() );
-        addressResponse.postalCode( address.getPostalCode() );
-        addressResponse.country( address.getCountry() );
-        addressResponse.isDefault( address.getIsDefault() );
-        addressResponse.addressType( address.getAddressType() );
-        addressResponse.createdAt( address.getCreatedAt() );
         addressResponse.updatedAt( address.getUpdatedAt() );
+        addressResponse.ward( address.getWard() );
 
         return addressResponse.build();
     }
@@ -50,16 +50,16 @@ public class AddressMapperImpl implements AddressMapper {
 
         Address.AddressBuilder address = Address.builder();
 
+        address.addressType( request.getAddressType() );
+        address.country( request.getCountry() );
+        address.district( request.getDistrict() );
+        address.isDefault( request.getIsDefault() );
+        address.postalCode( request.getPostalCode() );
+        address.province( request.getProvince() );
         address.recipientName( request.getRecipientName() );
         address.recipientPhone( request.getRecipientPhone() );
         address.street( request.getStreet() );
         address.ward( request.getWard() );
-        address.district( request.getDistrict() );
-        address.province( request.getProvince() );
-        address.postalCode( request.getPostalCode() );
-        address.country( request.getCountry() );
-        address.isDefault( request.getIsDefault() );
-        address.addressType( request.getAddressType() );
 
         return address.build();
     }
@@ -70,6 +70,24 @@ public class AddressMapperImpl implements AddressMapper {
             return;
         }
 
+        if ( request.getAddressType() != null ) {
+            address.setAddressType( request.getAddressType() );
+        }
+        if ( request.getCountry() != null ) {
+            address.setCountry( request.getCountry() );
+        }
+        if ( request.getDistrict() != null ) {
+            address.setDistrict( request.getDistrict() );
+        }
+        if ( request.getIsDefault() != null ) {
+            address.setIsDefault( request.getIsDefault() );
+        }
+        if ( request.getPostalCode() != null ) {
+            address.setPostalCode( request.getPostalCode() );
+        }
+        if ( request.getProvince() != null ) {
+            address.setProvince( request.getProvince() );
+        }
         if ( request.getRecipientName() != null ) {
             address.setRecipientName( request.getRecipientName() );
         }
@@ -81,24 +99,6 @@ public class AddressMapperImpl implements AddressMapper {
         }
         if ( request.getWard() != null ) {
             address.setWard( request.getWard() );
-        }
-        if ( request.getDistrict() != null ) {
-            address.setDistrict( request.getDistrict() );
-        }
-        if ( request.getProvince() != null ) {
-            address.setProvince( request.getProvince() );
-        }
-        if ( request.getPostalCode() != null ) {
-            address.setPostalCode( request.getPostalCode() );
-        }
-        if ( request.getCountry() != null ) {
-            address.setCountry( request.getCountry() );
-        }
-        if ( request.getIsDefault() != null ) {
-            address.setIsDefault( request.getIsDefault() );
-        }
-        if ( request.getAddressType() != null ) {
-            address.setAddressType( request.getAddressType() );
         }
     }
 
