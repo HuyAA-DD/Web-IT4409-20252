@@ -2,6 +2,8 @@ package com.webtechnology.ecommerce.service;
 
 import com.webtechnology.ecommerce.dto.CouponRequest;
 import com.webtechnology.ecommerce.dto.CouponResponse;
+import com.webtechnology.ecommerce.dto.CouponCalculationResponse;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,4 +20,7 @@ public interface CouponService {
     CouponResponse updateCoupon(UUID id, CouponRequest request);
 
     void deleteCoupon(UUID id);
+
+    CouponCalculationResponse applyCoupon(String code, BigDecimal orderAmount);
 }
+
