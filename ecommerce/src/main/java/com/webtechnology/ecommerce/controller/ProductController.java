@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.webtechnology.ecommerce.dto.ApiResponse;
+import com.webtechnology.ecommerce.dto.FileUploadResponse;
 import com.webtechnology.ecommerce.dto.ProductRequest;
 import com.webtechnology.ecommerce.dto.ProductResponse;
 import com.webtechnology.ecommerce.service.ProductService;
@@ -80,6 +83,50 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.<Void>builder()
             .success(true)
             .message("Product deleted successfully")
+            .data(null)
+            .build());
+    }
+
+    @PostMapping("/{productId}/upload-image")
+    @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
+    public ResponseEntity<ApiResponse<FileUploadResponse>> uploadProductImage(
+            @PathVariable UUID productId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        FileUploadResponse response = productService.uploadProductImage(productId, file);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.<FileUploadResponse>builder()
+                .success(true)
+                .message("Product image uploaded successfully")
+                .data(response)
+                .build());
+    }
+
+    @PostMapping("/{productId}/upload-images")
+    @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
+    public ResponseEntity<ApiResponse<List<FileUploadResponse>>> uploadProductImages(
+            @PathVariable UUID productId,
+            @RequestParam("files") List<MultipartFile> files
+    ) {
+        List<FileUploadResponse> responses = productService.uploadProductImages(productId, files);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.<List<FileUploadResponse>>builder()
+                .success(true)
+                .message("Product images uploaded successfully")
+                .data(responses)
+                .build());
+    }
+
+    @DeleteMapping("/{productId}/images/{imageId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
+    public ResponseEntity<ApiResponse<Void>> deleteProductImage(
+            @PathVariable UUID productId,
+            @PathVariable UUID imageId
+    ) {
+        productService.deleteProductImage(productId, imageId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+            .success(true)
+            .message("Product image deleted successfully")
             .data(null)
             .build());
     }

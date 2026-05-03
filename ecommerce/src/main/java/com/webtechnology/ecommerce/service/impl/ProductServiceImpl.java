@@ -1,5 +1,14 @@
 package com.webtechnology.ecommerce.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.webtechnology.ecommerce.dto.FileUploadResponse;
 import com.webtechnology.ecommerce.dto.ProductRequest;
 import com.webtechnology.ecommerce.dto.ProductResponse;
 import com.webtechnology.ecommerce.entity.Category;
@@ -15,12 +24,10 @@ import com.webtechnology.ecommerce.repository.ProductImageRepository;
 import com.webtechnology.ecommerce.repository.ProductRepository;
 import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
+import com.webtechnology.ecommerce.service.FileUploadService;
 import com.webtechnology.ecommerce.service.ProductService;
-import java.util.List;
-import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +40,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductImageRepository productImageRepository;
     private final ProductVariantRepository productVariantRepository;
     private final ProductMapper productMapper;
+    private final FileUploadService fileUploadService;
 
     @Override
     public ProductResponse createProduct(ProductRequest request) {
@@ -148,5 +156,55 @@ public class ProductServiceImpl implements ProductService {
     private User findUserById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+    }
+
+    @Override
+    public FileUploadResponse uploadProductImage(UUID productId, MultipartFile file) {
+        Product product = findProductById(productId);
+        FileUploadResponse uploadResponse = fileUploadService.uploadImage(file);
+
+        ProductImage productImage = ProductImage.builder()
+                .product(product)
+                .imageUrl(uploadResponse.getUrl())
+                .build();
+        productImageRepository.save(productImage);
+
+        return uploadResponse;
+    }
+
+    @Override
+    public List<FileUploadResponse> uploadProductImages(UUID productId, List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new BadRequestException("At least one image must be provided");
+        }
+
+        Product product = findProductById(productId);
+        List<FileUploadResponse> responses = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            FileUploadResponse uploadResponse = fileUploadService.uploadImage(file);
+
+            ProductImage productImage = ProductImage.builder()
+                    .product(product)
+                    .imageUrl(uploadResponse.getUrl())
+                    .build();
+            productImageRepository.save(productImage);
+            responses.add(uploadResponse);
+        }
+
+        return responses;
+    }
+
+    @Override
+    public void deleteProductImage(UUID productId, UUID imageId) {
+        findProductById(productId);
+        ProductImage productImage = productImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found with id: " + imageId));
+
+        if (!productImage.getProduct().getId().equals(productId)) {
+            throw new BadRequestException("Image does not belong to this product");
+        }
+
+        productImageRepository.delete(productImage);
     }
 }
