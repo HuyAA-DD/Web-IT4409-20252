@@ -1,5 +1,6 @@
 
 import './App.css'
+import AuthPage from './Pages/AuthPage/AuthPage'
 
 
 function App() {
@@ -7,9 +8,7 @@ function App() {
 
   return (
    <>
-   <div>
-
-    </div>
+    <AuthPage />
     </>
   )
 }
