@@ -19,7 +19,8 @@ const AuthPage = () => {
 
       {/* Đổi bg-background thành bg-gray-50, text-on-surface thành text-gray-900 */}
       <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col w-full overflow-hidden font-sans">
-        <main className="flex-1 flex flex-col md:flex-row w-full">
+        <main className="flex-1 flex flex-col md:flex-row w-full" style = {{boxShadow: "0 8px 30px 20px black"}}>
+
           
           {/* Left Side: Visual & Quote */}
           <div className="hidden md:flex md:w-1/2 relative bg-gray-900 items-center justify-center overflow-hidden">
@@ -173,26 +174,26 @@ const AuthPage = () => {
             
             <div className="flex flex-col gap-2 items-center md:items-start max-w-xs text-center md:text-left">
               <span className="font-luxury text-2xl font-bold tracking-widest text-gray-900">LUXE</span>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-[1rem] text-gray-500 leading-relaxed">
                 Trải nghiệm mua sắm đẳng cấp với những bộ sưu tập tối giản, sang trọng được tuyển chọn kỹ lưỡng.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-8 sm:gap-16 text-center md:text-left">
               <div className="flex flex-col gap-2">
-                <h4 className="text-[10px] text-gray-900 font-bold uppercase tracking-widest mb-1">Khám phá</h4>
-                <a className="text-xs text-gray-500 hover:text-indigo-600 transition-colors" href="#">Về chúng tôi</a>
-                <a className="text-xs text-gray-500 hover:text-indigo-600 transition-colors" href="#">Phát triển bền vững</a>
+                <h4 className="text-[1.1rem] text-gray-900 font-bold uppercase tracking-widest mb-1">Khám phá</h4>
+                <a className="text-[1rem] text-gray-500 hover:text-indigo-600 transition-colors" href="#">Về chúng tôi</a>
+                <a className="text-[1rem] text-gray-500 hover:text-indigo-600 transition-colors" href="#">Phát triển bền vững</a>
               </div>
               <div className="flex flex-col gap-2">
-                <h4 className="text-[10px] text-gray-900 font-bold uppercase tracking-widest mb-1">Hỗ trợ</h4>
-                <a className="text-xs text-gray-500 hover:text-indigo-600 transition-colors" href="#">Giao hàng & Trả hàng</a>
-                <a className="text-xs text-gray-500 hover:text-indigo-600 transition-colors" href="#">Liên hệ</a>
+                <h4 className="text-[1.1rem] text-gray-900 font-bold uppercase tracking-widest mb-1">Hỗ trợ</h4>
+                <a className="text-[1rem] text-gray-500 hover:text-indigo-600 transition-colors" href="#">Giao hàng & Trả hàng</a>
+                <a className="text-[1rem] text-gray-500 hover:text-indigo-600 transition-colors" href="#">Liên hệ</a>
               </div>
               <div className="flex flex-col gap-2">
-                <h4 className="text-[10px] text-gray-900 font-bold uppercase tracking-widest mb-1">Pháp lý</h4>
-                <a className="text-xs text-gray-500 hover:text-indigo-600 transition-colors" href="#">Chính sách bảo mật</a>
-                <a className="text-xs text-gray-500 hover:text-indigo-600 transition-colors" href="#">Điều khoản dịch vụ</a>
+                <h4 className="text-[1.1rem] text-gray-900 font-bold uppercase tracking-widest mb-1">Pháp lý</h4>
+                <a className="text-[1rem] text-gray-500 hover:text-indigo-600 transition-colors" href="#">Chính sách bảo mật</a>
+                <a className="text-[1rem] text-gray-500 hover:text-indigo-600 transition-colors" href="#">Điều khoản dịch vụ</a>
               </div>
             </div>
           </div>
