@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/carts/users/{userId}")
+@RequestMapping("/api/v1/cart/{userId}")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('ADMIN','USER')")
 public class CartController {

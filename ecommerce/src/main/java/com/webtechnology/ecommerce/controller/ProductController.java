@@ -1,5 +1,6 @@
 package com.webtechnology.ecommerce.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ import com.webtechnology.ecommerce.dto.ApiResponse;
 import com.webtechnology.ecommerce.dto.FileUploadResponse;
 import com.webtechnology.ecommerce.dto.ProductRequest;
 import com.webtechnology.ecommerce.dto.ProductResponse;
+import com.webtechnology.ecommerce.enums.ProductStatus;
 import com.webtechnology.ecommerce.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -51,6 +53,40 @@ public class ProductController {
             .success(true)
             .message("Products retrieved successfully")
             .data(productService.getAllProducts())
+            .build());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> searchProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) UUID sellerId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir
+    ) {
+        return ResponseEntity.ok(ApiResponse.<List<ProductResponse>>builder()
+            .success(true)
+            .message("Products search results retrieved successfully")
+            .data(productService.searchProducts(keyword, categoryId, sellerId, minPrice, maxPrice, sortBy, sortDir))
+            .build());
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> filterProducts(
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false) UUID sellerId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir
+    ) {
+        return ResponseEntity.ok(ApiResponse.<List<ProductResponse>>builder()
+            .success(true)
+            .message("Products filter results retrieved successfully")
+            .data(productService.filterProducts(categoryId, status, sellerId, minPrice, maxPrice, sortBy, sortDir))
             .build());
     }
 

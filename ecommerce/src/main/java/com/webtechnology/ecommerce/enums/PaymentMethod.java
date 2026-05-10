@@ -5,5 +5,6 @@ public enum PaymentMethod {
     BANK_TRANSFER,
     CREDIT_CARD,
     DEBIT_CARD,
-    E_WALLET
+    E_WALLET,
+    SEPAY
 }

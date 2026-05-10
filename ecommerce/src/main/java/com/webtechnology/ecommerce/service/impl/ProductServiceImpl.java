@@ -1,6 +1,8 @@
 package com.webtechnology.ecommerce.service.impl;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
 import com.webtechnology.ecommerce.service.FileUploadService;
 import com.webtechnology.ecommerce.service.ProductService;
+import com.webtechnology.ecommerce.enums.ProductStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -68,8 +71,55 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ProductResponse> searchProducts(String keyword, UUID categoryId, UUID sellerId,
+            BigDecimal minPrice, BigDecimal maxPrice, String sortBy, String sortDir) {
+        return sortProductResponses(productRepository.searchProducts(keyword, categoryId, sellerId, null, minPrice, maxPrice)
+                .stream()
+                .map(this::buildProductResponse)
+                .toList(), sortBy, sortDir);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponse> filterProducts(UUID categoryId, ProductStatus status, UUID sellerId,
+            BigDecimal minPrice, BigDecimal maxPrice, String sortBy, String sortDir) {
+        return sortProductResponses(productRepository.searchProducts(null, categoryId, sellerId, status, minPrice, maxPrice)
+                .stream()
+                .map(this::buildProductResponse)
+                .toList(), sortBy, sortDir);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ProductResponse getProductById(UUID id) {
         return buildProductResponse(findProductById(id));
+    }
+
+    private List<ProductResponse> sortProductResponses(List<ProductResponse> products, String sortBy, String sortDir) {
+        Comparator<ProductResponse> comparator = getProductComparator(sortBy);
+        if ("desc".equalsIgnoreCase(sortDir)) {
+            comparator = comparator.reversed();
+        }
+        return products.stream()
+                .sorted(comparator)
+                .toList();
+    }
+
+    private Comparator<ProductResponse> getProductComparator(String sortBy) {
+        if ("name".equalsIgnoreCase(sortBy)) {
+            return Comparator.comparing(p -> p.getName() == null ? "" : p.getName().toLowerCase());
+        }
+        if ("price".equalsIgnoreCase(sortBy)) {
+            return Comparator.comparing(this::getLowestVariantPrice);
+        }
+        return Comparator.comparing(ProductResponse::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()));
+    }
+
+    private BigDecimal getLowestVariantPrice(ProductResponse product) {
+        return product.getVariants() == null ? BigDecimal.ZERO : product.getVariants().stream()
+                .map(v -> v.getPrice() == null ? BigDecimal.ZERO : v.getPrice())
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
     }
 
     @Override
