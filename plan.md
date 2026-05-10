@@ -1,6 +1,5 @@
-Dưới đây là phiên bản Markdown đơn giản, truyền thống hơn, dễ copy vào README hoặc báo cáo:
 
----
+
 
 # Frontend Roadmap – 1 Month (E-commerce Project)
 
