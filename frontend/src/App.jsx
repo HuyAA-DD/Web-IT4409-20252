@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import MainLayout from './Pages/MainLayout/MainLayout'; // Đường dẫn tới file MainLayout của bạn
 import HomePage from './Pages/Homepage/HomePage';       // Đường dẫn tới file HomePage của bạn
 import AuthPage from './Pages/AuthPage/AuthPage';
+import WishListPage from './Pages/WishListPage/WishListPage'; // Đường dẫn tới file WishListPage của bạn
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -18,6 +19,10 @@ const router = createBrowserRouter([
         index: true, // Render HomePage mặc định khi truy cập vào "/"
         element: <HomePage />,
       },
+      {
+        path: "wishlist",
+        element: <WishListPage />,
+      }
       // [TODO] Sau này bạn có thể thêm các trang khác vào đây:
       // {
       //   path: "product/:id",

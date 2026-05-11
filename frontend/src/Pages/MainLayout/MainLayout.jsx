@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState } from 'react';
 import { Outlet,useNavigate } from 'react-router-dom'; // Import Outlet từ react-router-dom
+import { Canvas } from '@react-three/fiber';
+import { Clone, Float, useGLTF } from '@react-three/drei';
 import { Input, Badge, FloatButton, Button, Avatar } from 'antd';
 import {
   ShoppingCartOutlined,
@@ -15,10 +17,35 @@ import {
   HomeOutlined,
   PlaySquareOutlined,
   MessageOutlined,
-  MenuOutlined // Thêm icon Menu
+  MenuOutlined, // Thêm icon Menu
+  HeartOutlined
+
 } from '@ant-design/icons';
 
+import WishListPage from '../WishListPage/WishListPage';
+
 const { Search } = Input;
+
+const models = [{
+  id : 1,
+  path: 'assets/Shopping_cart.glb',
+  position: [1, -0.5, 0],
+  rotation: [Math.PI / 6, Math.PI / 3 , 0]
+},
+{
+  id : 2,
+  path : 'assets/Shopping_cart.glb',
+  position : [8,2,0],
+  rotation: [Math.PI / 6, -Math.PI / 3, 0]
+
+},
+{
+  id : 3,
+  path : 'assets/Card_box.glb',
+  position: [0.5,2.5,0],
+  rotation: [Math.PI/10,-3*Math.PI/4 ,0] 
+}
+];
 
 // --- COMPONENT: TOP NAVBAR ---
 const TopNavBar = ({ onToggleSidebar }) => {
@@ -109,13 +136,16 @@ const TopNavBar = ({ onToggleSidebar }) => {
 
 // --- COMPONENT: SIDEBAR ---
 const Sidebar = ({ collapsed }) => {
+  const navigate = useNavigate();
+  const [activeIndex, setActiveIndex] = useState(0); // Quản lý trạng thái active của menu
   const menuItems = [
-    { icon: <ThunderboltOutlined />, label: 'Flash Sale', active: true },
-    { icon: <CompassOutlined />, label: 'Khám phá hàng ngày' },
-    { icon: <ShopOutlined />, label: 'Siêu thị' },
-    { icon: <RiseOutlined />, label: 'Top Sản phẩm' },
-    { icon: <WalletOutlined />, label: 'Ví thanh toán' },
-    { icon: <DollarCircleOutlined />, label: 'Săn xu' },
+    { icon: <ThunderboltOutlined />, label: 'Flash Sale', },
+    { icon: <CompassOutlined />, label: 'Khám phá hàng ngày',path:'' },
+    { icon: <ShopOutlined />, label: 'Siêu thị',path:''},
+    { icon: <RiseOutlined />, label: 'Top Sản phẩm',path:'' },
+    { icon: <WalletOutlined />, label: 'Ví thanh toán', path:''},
+    { icon: <DollarCircleOutlined />, label: 'Săn xu', path :'' },
+    { icon: <HeartOutlined />, label: 'Yêu thích',  path: '/wishlist' },
   ];
 
   return (
@@ -136,10 +166,14 @@ const Sidebar = ({ collapsed }) => {
             href="#"
             title={collapsed ? item.label : ''} // Hiện tooltip khi thu gọn
             className={`flex items-center transition-all overflow-hidden ${
-              item.active
+              activeIndex === idx
                 ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                 : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
             } ${collapsed ? 'justify-center p-3 rounded-xl w-12 h-12' : 'gap-3 px-4 py-3 rounded-lg w-full'}`}
+            onClick = {() => {
+              navigate(item.path);
+              setActiveIndex(idx);
+            }}
           >
             <span className="text-xl flex-shrink-0">{item.icon}</span>
             <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
@@ -193,6 +227,22 @@ const Footer = () => (
   </footer>
 );
 
+const Global3DModel = ({path,position,rotation}) => {
+  const { scene } = useGLTF(path);
+  return (
+    <Float speed={1} rotationIntensity={2} floatIntensity={4}>
+      <Clone
+        object={scene}
+        // rotation={[Math.PI / 4, Math.PI / 4, Math.PI / 4]}
+        // rotation = {[Math.PI / 6, Math.PI / 3, 0]} // Xoay nhẹ về phía người xem
+        rotation = {rotation}
+        position={position}
+        scale={1.2}
+      /> // Có thể dùng thẻ Clone để tái sử dụng model nếu cần nhiều instance, hoặc dùng trực tiếp primitive nếu chỉ cần 1 instance duy nhất.
+    </Float>
+  );
+};
+
 // --- MAIN LAYOUT (Kiến trúc Outlet) ---
 export default function MainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -204,6 +254,25 @@ export default function MainLayout() {
   return (
     <div className="bg-gray-50 min-h-screen text-gray-800 font-sans selection:bg-orange-100 selection:text-orange-600 flex flex-col">
       <TopNavBar onToggleSidebar={toggleSidebar} />
+
+      {/* 
+        1. GLOBAL 3D CANVAS
+        - Dùng 'fixed inset-0' để nó bao phủ toàn bộ màn hình.
+        - 'z-50' để nổi lên trên cùng (nếu muốn).
+        - QUAN TRỌNG: 'pointer-events-none' để user có thể click xuyên qua Canvas 
+          vào các nút bấm của trang web ở dưới.
+      */}
+      <div className="fixed inset-0   z-0 pointer-events-auto">
+        <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+          <ambientLight intensity={1} />
+          <directionalLight position={[10, 0, 5]} intensity={8} />
+          
+          {/* Định vị Model 3D ở góc dưới cùng bên phải màn hình */}
+          <group position={[-4, -1.5, 0]} >
+            {models.map(item => <Global3DModel key={item.id} path={item.path} position={item.position} rotation={item.rotation} />)}
+          </group>
+        </Canvas>
+      </div>
       
       <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
         <div className="flex flex-col lg:flex-row gap-6 h-full">
