@@ -1,0 +1,53 @@
+#loading-container{
+    width: 100%;
+    height: 130px;
+    display: flex;
+    justify-content: center;
+    gap:20px;
+    flex-wrap: wrap;
+    
+}
+
+#loading-container div{
+    margin-top:1rem;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+}
+
+#loading-container div:nth-child(1){
+    background-color: #1890ff;
+    animation: loading-ani 2s ease-in-out infinite;
+}
+#loading-container div:nth-child(2){
+    background-color: #52c41a;  
+    animation: loading-ani 2s ease-in-out infinite 0.2s;
+}
+#loading-container div:nth-child(3){
+    background-color: #faad14; 
+    animation: loading-ani 2s ease-in-out infinite 0.4s;
+}
+#loading-container div:nth-child(4){
+    background-color: #82388b; 
+    animation: loading-ani 2s ease-in-out infinite 0.6s;
+}
+#loading-container div:nth-child(5){
+    background-color: #be277a; 
+    animation: loading-ani 2s ease-in-out infinite 0.8s;
+}
+#loading-container div:nth-child(6){
+    background-color: #c21a44; 
+    animation: loading-ani 2s ease-in-out infinite 1s;
+}
+
+
+
+
+
+
+    @keyframes loading-ani {
+    0%{scale:1}
+    25%{scale:1.5}
+    50%{scale:1}
+    100%{scale:1}
+}
