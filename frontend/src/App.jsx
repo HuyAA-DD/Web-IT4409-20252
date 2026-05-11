@@ -2,10 +2,11 @@ import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 // Import các Layouts và Pages
-import MainLayout from './Pages/MainLayout/MainLayout'; // Đường dẫn tới file MainLayout của bạn
+import MainLayout from './Layouts/MainLayout/MainLayout'; // Đường dẫn tới file MainLayout của bạn
 import HomePage from './Pages/Homepage/HomePage';       // Đường dẫn tới file HomePage của bạn
 import AuthPage from './Pages/AuthPage/AuthPage';
 import WishListPage from './Pages/WishListPage/WishListPage'; // Đường dẫn tới file WishListPage của bạn
+import TopProductsPage from './Pages/TopProductsPage/TopProductsPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -22,6 +23,10 @@ const router = createBrowserRouter([
       {
         path: "wishlist",
         element: <WishListPage />,
+      },
+      {
+        path: "/topproducts",
+        element: <TopProductsPage />,
       }
       // [TODO] Sau này bạn có thể thêm các trang khác vào đây:
       // {

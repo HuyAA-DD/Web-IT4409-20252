@@ -1,4 +1,4 @@
-import React, {  useState } from 'react';
+import React, {  useEffect, useState } from 'react';
 import { Outlet,useNavigate } from 'react-router-dom'; // Import Outlet từ react-router-dom
 import { Canvas } from '@react-three/fiber';
 import { Clone, Float, useGLTF } from '@react-three/drei';
@@ -22,7 +22,8 @@ import {
 
 } from '@ant-design/icons';
 
-import WishListPage from '../WishListPage/WishListPage';
+import WishListPage from '../../Pages/WishListPage/WishListPage';
+import Loading from '../../Components/Loading/Loading';
 
 const { Search } = Input;
 
@@ -142,7 +143,7 @@ const Sidebar = ({ collapsed }) => {
     { icon: <ThunderboltOutlined />, label: 'Flash Sale', },
     { icon: <CompassOutlined />, label: 'Khám phá hàng ngày',path:'' },
     { icon: <ShopOutlined />, label: 'Siêu thị',path:''},
-    { icon: <RiseOutlined />, label: 'Top Sản phẩm',path:'' },
+    { icon: <RiseOutlined />, label: 'Top Sản phẩm',path:'/topproducts' },
     { icon: <WalletOutlined />, label: 'Ví thanh toán', path:''},
     { icon: <DollarCircleOutlined />, label: 'Săn xu', path :'' },
     { icon: <HeartOutlined />, label: 'Yêu thích',  path: '/wishlist' },
@@ -246,6 +247,16 @@ const Global3DModel = ({path,position,rotation}) => {
 // --- MAIN LAYOUT (Kiến trúc Outlet) ---
 export default function MainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isLoading, setLoading] =  useState(true);
+
+  useEffect(() => {
+    // Mô phỏng tải dữ liệu trong 3 giây
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -281,7 +292,7 @@ export default function MainLayout() {
           
           {/* Outlet: Nơi render nội dung thay đổi (HomePage, ProductDetail, Cart...) */}
           <div className="flex-grow w-full overflow-hidden transition-all duration-300">
-            <Outlet />
+            {isLoading ? <Loading></Loading> : <Outlet /> }
           </div>
         </div>
       </main>
