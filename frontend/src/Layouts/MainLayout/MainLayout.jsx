@@ -317,7 +317,7 @@ const Footer = ({ isDarkMode }) => (
 
     {/* MINI CANVAS: CHỨA STYLIZED PLANET TRONG FOOTER - Nâng z-index lên z-[50] */}
     {isDarkMode && (
-      <div className="absolute bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 pointer-events-none z-[50]">
+      <div className="absolute bottom-1/3 md:bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 pointer-events-none z-[50]">
         <Canvas camera={{ position: [0, 0, 5], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
           <Suspense fallback={null}>
             <ambientLight intensity={0.03} />
@@ -331,7 +331,7 @@ const Footer = ({ isDarkMode }) => (
     )}
 
     {!isDarkMode && (
-      <div className="absolute bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 pointer-events-none z-[50]">
+      <div className="absolute bottom-1/3 md:bottom-0 right-0 w-44 h-44 md:w-64 md:h-64 pointer-events-none z-[50]">
         <Canvas camera={{ position: [0, 0, 30], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
           <Suspense fallback={null}>
             <ambientLight intensity={0.03} />
