@@ -13,6 +13,8 @@
     margin-top: 3px;
     width:20px;
     height:20px;
+    border-radius: 3px;
+    box-shadow: 0 0 5px 1px rgba(32, 28, 28, 0.403);
 
 }
 

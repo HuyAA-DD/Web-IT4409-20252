@@ -7,6 +7,8 @@ import HomePage from './Pages/Homepage/HomePage';       // Đường dẫn tới
 import AuthPage from './Pages/AuthPage/AuthPage';
 import WishListPage from './Pages/WishListPage/WishListPage'; // Đường dẫn tới file WishListPage của bạn
 import TopProductsPage from './Pages/TopProductsPage/TopProductsPage';
+import NotFoundPage from './Pages/NotFoundPage/NotFoundPage';
+import CartPage from './Pages/CartPage/CartPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -21,12 +23,17 @@ const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: "wishlist",
+        path: "/wishlist",
         element: <WishListPage />,
       },
       {
         path: "/topproducts",
         element: <TopProductsPage />,
+      },
+      {
+        path: "/cart", // sau có thể là '/card/:id'
+        element: <CartPage/>
+
       }
       // [TODO] Sau này bạn có thể thêm các trang khác vào đây:
       // {
@@ -46,6 +53,10 @@ const router = createBrowserRouter([
   {
     path: "/auth/login&register",
     element: <AuthPage />, // Layout riêng cho trang đăng nhập/đăng ký
+  },
+  {
+    path: "/404NotFound",
+    element: <NotFoundPage/>
   }
 ]);
 
