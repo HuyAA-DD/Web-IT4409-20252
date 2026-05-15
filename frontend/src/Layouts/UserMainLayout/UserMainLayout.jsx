@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo, Suspense, useRef } from 'react';
+import React, { useEffect, useState, useMemo, Suspense} from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { Clone, Float, useGLTF, Environment, Center, PresentationControls, OrbitControls } from '@react-three/drei';
 import { Input, Badge, FloatButton, Button, Avatar } from 'antd';
+import USER_ROUTE from '../../Routes/User.routes';
 import {
   ShoppingCartOutlined,
   BellOutlined,
@@ -19,34 +20,22 @@ import {
   MenuOutlined, 
   HeartOutlined,
   CloseOutlined,
-  SunOutlined,
-  MoonOutlined,
-  StarOutlined
 } from '@ant-design/icons';
 
+//Data import
+import { ObjectModels, StarPosition } from '../../Data/3Dmodels';
+
+// COmponent import
+
+import RotatingPlanet from '../../Components/RotatingPlanet/RotatingPlanet';
+import DarkModeToggle from '../../Components/DarkModeToggle/DarkModeToggle';
+import Footer from '../../Components/Footer/Footer';
 import Loading from '../../Components/Loading/Loading';
+import DarkModeStars from '../../Components/DarkModeStar/DarkModeStars';
+import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
 const { Search } = Input;
 
-// --- MẢNG MODELS BACKGROUND CHUNG ---
-const models = [
-  { id: 1, path: 'assets/Shopping_cart.glb', position: [1, -0.5, 0], rotation: [Math.PI / 6, Math.PI / 3, 0] },
-  { id: 2, path: 'assets/Shopping_cart.glb', position: [8, 2, 0], rotation: [Math.PI / 6, -Math.PI / 3, 0] },
-  { id: 3, path: 'assets/box.glb', position: [0.5, 2.5, 0], rotation: [Math.PI / 10, -3 * Math.PI / 4, 0], scale: 0.7 },
-  { id: 4, path: 'assets/present_1_low_poly.glb', position: [7, 0, 0], rotation: [Math.PI / 10, -3 * Math.PI / 4, 0], scale: 0.015 },
-  { id: 5, path: 'assets/nike_shoe_box.glb', position: [5, 0, 0], rotation: [Math.PI / 10, -3 * Math.PI / 4, 0], scale: 3 },
-
-];
-
-// --- MẢNG NGÔI SAO DÀNH CHO DARK MODE ---
-const starRelativePositions = [
-  { x: -0.4, y: 0.4, z: -3, rotation: [0, Math.PI / 4, 0] },
-  { x: 0.3, y: 0.3, z: -4, rotation: [Math.PI / 6, 0, 0] },
-  { x: -0.3, y: -0.2, z: -2, rotation: [0, 0, Math.PI / 8] },
-  { x: 0.4, y: -0.4, z: -5, rotation: [Math.PI / 3, Math.PI / 3, 0] },
-  { x: 0.1, y: 0.45, z: -3, rotation: [0, Math.PI / 2, 0] },
-  { x: -0.45, y: -0.4, z: -4, rotation: [Math.PI / 4, 0, Math.PI / 4] },
-];
 
 useGLTF.preload('assets/Shopping_cart.glb');
 useGLTF.preload('assets/juice_carton_shop.glb');
@@ -62,48 +51,7 @@ useGLTF.preload('assets/nike_shoe_box.glb');
 
 
 
-// --- COMPONENT: MÔ HÌNH HÀNH TINH TỰ QUAY QUANH TRỤC ---
-const RotatingPlanet = ({ path, position = [0,0,0], scale, rotationSpeed = 0.005, floatSpeed = 1.5, floatIntensity = 2 }) => {
-  const { scene } = useGLTF(path);
-  const planetRef = useRef();
 
-  useFrame(() => {
-    if (planetRef.current) {
-      planetRef.current.rotation.y += rotationSpeed;
-    }
-  });
-
-  return (
-    <Float speed={floatSpeed} rotationIntensity={1} floatIntensity={floatIntensity}>
-      <group ref={planetRef} position={position} scale={scale}>
-        <Clone object={scene} />
-      </group>
-    </Float>
-  );
-};
-
-// --- COMPONENT: DARK MODE TOGGLE ---
-const DarkModeToggle = ({isDarkMode, toggleDarkMode, className=''}) => {
-    return (
-      <div 
-        className={`relative w-[80px] h-8 rounded-[2rem] flex items-center justify-end px-1 border cursor-pointer transition-colors z-50 ${isDarkMode ? 'border-gray-500 bg-slate-800' : 'border-black bg-white'} ${className}`} 
-        onClick={toggleDarkMode}
-      >
-        <div className={`h-[90%] aspect-square rounded-full opacity-80 transition-transform duration-700 ease-in-out flex items-center justify-center ${!isDarkMode ? "bg-amber-300 translate-x-0" : "bg-gray-500 -translate-x-[160%]"}`}>
-          <div className="animate-bounce flex items-center justify-center">
-            {!isDarkMode ? (
-              <SunOutlined className="text-white text-xl animate-spin-slow" />
-            ) : (
-              <div className="flex">
-                <MoonOutlined className="text-white text-lg" />
-                <StarOutlined className="text-white text-[8px] -mt-2" />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
 // --- COMPONENT: TOP NAVBAR ---
 const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) => {
@@ -245,13 +193,13 @@ const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) 
 const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActiveIndex, activeIndex }) => {
   const navigate = useNavigate();
   const menuItems = [
-    { icon: <ThunderboltOutlined />, label: 'Flash Sale', path: '/' },
+    { icon: <ThunderboltOutlined />, label: 'Flash Sale', path: USER_ROUTE.Home },
     { icon: <CompassOutlined />, label: 'Khám phá hàng ngày', path: '/404NotFound' },
     { icon: <ShopOutlined />, label: 'Siêu thị', path: '/404NotFound' },
-    { icon: <RiseOutlined />, label: 'Top Sản phẩm', path: '/topproducts' },
+    { icon: <RiseOutlined />, label: 'Top Sản phẩm', path: USER_ROUTE.TopProduct },
     { icon: <WalletOutlined />, label: 'Ví thanh toán', path: '/404NotFound' },
     { icon: <DollarCircleOutlined />, label: 'Săn xu', path: '/404NotFound' },
-    { icon: <HeartOutlined />, label: 'Yêu thích', path: '/wishlist' },
+    { icon: <HeartOutlined />, label: 'Yêu thích', path: USER_ROUTE.WishList },
   ];
 
   const renderNavLinks = (isDesktopCollapsed) => (
@@ -304,69 +252,7 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
   );
 };
 
-// --- COMPONENT: FOOTER KÈM MINI CANVAS BÊN PHẢI ---
-const Footer = ({ isDarkMode }) => (
-  // Bỏ overflow-hidden để model planet có thể trôi nổi vượt khỏi giới hạn footer
-  <footer className={`relative w-full mt-12 border-t transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'}`}>
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 px-4 py-12 max-w-7xl mx-auto relative z-10 pointer-events-none">
-      <div className="col-span-2 space-y-4 pointer-events-auto">
-        <h4 className="text-2xl font-black text-orange-600 m-0">MegaMart</h4>
-        <p className="text-sm text-gray-500">© 2024 MegaMart Global. Điểm đến mua sắm tuyệt vời nhất với thanh toán an toàn và giao hàng toàn cầu.</p>
-      </div>
-    </div>
 
-    {/* MINI CANVAS: CHỨA STYLIZED PLANET TRONG FOOTER - Nâng z-index lên z-[50] */}
-    {isDarkMode && (
-      <div className="absolute bottom-1/3 md:bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 pointer-events-none z-[50]">
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
-          <Suspense fallback={null}>
-            <ambientLight intensity={0.03} />
-            <spotLight position={[0, 7, 3]} angle={0.5} penumbra={0.8} intensity={3000} distance={25} decay={1.5} color="#ffaa00" />
-            <pointLight position={[0, -5, 2]} intensity={200} color="#334155" />
-            
-            <RotatingPlanet path="assets/stylized_planet.glb" scale={1.5} rotationSpeed={0.005} floatSpeed={2} floatIntensity={1} />
-          </Suspense>
-        </Canvas>
-      </div>
-    )}
-
-    {!isDarkMode && (
-      <div className="absolute bottom-1/3 md:bottom-0 right-0 w-44 h-44 md:w-64 md:h-64 pointer-events-none z-[50]">
-        <Canvas camera={{ position: [0, 0, 30], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
-          <Suspense fallback={null}>
-            <ambientLight intensity={0.03} />
-            <spotLight position={[0, 7, 3]} angle={0.5} penumbra={0.8} intensity={3000} distance={25} decay={1.5} color="#ffaa00" />
-            <pointLight position={[0, -5, 2]} intensity={200} color="#334155" />
-            
-            <RotatingPlanet path="assets/sun.glb" scale={0.8} rotationSpeed={0.005} floatSpeed={2} floatIntensity={1} />
-          </Suspense>
-        </Canvas>
-      </div>
-    )}
-
-    
-  </footer>
-);
-
-// --- 3D COMPONENTS (BACKGROUND CHUNG) ---
-const Global3DModel = ({ path, position, rotation, scale = 1.2 }) => {
-  const { scene } = useGLTF(path);
-
-  useMemo(() => {
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;  
-      }
-    });
-  }, [scene]);
-
-  return (
-    <Float speed={1} rotationIntensity={2} floatIntensity={4}>
-      <Clone object={scene} rotation={rotation} position={position} scale={scale} /> 
-    </Float>
-  );
-};
 
 const ResponsiveModelGroup = () => {
   const { viewport } = useThree();
@@ -377,38 +263,18 @@ const ResponsiveModelGroup = () => {
 
   return (
     <group position={currentPosition} scale={currentScale}>
-      {models.map(item => (
+      {ObjectModels.map(item => (
         <Global3DModel key={item.id} path={item.path} position={item.position} rotation={item.rotation} scale={item?.scale} />
       ))}
     </group>
   );
 };
 
-// --- MẢNG NGÔI SAO DÀNH RIÊNG CHO DARK MODE ---
-const DarkModeStars = () => {
-  const { viewport } = useThree();
-  const isMobile = viewport.width < 4.5;
-  const starScale = isMobile ? 0.1 : 0.2; 
 
-  return (
-    <group>
-      {starRelativePositions.map((pos, idx) => (
-        <Float key={`star-${idx}`} speed={3} rotationIntensity={2} floatIntensity={2}>
-          <Global3DModel 
-            path="assets/star.glb" 
-            position={[pos.x * viewport.width, pos.y * viewport.height, pos.z]} 
-            rotation={pos.rotation} 
-            scale={starScale} 
-          />
-        </Float>
-      ))}
-    </group>
-  );
-};
 
 
 // --- MAIN LAYOUT ---
-export default function MainLayout() {
+export default function UserMainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setLoading] = useState(true);

@@ -2,39 +2,50 @@ import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 // Import các Layouts và Pages
-import MainLayout from './Layouts/MainLayout/MainLayout'; // Đường dẫn tới file MainLayout của bạn
-import HomePage from './Pages/Homepage/HomePage';       // Đường dẫn tới file HomePage của bạn
+import UserMainLayout from './Layouts/UserMainLayout/UserMainLayout'; // Đường dẫn tới file MainLayout của bạn
+import HomePage from './Pages/User/Homepage/HomePage';       // Đường dẫn tới file HomePage của bạn
 import AuthPage from './Pages/AuthPage/AuthPage';
-import WishListPage from './Pages/WishListPage/WishListPage'; // Đường dẫn tới file WishListPage của bạn
-import TopProductsPage from './Pages/TopProductsPage/TopProductsPage';
+import WishListPage from './Pages/User/WishListPage/WishListPage'; // Đường dẫn tới file WishListPage của bạn
+import TopProductsPage from './Pages/User/TopProductsPage/TopProductsPage';
 import NotFoundPage from './Pages/NotFoundPage/NotFoundPage';
-import CartPage from './Pages/CartPage/CartPage';
+import CartPage from './Pages/User/CartPage/CartPage';
+
+//Import cac Route
+import USER_ROUTE from './Routes/User.routes';
+import ADMIN_ROUTE from './Routes/Admin.routes';
+import SELLER_ROUTE from './Routes/Seller.routes';
+import ProductDetailPage from './Pages/User/ProductDetailPage/ProductDetailPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <MainLayout />,
-    // Bạn có thể thêm errorElement ở đây để bắt lỗi 404
-    // errorElement: <NotFoundPage />, 
+    // USER ROUTE
+    path: USER_ROUTE.Home, // Home
+    element: <UserMainLayout />,
+
     children: [
       {
         index: true, // Render HomePage mặc định khi truy cập vào "/"
-        element: <HomePage />,
+        element: <HomePage />, // day la Home
       },
       {
-        path: "/wishlist",
+        path: USER_ROUTE.WishList,
         element: <WishListPage />,
       },
       {
-        path: "/topproducts",
+        path:USER_ROUTE.TopProduct,
         element: <TopProductsPage />,
       },
       {
-        path: "/cart", // sau có thể là '/card/:id'
+        path: USER_ROUTE.Cart, // sau có thể là '/card/:id'
         element: <CartPage/>
 
+      },
+      {
+        path: USER_ROUTE.DetailProduct, // Cái này sau track theo Params với useParams
+        element: <ProductDetailPage/>
       }
+
       // [TODO] Sau này bạn có thể thêm các trang khác vào đây:
       // {
       //   path: "product/:id",
