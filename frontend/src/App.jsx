@@ -47,6 +47,18 @@ const router = createBrowserRouter([
 
       },
       {
+        path: USER_ROUTE.Discover,
+        element : <NotFoundPage/>
+      },
+      {
+        path: USER_ROUTE.Seapay,
+        element: <NotFoundPage/>
+      },
+      {
+        path: USER_ROUTE.Supermarket,
+        element: <NotFoundPage/>
+      },
+      {
         path: USER_ROUTE.DetailProduct, // Cái này sau track theo Params với useParams
         element: <ProductDetailPage/>
       }
@@ -65,14 +77,6 @@ const router = createBrowserRouter([
       //   element: <ProfilePage />,
       // },
     ],
-  },
-  {
-    path: "/auth/login&register",
-    element: <AuthPage />, // Layout riêng cho trang đăng nhập/đăng ký
-  },
-  {
-    path: "/404NotFound",
-    element: <NotFoundPage/>
   },
 
   // ADMIN ROUTE
@@ -115,7 +119,21 @@ const router = createBrowserRouter([
   {
     path: ADMIN_ROUTE.Order,
     element: <OrderDetailPage/>
-  }
+  },
+  // SELLER ROUTE
+
+
+  //OTHER
+  {
+    path: "/auth/login&register",
+    element: <AuthPage />, // Layout riêng cho trang đăng nhập/đăng ký
+  },
+  {
+    path: "/404NotFound",
+    element: <NotFoundPage/>
+  },
+
+
 ]);
 
 function App() {

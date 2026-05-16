@@ -185,11 +185,10 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
   const navigate = useNavigate();
   const menuItems = [
     { icon: <ThunderboltOutlined />, label: 'Flash Sale', path: USER_ROUTE.Home },
-    { icon: <CompassOutlined />, label: 'Khám phá hàng ngày', path: '/404NotFound' },
-    { icon: <ShopOutlined />, label: 'Siêu thị', path: '/404NotFound' },
+    { icon: <CompassOutlined />, label: 'Khám phá hàng ngày', path: USER_ROUTE.Discover },
+    { icon: <ShopOutlined />, label: 'Siêu thị', path: USER_ROUTE.Supermarket },
     { icon: <RiseOutlined />, label: 'Top Sản phẩm', path: USER_ROUTE.TopProduct },
-    { icon: <WalletOutlined />, label: 'Ví thanh toán', path: '/404NotFound' },
-    { icon: <DollarCircleOutlined />, label: 'Săn xu', path: '/404NotFound' },
+    { icon: <WalletOutlined />, label: 'Ví thanh toán', path: USER_ROUTE.Seapay },
     { icon: <HeartOutlined />, label: 'Yêu thích', path: USER_ROUTE.WishList },
   ];
 
@@ -359,7 +358,7 @@ export default function UserMainLayout() {
             />
           )}
           <div className="flex-grow w-full overflow-hidden transition-all duration-300">
-            {isLoading ? <Loading /> : <Outlet />}
+            {isLoading ? <Loading /> : <Outlet context = {{isDarkMode}} />}
           </div>
         </div>
       </main>

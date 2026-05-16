@@ -13,7 +13,7 @@ import {
   RightOutlined,
   CustomerServiceOutlined
 } from '@ant-design/icons';
-
+import { useOutletContext } from 'react-router-dom';
 // FIXME: [MOCK_DATA] - Xóa toàn bộ biến này khi có API.
 // Mock data tuân thủ chính xác cấu trúc DTO CartResponse bọc ngoài CartItemResponse
 const mockCartResponse = {
@@ -71,6 +71,7 @@ const recommendations = [
 ];
 
 export default function CartPage() {
+  const {isDarkMode} = useOutletContext();
   // FIXME: [MOCK_DATA] - Khi có API, đổi thành `useState(null)` để làm trạng thái loading ban đầu
   const [cart, setCart] = useState(mockCartResponse);
   const [voucher, setVoucher] = useState('');
@@ -161,7 +162,7 @@ export default function CartPage() {
 
   return (
     <div className="animate-fade-in pb-12">
-      <h1 className="text-3xl font-black mb-8 text-gray-800">Giỏ hàng ({cartItems.length})</h1>
+      <h1 className={`text-3xl font-black mb-8 ${isDarkMode ? "text-shadow-amber-200" : "test-gray-800"}`}>Giỏ hàng ({cartItems.length})</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
@@ -302,7 +303,7 @@ export default function CartPage() {
 
       {/* --- PHẦN GỢI Ý MUA KÈM --- */}
       <section className="mt-20">
-        <h2 className="text-2xl font-black text-gray-800 mb-8 m-0">Có thể bạn sẽ thích</h2>
+        <h2 className={`text-2xl font-black mb-8 m-0 ${isDarkMode ? "text-shadow-amber-200" : "test-gray-800"}`}>Có thể bạn sẽ thích</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {recommendations.map((item) => (
             <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 group cursor-pointer">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Checkbox, Button } from 'antd';
+import { useOutletContext } from 'react-router-dom';
 import { 
   DeleteOutlined, 
   ShoppingCartOutlined, 
@@ -60,7 +61,10 @@ export default function WishListPage() {
   const [items, setItems] = useState(MOCK_WISHLIST_ITEMS); 
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
-  // Hàm chọn tất cả
+  // Vẫn giữ lại context nếu bạn cần xử lý riêng cho Ant Design ConfigProvider sau này,
+  // nhưng giao diện ở đây sẽ chạy 100% bằng class `dark:` của Tailwind
+  const { isDarkMode } = useOutletContext();
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedItemIds(items.map(item => item.id));
@@ -69,40 +73,35 @@ export default function WishListPage() {
     }
   };
 
-  // Hàm chọn từng item
   const handleSelectItem = (id) => {
     setSelectedItemIds(prev => 
       prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
     );
   };
 
-  // Hàm xóa 1 item
   const handleRemoveItem = (id) => {
     /* [TODO: API] Gọi API xóa sản phẩm khỏi Wishlist: DELETE /api/user/wishlist/:id */
     setItems(items.filter(item => item.id !== id));
     setSelectedItemIds(selectedItemIds.filter(itemId => itemId !== id));
   };
 
-  // Hàm xóa các items đã chọn
   const handleRemoveSelected = () => {
     /* [TODO: API] Gọi API xóa hàng loạt: POST /api/user/wishlist/delete-multiple { ids: selectedItemIds } */
     setItems(items.filter(item => !selectedItemIds.includes(item.id)));
     setSelectedItemIds([]);
   };
 
-  // Hàm chuyển các item đã chọn vào giỏ hàng
   const handleMoveToCart = () => {
     /* [TODO: API] Gọi API thêm vào giỏ hàng: POST /api/cart/add-multiple { ids: selectedItemIds } */
     console.log("Moving to cart IDs:", selectedItemIds);
-    // Sau khi thêm vào giỏ, có thể xóa khỏi wishlist hoặc giữ nguyên tùy luồng nghiệp vụ
   };
 
   const isAllSelected = items.length > 0 && selectedItemIds.length === items.length;
   const hasSelection = selectedItemIds.length > 0;
 
   return (
-    <div className="w-full pb-10">
-      {/* Hero Header with Patterns */}
+    <div className="w-full pb-10 animate-fade-in">
+      {/* Hero Header */}
       <section className="relative overflow-hidden rounded-xl mb-8 p-8 md:p-10 bg-gradient-to-br from-orange-700 to-orange-500 text-white shadow-md">
         <div 
           className="absolute inset-0 opacity-[0.15]" 
@@ -121,27 +120,26 @@ export default function WishListPage() {
         </div>
       </section>
 
-      {/* RENDER NẾU CÓ ITEM TRONG WISHLIST */}
       {items.length > 0 ? (
         <>
           {/* Wishlist Controls */}
-          <section className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6 gap-4">
+          <section className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 mb-6 gap-4 transition-colors">
             <div className="flex items-center gap-3 w-full md:w-auto">
               <Checkbox 
                 checked={isAllSelected} 
                 onChange={handleSelectAll}
-                className="text-gray-700 font-semibold text-sm"
+                className="text-gray-700 dark:text-gray-300 font-semibold text-sm"
               >
                 Chọn tất cả
               </Checkbox>
-              <span className="text-sm text-gray-500">({items.length} sản phẩm)</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">({items.length} sản phẩm)</span>
             </div>
             
             <div className="flex gap-3 w-full md:w-auto">
               <Button 
                 danger 
                 icon={<DeleteOutlined />} 
-                className="flex-1 md:flex-none"
+                className={`flex-1 md:flex-none ${isDarkMode ? 'bg-transparent border-red-800 text-red-500 hover:bg-red-900/30' : ''}`}
                 disabled={!hasSelection}
                 onClick={handleRemoveSelected}
               >
@@ -150,7 +148,7 @@ export default function WishListPage() {
               <Button 
                 type="primary" 
                 icon={<ShoppingCartOutlined />} 
-                className="flex-1 md:flex-none bg-orange-600 hover:bg-orange-500 shadow-sm border-none"
+                className="flex-1 md:flex-none bg-orange-600 hover:bg-orange-500 shadow-sm border-none disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-slate-700 dark:disabled:text-slate-500"
                 disabled={!hasSelection}
                 onClick={handleMoveToCart}
               >
@@ -162,9 +160,10 @@ export default function WishListPage() {
           {/* Wishlist Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map((item) => (
-              <article key={item.id} className="bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow group relative flex flex-col">
+              <article key={item.id} className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 group relative flex flex-col">
+                
                 {/* Badges & Checkboxes */}
-                <div className="absolute top-3 left-3 z-10 bg-white/80 rounded backdrop-blur-sm px-1 shadow-sm">
+                <div className="absolute top-3 left-3 z-10 bg-white/80 dark:bg-slate-800/80 rounded backdrop-blur-sm px-1 shadow-sm">
                   <Checkbox 
                     checked={selectedItemIds.includes(item.id)} 
                     onChange={() => handleSelectItem(item.id)} 
@@ -177,21 +176,21 @@ export default function WishListPage() {
                 )}
                 
                 {/* Image */}
-                <div className="aspect-square bg-gray-50 relative overflow-hidden">
+                <div className="aspect-square bg-gray-50 dark:bg-slate-700 relative overflow-hidden">
                   <img 
                     src={item.img} 
                     alt={item.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-500" 
                   />
                 </div>
                 
                 {/* Content */}
                 <div className="p-4 flex flex-col flex-grow">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 pr-2">{item.title}</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 pr-2 transition-colors">{item.title}</h3>
                     <button 
                       onClick={() => handleRemoveItem(item.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 pt-0.5"
+                      className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0 pt-0.5"
                     >
                       <CloseOutlined className="text-[16px]" />
                     </button>
@@ -200,17 +199,17 @@ export default function WishListPage() {
                   <div className="flex items-center gap-2 mb-3 mt-1">
                     <span className="text-lg font-bold text-orange-600">${item.price}</span>
                     {item.originalPrice && (
-                      <span className="text-xs text-gray-400 line-through">${item.originalPrice}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 line-through">${item.originalPrice}</span>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-1 mb-4 text-xs text-gray-500 mt-auto">
+                  <div className="flex items-center gap-1 mb-4 text-xs text-gray-500 dark:text-gray-400 mt-auto transition-colors">
                     <StarFilled className="text-orange-500" />
                     <span>{item.rating} (Đã bán {item.sold})</span>
                   </div>
                   
                   <Button 
-                    className="w-full border-gray-200 text-gray-700 hover:text-orange-600 hover:border-orange-600" 
+                    className="w-full border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:text-orange-600 hover:border-orange-600 dark:hover:text-orange-400 dark:hover:border-orange-400 dark:bg-slate-800 transition-colors" 
                     icon={<ShoppingCartOutlined />}
                     onClick={() => {
                       /* [TODO: API] POST /api/cart/add { id: item.id } */
@@ -225,13 +224,13 @@ export default function WishListPage() {
           </div>
         </>
       ) : (
-        /* RENDER TRẠNG THÁI EMPTY KHI WISHLIST TRỐNG */
-        <section className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-100 shadow-sm mt-4">
-          <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-            <HeartOutlined className="text-gray-300 text-5xl" />
+        /* TRẠNG THÁI EMPTY KHI WISHLIST TRỐNG */
+        <section className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm mt-4 transition-colors">
+          <div className="w-24 h-24 bg-gray-50 dark:bg-slate-700 rounded-full flex items-center justify-center mb-6 transition-colors">
+            <HeartOutlined className="text-gray-300 dark:text-gray-500 text-5xl" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Danh sách yêu thích trống</h2>
-          <p className="text-sm text-gray-500 mb-8">Các sản phẩm bạn yêu thích sẽ được lưu tại đây.</p>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2 transition-colors">Danh sách yêu thích trống</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 transition-colors">Các sản phẩm bạn yêu thích sẽ được lưu tại đây.</p>
           <Button 
             type="primary" 
             size="large" 
