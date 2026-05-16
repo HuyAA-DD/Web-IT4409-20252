@@ -14,7 +14,12 @@ import CartPage from './Pages/User/CartPage/CartPage';
 import USER_ROUTE from './Routes/User.routes';
 import ADMIN_ROUTE from './Routes/Admin.routes';
 import SELLER_ROUTE from './Routes/Seller.routes';
+
 import ProductDetailPage from './Pages/User/ProductDetailPage/ProductDetailPage';
+import AdminMainLayout from './Layouts/AdminMainLayout/AdminMainLayout';
+import OrderPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
+import OrderListPage from './Pages/Admin/OrderListPage/OrderListPage';
+import OrderDetailPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -68,6 +73,48 @@ const router = createBrowserRouter([
   {
     path: "/404NotFound",
     element: <NotFoundPage/>
+  },
+
+  // ADMIN ROUTE
+  {
+    path : ADMIN_ROUTE.Home,
+    element: <AdminMainLayout/>,
+
+    children:[
+      {
+        index: true,
+        element: <div></div>
+        
+      },
+      {
+        path: ADMIN_ROUTE.Dashbroad,
+        element: <NotFoundPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Orderlist,
+        element: <OrderListPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Product,
+        element: <NotFoundPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Analytic,
+        element: <NotFoundPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Setting,
+        element: <NotFoundPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Customer,
+        element: <NotFoundPage/>
+      }
+    ]
+  },
+  {
+    path: ADMIN_ROUTE.Order,
+    element: <OrderDetailPage/>
   }
 ]);
 

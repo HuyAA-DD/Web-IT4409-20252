@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, Suspense} from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // <-- Đã thêm useLocation
 import { Canvas, useThree } from '@react-three/fiber';
 import { Clone, Float, useGLTF, Environment, Center, PresentationControls, OrbitControls } from '@react-three/drei';
 import { Input, Badge, FloatButton, Button, Avatar } from 'antd';
@@ -25,8 +25,7 @@ import {
 //Data import
 import { ObjectModels, StarPosition } from '../../Data/3Dmodels';
 
-// COmponent import
-
+// Component import
 import RotatingPlanet from '../../Components/RotatingPlanet/RotatingPlanet';
 import DarkModeToggle from '../../Components/DarkModeToggle/DarkModeToggle';
 import Footer from '../../Components/Footer/Footer';
@@ -35,7 +34,6 @@ import DarkModeStars from '../../Components/DarkModeStar/DarkModeStars';
 import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
 const { Search } = Input;
-
 
 useGLTF.preload('assets/Shopping_cart.glb');
 useGLTF.preload('assets/juice_carton_shop.glb');
@@ -47,11 +45,6 @@ useGLTF.preload('assets/star.glb');
 useGLTF.preload('assets/sun.glb');
 useGLTF.preload('assets/blender_planet_basic.glb');
 useGLTF.preload('assets/nike_shoe_box.glb');
-
-
-
-
-
 
 // --- COMPONENT: TOP NAVBAR ---
 const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) => {
@@ -138,8 +131,6 @@ const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) 
           </Canvas>
         </div>
       )}
-
-
 
       <div className="relative flex flex-col md:flex-row items-center justify-between px-6 py-4 max-w-7xl mx-auto gap-4 pointer-events-none">
         <div className="flex items-center justify-between w-full md:w-auto pointer-events-auto z-10 md:mr-20">
@@ -252,8 +243,6 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
   );
 };
 
-
-
 const ResponsiveModelGroup = () => {
   const { viewport } = useThree();
   const isMobile = viewport.width < 4.5;
@@ -270,9 +259,6 @@ const ResponsiveModelGroup = () => {
   );
 };
 
-
-
-
 // --- MAIN LAYOUT ---
 export default function UserMainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -280,6 +266,10 @@ export default function UserMainLayout() {
   const [isLoading, setLoading] = useState(true);
   const [activeIndex,setActiveIndex] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // --- LOGIC ẨN SIDEBAR DỰA VÀO ĐƯỜNG DẪN TẠI ĐÂY ---
+  const location = useLocation();
+  const isDetailsPage = location.pathname.startsWith('/product') || location.pathname.startsWith('/cart');
 
   useEffect(() => {
     const timer = setTimeout(() => { setLoading(false); }, 3000);
@@ -357,7 +347,17 @@ export default function UserMainLayout() {
       {/* LỚP 2: Nội dung chính */}
       <main className="relative z-20 max-w-7xl mx-auto px-4 py-8 flex-grow w-full pointer-events-auto">
         <div className="flex flex-col lg:flex-row gap-6 h-full">
-          <Sidebar collapsed={isSidebarCollapsed} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} isDarkMode={isDarkMode} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
+          {/* Tự động Ẩn Sidebar ở trang chi tiết sản phẩm / giỏ hàng */}
+          {!isDetailsPage && (
+            <Sidebar 
+              collapsed={isSidebarCollapsed} 
+              isMobileOpen={isMobileMenuOpen} 
+              onCloseMobile={() => setIsMobileMenuOpen(false)} 
+              isDarkMode={isDarkMode} 
+              activeIndex={activeIndex} 
+              setActiveIndex={setActiveIndex} 
+            />
+          )}
           <div className="flex-grow w-full overflow-hidden transition-all duration-300">
             {isLoading ? <Loading /> : <Outlet />}
           </div>
@@ -369,11 +369,14 @@ export default function UserMainLayout() {
         <Footer isDarkMode={isDarkMode} />
       </div>
 
-      <nav className={`md:hidden fixed bottom-0 left-0 right-0 border-t flex justify-around py-3 z-40 shadow-inner pointer-events-auto transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'}`}>
-        <a className="flex flex-col items-center gap-1 text-orange-600" href="#"><HomeOutlined className="text-xl" /><span className="text-[10px] font-bold">Trang chủ</span></a>
-        <a className={`flex flex-col items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} href="#"><CompassOutlined className="text-xl" /><span className="text-[10px]">Khám phá</span></a>
-        <a className={`flex flex-col items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} href="#"><UserOutlined className="text-xl" /><span className="text-[10px]">Tôi</span></a>
-      </nav>
+      {/* Tự động Ẩn Mobile Bottom Nav ở trang chi tiết sản phẩm / giỏ hàng */}
+      {!isDetailsPage && (
+        <nav className={`md:hidden fixed bottom-0 left-0 right-0 border-t flex justify-around py-3 z-40 shadow-inner pointer-events-auto transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'}`}>
+          <a className="flex flex-col items-center gap-1 text-orange-600" href="#"><HomeOutlined className="text-xl" /><span className="text-[10px] font-bold">Trang chủ</span></a>
+          <a className={`flex flex-col items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} href="#"><CompassOutlined className="text-xl" /><span className="text-[10px]">Khám phá</span></a>
+          <a className={`flex flex-col items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} href="#"><UserOutlined className="text-xl" /><span className="text-[10px]">Tôi</span></a>
+        </nav>
+      )}
 
       <FloatButton.Group shape="circle" style={{ right: 24, bottom: 80 }} className="z-50 pointer-events-auto">
         <FloatButton icon={<MessageOutlined />} type="primary" badge={{ count: 3 }} tooltip="Chat hỗ trợ" />
@@ -381,4 +384,4 @@ export default function UserMainLayout() {
       </FloatButton.Group>
     </div>
   );
-}   
+}
