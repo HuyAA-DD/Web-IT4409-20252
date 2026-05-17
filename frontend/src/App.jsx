@@ -20,6 +20,9 @@ import AdminMainLayout from './Layouts/AdminMainLayout/AdminMainLayout';
 import OrderPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
 import OrderListPage from './Pages/Admin/OrderListPage/OrderListPage';
 import OrderDetailPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
+import AuditLogPage from './Pages/Admin/AuditLogPage/AuditLogPage';
+import DashboardPage from './Pages/Admin/DashboardPage/DashboardPage';
+import CouponPage from './Pages/Admin/CouponPage/CouponPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -91,8 +94,8 @@ const router = createBrowserRouter([
         
       },
       {
-        path: ADMIN_ROUTE.Dashbroad,
-        element: <NotFoundPage/>
+        path: ADMIN_ROUTE.Dashboard,
+        element: <DashboardPage/>
       },
       {
         path: ADMIN_ROUTE.Orderlist,
@@ -108,11 +111,15 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE.Setting,
-        element: <NotFoundPage/>
+        element: <AuditLogPage/>
       },
       {
         path: ADMIN_ROUTE.Customer,
         element: <NotFoundPage/>
+      },
+      {
+        path : ADMIN_ROUTE.Voucher,
+        element : <CouponPage/>
       }
     ]
   },

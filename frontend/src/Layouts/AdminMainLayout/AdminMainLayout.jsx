@@ -11,7 +11,8 @@ import {
   QuestionCircleOutlined,
   UserOutlined,
   MenuOutlined,
-  CloseOutlined
+  CloseOutlined,
+  TagOutlined
 } from '@ant-design/icons';
 import { Avatar, Badge, Button } from 'antd';
 
@@ -23,11 +24,12 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
   const location = useLocation();
 
   const menuItems = [
-    { icon: <DashboardOutlined />, label: 'Dashboard', path: ADMIN_ROUTE.Dashbroad },
+    { icon: <DashboardOutlined />, label: 'Dashboard', path: ADMIN_ROUTE.Dashboard },
     { icon: <ShoppingCartOutlined />, label: 'Orders', path: ADMIN_ROUTE.Orderlist },
     { icon: <InboxOutlined />, label: 'Products', path: ADMIN_ROUTE.Product },
     { icon: <TeamOutlined />, label: 'Customers', path: ADMIN_ROUTE.Customer },
     { icon: <LineChartOutlined />, label: 'Analytics', path: ADMIN_ROUTE.Analytic },
+    { icon: <TagOutlined/> , label: "Vouchers", path: ADMIN_ROUTE.Voucher},
     { icon: <SettingOutlined />, label: 'Settings', path: ADMIN_ROUTE.Setting},
   ];
 

@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { 
   SearchOutlined, 
   FilterOutlined, 
   EyeOutlined, 
   DownloadOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  LeftOutlined,
+  RightOutlined
 } from '@ant-design/icons';
+import useDebounce from '../../../Hooks/useDebounce';
 import ADMIN_ROUTE from '../../../Routes/Admin.routes';
 
 // FIXME: [MOCK_DATA] - Xóa dữ liệu này khi kết nối API
@@ -16,6 +19,7 @@ const mockOrderList = [
   { id: "a12bc34d-89ee-4f3a-9c2b-ab1234567890", customer: "Alice Nguyen", email: "alice@example.com", total: 899.50, status: "SHIPPED", date: "2023-10-22" },
   { id: "b34cd56e-12ff-4444-5555-666666666666", customer: "Bob Tran", email: "bob@example.com", total: 12.99, status: "CANCELLED", date: "2023-10-21" },
   { id: "c56de78f-34aa-7777-8888-999999999999", customer: "Charlie Le", email: "charlie@example.com", total: 340.00, status: "PENDING", date: "2023-10-24" },
+  { id: "d67ef89g-45bb-8888-9999-000000000000", customer: "David Vu", email: "david@example.com", total: 150.00, status: "PENDING", date: "2023-10-25" },
 ];
 
 export default function OrderListPage() {
@@ -26,58 +30,80 @@ export default function OrderListPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('');
   
-  // FIXME: [MOCK_DATA] - Đổi state khởi tạo thành useState([]) khi nối API thực tế
+  // Sửa delay xuống 500ms cho mượt mà
+  const finalSearchTerm = useDebounce(searchTerm, 500); 
+  
   const [orders, setOrders] = useState(mockOrderList);
 
+  // States cho Phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+
   // ----------------------------------------------------------------------
-  // TODO: [API_CALL] - GET /api/v1/admin/orders?search=...&status=...&date=...
-  // Sau này khi có API, bạn sẽ gọi axios ở đây và dùng setSearchTerm, setStatusFilter 
-  // để kích hoạt useEffect tải lại dữ liệu từ Spring Boot chứ không lọc bằng JS nữa.
+  // TODO: [API_CALL] - GET /api/v1/admin/orders?search=...
+  // Khi nối API, bạn sẽ dùng useEffect lắng nghe sự thay đổi của finalSearchTerm,
+  // statusFilter, dateFilter để fetch data từ BE.
   // ----------------------------------------------------------------------
 
-  // LOGIC LỌC TẠM THỜI TẠI FRONTEND
-  const filteredOrders = orders.filter(order => {
-    // 1. Kiểm tra trạng thái tuyển chọn
-    const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
-    
-    // 2. Kiểm tra ô tìm kiếm (Không phân biệt chữ hoa / chữ thường)
-    const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase());
+  // 1. ÁP DỤNG BỘ LỌC VỚI USEMEMO
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      // Lọc theo trạng thái
+      const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
       
-    // 3. Kiểm tra lọc theo ngày (nếu người dùng có chọn ngày)
-    const matchesDate = !dateFilter || order.date === dateFilter;
+      // Lọc theo từ khóa (Dùng finalSearchTerm thay vì searchTerm)
+      const searchLower = finalSearchTerm.toLowerCase();
+      const matchesSearch = 
+        order.id.toLowerCase().includes(searchLower) ||
+        order.customer.toLowerCase().includes(searchLower) ||
+        order.email.toLowerCase().includes(searchLower);
+        
+      // Lọc theo ngày
+      const matchesDate = !dateFilter || order.date === dateFilter;
 
-    return matchesStatus && matchesSearch && matchesDate;
-  });
+      return matchesStatus && matchesSearch && matchesDate;
+    });
+  }, [orders, statusFilter, finalSearchTerm, dateFilter]); // Dependency phải là finalSearchTerm
+
+  // Reset về trang 1 nếu bộ lọc thay đổi
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [finalSearchTerm, statusFilter, dateFilter]);
+
+  // 2. XỬ LÝ PHÂN TRANG (PAGINATION)
+  const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
 
   const getStatusBadge = (status) => {
     switch(status) {
-      case 'PENDING': return 'bg-blue-100 text-blue-700';
-      case 'SHIPPED': return 'bg-purple-100 text-purple-700';
-      case 'DELIVERED': return 'bg-emerald-100 text-emerald-700';
-      case 'CANCELLED': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'PENDING': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'SHIPPED': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'DELIVERED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'CANCELLED': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      default: return 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300';
     }
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-[1200px] mx-auto space-y-6 animate-fade-in transition-colors duration-500">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 m-0">Quản lý Đơn hàng</h1>
-          <p className="text-gray-500 text-sm m-0 mt-1">Theo dõi và xử lý tất cả đơn hàng trên hệ thống.</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 m-0">Quản lý Đơn hàng</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm m-0 mt-1">Theo dõi và xử lý tất cả đơn hàng trên hệ thống.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
+        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-medium text-sm shadow-sm">
           <DownloadOutlined /> Xuất File Excel
         </button>
       </div>
 
       {/* TOOLBAR: TÌM KIẾM & BỘ LỌC */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-center">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col md:flex-row gap-4 justify-between items-center transition-colors">
         
         {/* Search Bar */}
         <div className="relative w-full md:max-w-md">
@@ -87,7 +113,7 @@ export default function OrderListPage() {
             placeholder="Tìm theo Mã ĐH, Tên khách hàng, Email..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-orange-500 transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all text-sm"
           />
         </div>
 
@@ -99,13 +125,13 @@ export default function OrderListPage() {
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none pl-8 pr-8 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:border-orange-500 text-sm text-gray-700 cursor-pointer"
+              className="appearance-none pl-8 pr-8 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-transparent focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="PENDING">Pending (Chờ xử lý)</option>
-              <option value="SHIPPED">Shipped (Đang giao)</option>
-              <option value="DELIVERED">Delivered (Hoàn thành)</option>
-              <option value="CANCELLED">Cancelled (Đã hủy)</option>
+              <option value="ALL" className="dark:bg-slate-800">Tất cả trạng thái</option>
+              <option value="PENDING" className="dark:bg-slate-800">Pending (Chờ xử lý)</option>
+              <option value="SHIPPED" className="dark:bg-slate-800">Shipped (Đang giao)</option>
+              <option value="DELIVERED" className="dark:bg-slate-800">Delivered (Hoàn thành)</option>
+              <option value="CANCELLED" className="dark:bg-slate-800">Cancelled (Đã hủy)</option>
             </select>
           </div>
 
@@ -116,50 +142,53 @@ export default function OrderListPage() {
               type="date" 
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="pl-8 pr-4 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:border-orange-500 text-sm text-gray-700 cursor-pointer"
+              className="pl-8 pr-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-transparent focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
             />
           </div>
         </div>
       </div>
 
       {/* BẢNG DỮ LIỆU ĐƠN HÀNG */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors">
+        <div className="overflow-x-auto min-h-[350px]">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
+              <tr className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <th className="p-4 font-semibold">Mã ĐH</th>
                 <th className="p-4 font-semibold">Khách hàng</th>
                 <th className="p-4 font-semibold">Ngày đặt</th>
-                <th className="p-4 font-semibold">Tổng tiền</th>
-                <th className="p-4 font-semibold">Trạng thái</th>
+                <th className="p-4 font-semibold text-right">Tổng tiền</th>
+                <th className="p-4 font-semibold text-center">Trạng thái</th>
                 <th className="p-4 font-semibold text-center">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {/* ĐỔI THÀNH MAP TỪ MẢNG DỮ LIỆU ĐÃ QUA BỘ LỌC */}
-              {filteredOrders.map(order => (
-                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-4 text-sm font-mono text-gray-600 font-medium">
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+              
+              {/* RENDER MẢNG PHÂN TRANG */}
+              {paginatedOrders.map(order => (
+                <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-400 font-medium">
                     #{order.id.substring(0, 8)}...
                   </td>
                   <td className="p-4">
-                    <p className="font-bold text-gray-800 text-sm m-0">{order.customer}</p>
-                    <p className="text-xs text-gray-500 m-0">{order.email}</p>
+                    <p className="font-bold text-gray-800 dark:text-gray-200 text-sm m-0">{order.customer}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 m-0">{order.email}</p>
                   </td>
-                  <td className="p-4 text-sm text-gray-600">
+                  <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
                     {new Date(order.date).toLocaleDateString('vi-VN')}
                   </td>
-                  <td className="p-4 font-bold text-orange-600 text-sm">${order.total.toFixed(2)}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getStatusBadge(order.status)}`}>
+                  <td className="p-4 font-bold text-orange-600 dark:text-orange-400 text-sm text-right">
+                    ${order.total.toFixed(2)}
+                  </td>
+                  <td className="p-4 text-center">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide inline-block ${getStatusBadge(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
                   <td className="p-4 text-center">
                     <button 
-                      onClick={() => navigate(ADMIN_ROUTE.Order)} // Chỗ này sau sẽ thay với order/:uuid
-                      className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => navigate(`/admin/orders/${order.id}`)}
+                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                     >
                       <EyeOutlined className="text-lg" />
                     </button>
@@ -167,23 +196,51 @@ export default function OrderListPage() {
                 </tr>
               ))}
               
-              {/* Nếu lọc xong không ra kết quả nào */}
-              {filteredOrders.length === 0 && (
+              {paginatedOrders.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-gray-500 font-medium">Không tìm thấy đơn hàng nào khớp với bộ lọc.</td>
+                  <td colSpan="6" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Không tìm thấy đơn hàng nào khớp với bộ lọc.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Phân trang */}
-        <div className="p-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500 bg-white">
-          <span>Hiển thị {filteredOrders.length} kết quả</span>
-          <div className="flex gap-1">
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50">Trước</button>
-            <button className="px-3 py-1 bg-orange-600 text-white rounded font-bold">1</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Sau</button>
+        {/* --- PAGINATION UI --- */}
+        <div className="bg-white dark:bg-slate-800 p-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between transition-colors">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Hiển thị {paginatedOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, filteredOrders.length)} trên tổng số {filteredOrders.length} đơn hàng
+          </span>
+          
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <LeftOutlined className="text-xs" />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button 
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`w-8 h-8 rounded text-sm font-bold flex items-center justify-center transition-colors shadow-sm ${
+                  currentPage === page 
+                    ? 'bg-orange-600 text-white' 
+                    : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-medium'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <RightOutlined className="text-xs" />
+            </button>
           </div>
         </div>
       </div>
