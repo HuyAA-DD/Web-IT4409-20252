@@ -155,13 +155,15 @@ const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) 
           <Search placeholder="Săn deal hot tại MegaMart..." allowClear onSearch={handleSearch} enterButton={<Button type="primary" className="bg-orange-600 hover:bg-orange-500 border-none px-6"><SearchOutlined style={{ fontSize: '18px' }} /></Button>} size="large" />
         </div>
 
-        <div className="hidden md:flex items-center gap-6 pointer-events-auto z-10 mr-[130px]">
-          <div className="relative cursor-pointer group flex items-center justify-center">
-            <Badge count={notiCount} overflowCount={99} offset={[2, 2]}>
-              <BellOutlined className={`text-[24px] transition-all ${isDarkMode ? 'text-gray-300 hover:text-orange-400' : 'text-gray-600 hover:text-orange-600'}`} />
-            </Badge>
-          </div>
-          <div className="relative cursor-pointer group flex items-center justify-center" onClick={() => {navigate('/cart'); setActiveIndex(-1)}}>
+        <div className="hidden md:flex items-center gap-6 pointer-events-auto z-10 mr-[130px]" >
+         <div className="relative cursor-pointer group flex items-center justify-center" onClick={() => { navigate('/notification'); setActiveIndex(-1) }}>
+          <Badge count={notiCount} overflowCount={99} offset={[2, 2]}>
+            <BellOutlined 
+              className={`text-[24px] transition-all ${isDarkMode ? 'text-gray-200 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-600'}`} 
+            />
+          </Badge>
+        </div>
+          <div className="relative cursor-pointer group flex items-center justify-center " onClick={() => {navigate('/cart'); setActiveIndex(-1)}}>
             <Badge count={cartCount} offset={[2, 2]}>
               <ShoppingCartOutlined className={`text-[26px] transition-all ${isDarkMode ? 'text-gray-100 hover:text-orange-400' : 'text-gray-600 hover:text-orange-600'}`} />
             </Badge>

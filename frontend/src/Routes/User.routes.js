@@ -6,7 +6,8 @@ const USER_ROUTE = {
     "DetailProduct":"/product-detail", // cái này sau này phải Params id
     "Discover": "/discover",
     "Supermarket": "/supermarket",
-    "Seapay": "/seapay"
+    "Seapay": "/seapay",
+    "Notification" : "/notification"
 
 }
 

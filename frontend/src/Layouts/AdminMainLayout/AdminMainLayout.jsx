@@ -12,7 +12,10 @@ import {
   UserOutlined,
   MenuOutlined,
   CloseOutlined,
-  TagOutlined
+  TagOutlined,
+  DollarCircleOutlined,
+  TrophyOutlined
+
 } from '@ant-design/icons';
 import { Avatar, Badge, Button } from 'antd';
 
@@ -25,10 +28,10 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
   const menuItems = [
     { icon: <DashboardOutlined />, label: 'Dashboard', path: ADMIN_ROUTE.Dashboard },
+    { icon: <DollarCircleOutlined/> , label:'Revenue', path: ADMIN_ROUTE.Revenue},
     { icon: <ShoppingCartOutlined />, label: 'Orders', path: ADMIN_ROUTE.Orderlist },
     { icon: <InboxOutlined />, label: 'Products', path: ADMIN_ROUTE.Product },
-    { icon: <TeamOutlined />, label: 'Customers', path: ADMIN_ROUTE.Customer },
-    { icon: <LineChartOutlined />, label: 'Analytics', path: ADMIN_ROUTE.Analytic },
+    { icon: <TrophyOutlined/>, label : "Top products", path: ADMIN_ROUTE.Topproduct},
     { icon: <TagOutlined/> , label: "Vouchers", path: ADMIN_ROUTE.Voucher},
     { icon: <SettingOutlined />, label: 'Settings', path: ADMIN_ROUTE.Setting},
   ];
@@ -97,6 +100,7 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
 // --- MAIN LAYOUT ---
 export default function AdminMainLayout() {
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -122,14 +126,11 @@ export default function AdminMainLayout() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Badge count={3} size="small" offset={[-4, 4]}>
+            <Badge count={3} size="small" offset={[-4, 4]} onClick = {()=>{navigate('/admin/notification')}}>
               <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                 <BellOutlined className="text-lg" />
               </button>
             </Badge>
-            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-              <QuestionCircleOutlined className="text-lg" />
-            </button>
             <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
               <Avatar icon={<UserOutlined />} className="bg-orange-600" />
               <span className="text-sm font-bold text-gray-700 hidden md:block">Admin</span>

@@ -23,6 +23,10 @@ import OrderDetailPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
 import AuditLogPage from './Pages/Admin/AuditLogPage/AuditLogPage';
 import DashboardPage from './Pages/Admin/DashboardPage/DashboardPage';
 import CouponPage from './Pages/Admin/CouponPage/CouponPage';
+import RevenuePage from './Pages/Admin/RevenuePage/RevenuePage';
+import AdminTopProductPage from './Pages/Admin/AdminTopProductPage/AdminTopProductPage';
+import AdminNotificationPage from './Pages/Admin/AdminNotificationPage/AdminNotificationPage';
+import NotificationPage from './Pages/User/NotificationPage/NotificationPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -64,6 +68,10 @@ const router = createBrowserRouter([
       {
         path: USER_ROUTE.DetailProduct, // Cái này sau track theo Params với useParams
         element: <ProductDetailPage/>
+      },
+      {
+        path : USER_ROUTE.Notification,
+        element: <NotificationPage/>
       }
 
       // [TODO] Sau này bạn có thể thêm các trang khác vào đây:
@@ -106,20 +114,24 @@ const router = createBrowserRouter([
         element: <NotFoundPage/>
       },
       {
-        path: ADMIN_ROUTE.Analytic,
-        element: <NotFoundPage/>
+        path: ADMIN_ROUTE.Revenue,
+        element : <RevenuePage/>
       },
       {
         path: ADMIN_ROUTE.Setting,
         element: <AuditLogPage/>
       },
       {
-        path: ADMIN_ROUTE.Customer,
-        element: <NotFoundPage/>
-      },
-      {
         path : ADMIN_ROUTE.Voucher,
         element : <CouponPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Topproduct,
+        element : <AdminTopProductPage/>
+      },
+      {
+        path : ADMIN_ROUTE.Notification,
+        element : <AdminNotificationPage/>
       }
     ]
   },

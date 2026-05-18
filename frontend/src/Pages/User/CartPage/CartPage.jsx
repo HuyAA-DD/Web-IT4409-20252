@@ -270,7 +270,7 @@ export default function CartPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2 m-0"><TagOutlined className="text-orange-600" /> MegaMart Vouchers</h3>
             <div className="flex gap-2">
-              <input type="text" placeholder="Nhập mã ưu đãi" value={voucher} onChange={(e) => setVoucher(e.target.value)} className="flex-1 rounded-lg border border-gray-200 px-3 h-10 focus:ring-1 focus:ring-orange-600 focus:border-orange-600 outline-none transition-all" />
+              <input type="text" placeholder="Nhập mã ưu đãi" value={voucher} onChange={(e) => setVoucher(e.target.value)} className="flex-1 text-black rounded-lg border border-gray-200 px-3 h-10 focus:ring-1 focus:ring-orange-600 focus:border-orange-600 outline-none transition-all" />
               <button onClick={handleApplyVoucher} className="bg-slate-800 text-white px-4 rounded-lg font-bold hover:bg-slate-700 transition-all h-10">Áp dụng</button>
             </div>
           </div>

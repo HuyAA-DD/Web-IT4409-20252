@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  StarFilled, 
+  StarFilled,
+  StarOutlined, 
   ThunderboltFilled, 
   CarOutlined, 
   ShoppingCartOutlined, 
   CheckCircleFilled, 
-  MessageOutlined 
+  MessageOutlined,
+  UserOutlined,
+  SendOutlined
 } from '@ant-design/icons';
+import { message } from 'antd';
+import { useOutletContext } from 'react-router-dom';
 
 // FIXME: [MOCK_DATA] - Xóa toàn bộ dữ liệu này khi kết nối API.
-// Cấu trúc bám sát DTO ProductResponse (kèm giả lập ProductVariantResponse)
 const mockProductResponse = {
   id: "p1000000-0000-0000-0000-000000000001",
-  name: "ProStream Elite Z9 Laptop - 16\" 4K OLED, 32GB RAM, 1TB SSD, RTX 4080 Graphics, Ultra-Slim Design",
+  name: "ProStream Elite Z9 Laptop - 16\" 4K OLED, 32GB RAM, 1TB SSD, RTX 4080 Graphics",
   description: "Experience the future of computing with the ProStream Elite Z9. Designed for creators, gamers, and professionals who demand nothing but the absolute best. Featuring an industry-leading 4K OLED display that covers 100% of the DCI-P3 color gamut.",
   categoryId: "c1000000-0000-0000-0000-000000000001",
   categoryName: "Laptops",
@@ -22,81 +26,112 @@ const mockProductResponse = {
   imageUrls: [
     "https://lh3.googleusercontent.com/aida-public/AB6AXuC8d6gwQVW97K7CCp-wecZNbtHY1Obn3qAEFWfbsufpHKLPUbHSky-Zu20qVHnwkcTrXaxDQSs8ctxVn20ZNVNuncoVPRzIm45WMFQ7nGy_obzNC3Ap2CjBtTAtZ_m5KD3L9jkWvV8j-7YpCVjJ8VPHr7U7ky4Gony_oXULXEHjY5DytR6C46z_BoV-jT0PvhycipsrtRKSNwFGbUOuOsdC3s4jfqdvgYU8q8G64JP76c9GIscWdzfN7zTCpTM1zRJKrg9OFNJc6wBK",
     "https://lh3.googleusercontent.com/aida-public/AB6AXuCmyoN7CJYLJOSbZWq5t4OLblLkfLSW6VackzjopYlF5mRhDiFm7z-u9rVCnm2PzoGys93B5hB1cE6Z8-GNdK6hxdY4Y-BpqLFv5-m5JnneabD_jeHmEFwRg9WaWq6oV-F3FZIA0HPCIUVunf5P9CyZL25nyle4YcDMBA7z1K9N3gt7h7YMmwUPSRxt4fs4Y0Lamtfiv1PcgWwQ-oEvUYu4xp-NugzLI-elDFoR9d0B1-MmtmM0ksQmNg1SDPDn5NqgW7rBFBqBN4o1",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuBai1aX_jDGGCq2h3JF7G4Z9bhek4uh36OcsISAJ9DoOpr4es0pRdzN6PE4plDwkr1nlJ8bbn8XUwwWFtJwIX_zpUL5fBQpGNHBrmQRlLvXLfpfSWGWMn8aptnvL2FeFcM5uuYPW8xNhOi3bLqXhfr29q6LzbuAqFE4RYnXmkz1mNmcJYNPJ0EAuveDeJrBd_ihSzx3II9anDajZXfc6NtoWGRkIWS83-oNINYcV4_CO6COjIgGkBYpx781MSl35X3p-Qn4aTHvO66C",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuASRtMoMRjuQq477H5s8lTTE9ARvMmexIBErSyJdgtzOvTOWKC-88UrJIytrvXA9go4pyM1pKN_3Fx41zMbDLgyfz526h5zS1mt6r5kWJdBVYfHwhdmDm4PpvhC2z8kJbyVXVld6D4PVoa1xw86w745p8oQbGIBg8qz95OETQjL0edPlOv84ttjeJukHh1_uX6bw-y_mdsEBiMrEnP_rXefUGRD9ahuJ0iqWawyw4z_CUF-7kgB0kstM7v1LEmAXXXwCLzpUpFPKeGQ",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuCxm5IgnLjhoj3l0eeiW03LfRx_J_CHBZeVTG_QcDLVF-IrtZ8IGO1zyxP3SqjKzaXAMr3JJZmUHQmJyt_ilL_3p23fE0Mk07aBYyM2VC7deFruH9nmIo_RwdVcBYHnms8dgPa3a6newWvA9Q0kdbrMk-D9SaQ1eGkm-WAJOmdJm4bgSYJ_Yx7qs7-qVuxba-KQJZ3xnIoeL2HkdDFRsoM6TDvxr2GnEvavw4uMMiTZk5qBt315erTr3xX9rHCM-gxLxXpoxruCZXx5"
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuBai1aX_jDGGCq2h3JF7G4Z9bhek4uh36OcsISAJ9DoOpr4es0pRdzN6PE4plDwkr1nlJ8bbn8XUwwWFtJwIX_zpUL5fBQpGNHBrmQRlLvXLfpfSWGWMn8aptnvL2FeFcM5uuYPW8xNhOi3bLqXhfr29q6LzbuAqFE4RYnXmkz1mNmcJYNPJ0EAuveDeJrBd_ihSzx3II9anDajZXfc6NtoWGRkIWS83-oNINYcV4_CO6COjIgGkBYpx781MSl35X3p-Qn4aTHvO66C"
   ],
   variants: [
-    {
-      id: "v1", sku: "Z9-GRY-16", price: 1699.00, originalPrice: 2099.00, stock: 50,
-      attributes: { Color: "Space Gray", Memory: "16GB" }
-    },
-    {
-      id: "v2", sku: "Z9-GRY-32", price: 1899.00, originalPrice: 2499.00, stock: 15,
-      attributes: { Color: "Space Gray", Memory: "32GB" }
-    },
-    {
-      id: "v3", sku: "Z9-BLK-32", price: 1899.00, originalPrice: 2499.00, stock: 0,
-      attributes: { Color: "Midnight Black", Memory: "32GB" }
-    }
+    { id: "v1", sku: "Z9-GRY-16", price: 1699.00, originalPrice: 2099.00, stock: 50, attributes: { Color: "Space Gray", Memory: "16GB" } },
+    { id: "v2", sku: "Z9-GRY-32", price: 1899.00, originalPrice: 2499.00, stock: 15, attributes: { Color: "Space Gray", Memory: "32GB" } },
+    { id: "v3", sku: "Z9-BLK-32", price: 1899.00, originalPrice: 2499.00, stock: 0, attributes: { Color: "Midnight Black", Memory: "32GB" } }
   ],
   createdAt: "2024-01-01T10:00:00",
   updatedAt: "2024-05-10T15:30:00",
-  // Các trường UI giả lập (Thường được gọi từ ReviewService/StatsService)
   rating: 4.9,
   reviewsCount: "1.2k",
   soldCount: "4.5k"
 };
 
-// FIXME: [MOCK_DATA] - Xóa mảng này khi có API gọi gợi ý sản phẩm
 const relatedProducts = [
   { id: 1, name: "ProVision 34\" Ultra-Wide Curved Monitor 144Hz", price: 599.00, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCDvPd1IQvjcVWuTQRT8uCJZtxJLKYZzLsSSw5cIerGrBoFMSMv2SHTQZnS5Yxj7k8FavAemA-pS3fkhemGmKX-oihAC0thL6d_woYOVKx2YADYELptOlAye7g9UEeP7b_-ZpwqpjuOb3SvguvhjQChABmdZsTdnxwskHgTPWdrj-_cAqIUqz-6wmwO0K_NNMuT8v1dc3nF9O-oSE435XXjPqGKDCEUFAp2x9DXDcaOmK5Ip_ApToWYzxzLrDn-KZZQcdcqg_ZwzUhz" },
   { id: 2, name: "MechType Z Mechanical RGB Keyboard - Brown Switches", price: 129.00, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAyKnt1mOxYodxYeKkhqtR1ZoHYgo7QErOhl_Ywsx9QdgafxhTTPra5I8-tqfuizIPzc9vpKAycGNrpG0sibzsrej2SBOLEueC90j4-jAiDDlbpyGZt7jv4Xa0KOQPDm9d3d_NdJzmYlRpbvBwRBAEjvp39J5h0cZ17lYGC6keMSqpK_kThCW77BHcP2dWlFpI06zX5hP1GxkGUrGlWN-EjDfpgut5ETTXapSkk4qtKQyPmcZLQriWx9MQbYGI66Pa81qDfCjI33Rju" }
 ];
 
+const mockReviews = [
+  { id: "r-01", userId: "u-101", userName: "Nguyễn Văn A", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 5, comment: "Máy chạy cực kỳ mượt, màn hình OLED 4K hiển thị màu đen sâu thẳm. Render video 4K phà phà không bị drop frame. Rất đáng tiền!", createdAt: "2024-05-15T08:30:00" },
+  { id: "r-02", userId: "u-102", userName: "Trần Thị B", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 4, comment: "Chất lượng build tốt, phím gõ nảy. Điểm trừ duy nhất là máy hơi nóng khi chơi game AAA trong thời gian dài.", createdAt: "2024-05-14T14:20:00" },
+  { id: "r-03", userId: "u-103", userName: "Lê Minh C", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 5, comment: "Giao hàng nhanh, đóng gói cẩn thận. Cấu hình này dư sức code mười mấy năm nữa :))", createdAt: "2024-05-10T10:00:00" },
+  { id: "r-04", userId: "u-104", userName: "Phạm D", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 5, comment: "Tuyệt vời, săn sale được giá quá hời.", createdAt: "2024-05-08T09:15:00" }
+];
+
 export default function ProductDetailPage() {
-  // FIXME: [MOCK_DATA] - Đổi thành useState(null) khi có API
+  const {isDarkMode} = useOutletContext();
   const [product, setProduct] = useState(mockProductResponse);
   const [selectedImage, setSelectedImage] = useState(0);
   
-  // State lưu trữ các thuộc tính phân loại đang được người dùng chọn (VD: { Color: "Space Gray", Memory: "32GB" })
   const [selectedAttributes, setSelectedAttributes] = useState({
     Color: "Space Gray",
     Memory: "32GB"
   });
 
+  // --- STATES CHO REVIEWS ---
+  const [reviews, setReviews] = useState(mockReviews);
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(2); // Số lượng review hiển thị ban đầu
+
   // ----------------------------------------------------------------------
-  // TODO: [API_CALL] - GET /api/v1/products/{id}
-  // useEffect(() => {
-  //   const fetchProduct = async () => {
-  //     // Thay thế mockProductResponse bằng response.data
-  //   };
-  //   fetchProduct();
-  // }, [productId]);
+  // [API_CALL] - LẤY THÔNG TIN SẢN PHẨM & ĐÁNH GIÁ (GET)
   // ----------------------------------------------------------------------
+  /*
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        // const productRes = await axios.get(`/api/v1/products/${productId}`);
+        // setProduct(productRes.data.data);
+        // const reviewRes = await axios.get(`/api/v1/reviews/product/${productId}?page=1&size=5`);
+        // setReviews(reviewRes.data.data.content);
+      } catch(e) { console.error(e) }
+    };
+    fetchProductData();
+  }, [productId]);
+  */
 
   if (!product) return <div className="text-center py-20">Đang tải sản phẩm...</div>;
 
-  // XỬ LÝ LOGIC PHÂN LOẠI (VARIANTS)
-  // 1. Trích xuất danh sách các thuộc tính độc nhất (để vẽ nút bấm)
   const availableColors = [...new Set(product.variants.map(v => v.attributes.Color))];
   const availableMemories = [...new Set(product.variants.map(v => v.attributes.Memory))];
-
-  // 2. Tìm Variant hiện tại khớp với cấu hình người dùng đang chọn
   const currentVariant = product.variants.find(v => 
     v.attributes.Color === selectedAttributes.Color && 
     v.attributes.Memory === selectedAttributes.Memory
-  ) || product.variants[0]; // Fallback nếu không tìm thấy
+  ) || product.variants[0];
 
-  // Hàm xử lý khi user click chọn phân loại
-  const handleAttributeSelect = (key, value) => {
-    setSelectedAttributes(prev => ({ ...prev, [key]: value }));
+  const handleAttributeSelect = (key, value) => setSelectedAttributes(prev => ({ ...prev, [key]: value }));
+  
+  const handleAddToCart = () => {
+    console.log("Adding to cart:", currentVariant);
+    message.success("Đã thêm vào giỏ hàng!");
   };
 
-  const handleAddToCart = () => {
-    // TODO: [API_CALL] - POST /api/v1/cart/items
-    // Payload gửi đi: { productId: product.id, productVariantId: currentVariant.id, quantity: 1 }
-    console.log("Adding to cart:", currentVariant);
+  // ----------------------------------------------------------------------
+  // [API_CALL] - ĐĂNG ĐÁNH GIÁ MỚI (POST)
+  // ----------------------------------------------------------------------
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) {
+      message.warning("Vui lòng nhập nội dung đánh giá!");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // MOCK UPDATE UI:
+    setTimeout(() => {
+      const mockNewReview = {
+        id: `r-new-${Date.now()}`,
+        userId: "u-me",
+        userName: "Người dùng hiện tại",
+        productId: product.id,
+        productName: product.name,
+        rating: newRating,
+        comment: newComment,
+        createdAt: new Date().toISOString()
+      };
+      setReviews([mockNewReview, ...reviews]);
+      message.success("Đánh giá của bạn đã được đăng tải!");
+      setNewComment("");
+      setNewRating(5);
+      setIsSubmitting(false);
+    }, 800); 
   };
 
   return (
@@ -104,11 +139,11 @@ export default function ProductDetailPage() {
       
       {/* Breadcrumbs */}
       <nav className="flex gap-2 text-xs font-medium mb-6 text-gray-500">
-        <a href="#" className="hover:text-orange-600 transition-colors">MegaMart</a>
+        <a href="#" className={`hover:text-orange-600 transition-colors ${isDarkMode ? "text-white" : ""}`}>MegaMart</a>
         <span>/</span>
-        <a href="#" className="hover:text-orange-600 transition-colors">{product.categoryName}</a>
+        <a href="#" className={`hover:text-orange-600 transition-colors ${isDarkMode ? "text-white" : ""}`}>{product.categoryName}</a>
         <span>/</span>
-        <span className="text-gray-800 line-clamp-1">{product.name}</span>
+        <span className={` line-clamp-1 ${isDarkMode ? "text-white" : "text-gray-800"}`}>{product.name}</span>
       </nav>
 
       {/* --- PRODUCT HERO SECTION --- */}
@@ -168,7 +203,6 @@ export default function ProductDetailPage() {
               )}
             </div>
             
-            {/* Giả lập Flash Sale */}
             <div className="flex items-center gap-3 mt-1">
               <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
                 <ThunderboltFilled /> FLASH SALE
@@ -186,7 +220,6 @@ export default function ProductDetailPage() {
               <span className="w-24 text-gray-500 font-medium">Mã giảm giá</span>
               <div className="flex gap-2 flex-wrap">
                 <span className="bg-orange-50 text-orange-600 text-xs font-bold px-2 py-1 rounded border border-orange-200 border-dashed">Giảm 50K</span>
-                <span className="bg-orange-50 text-orange-600 text-xs font-bold px-2 py-1 rounded border border-orange-200 border-dashed">Hoàn 10% Xu</span>
               </div>
             </div>
             <div className="flex gap-4 items-start">
@@ -196,7 +229,6 @@ export default function ProductDetailPage() {
                   <CarOutlined className="text-lg text-emerald-600" />
                   <span>Miễn phí vận chuyển cho đơn từ $500</span>
                 </div>
-                <div className="text-xs text-gray-400 pl-7">Giao hàng từ kho Quốc tế</div>
               </div>
             </div>
           </div>
@@ -248,9 +280,6 @@ export default function ProductDetailPage() {
             </button>
             <button 
               disabled={currentVariant.stock === 0}
-              onClick={() => {
-                // TODO: [API_CALL] - Logic Mua Ngay (Có thể tạo Order trực tiếp)
-              }}
               className={`flex-1 py-4 font-bold rounded-xl shadow-md transition-all ${currentVariant.stock > 0 ? 'bg-orange-600 text-white hover:bg-orange-500 active:scale-[0.98]' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
             >
               Mua Ngay
@@ -279,7 +308,7 @@ export default function ProductDetailPage() {
         </div>
         <div className="md:col-span-2 grid grid-cols-3 gap-4">
           <div className="flex flex-col text-center border-r border-gray-100">
-            <span className="text-gray-500 text-xs">Đánh giá</span>
+            <span className="text-gray-500 text-xs">Đánh giá Shop</span>
             <span className="text-orange-600 font-bold">4.8 / 5.0</span>
           </div>
           <div className="flex flex-col text-center border-r border-gray-100">
@@ -293,11 +322,13 @@ export default function ProductDetailPage() {
         </div>
       </section>
 
-      {/* --- MÔ TẢ & GỢI Ý --- */}
+      {/* --- PHẦN DƯỚI: MÔ TẢ & REVIEWS vs GỢI Ý --- */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mt-8">
         
-        {/* Cột trái: Mô tả chi tiết */}
+        {/* Cột trái: Mô tả chi tiết & Đánh giá (Reviews) */}
         <div className="md:col-span-8 flex flex-col gap-6">
+          
+          {/* MÔ TẢ SẢN PHẨM */}
           <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold mb-6 bg-gray-50 p-4 rounded-lg text-gray-800 m-0 border border-gray-100">Mô Tả Sản Phẩm</h2>
             <div className="space-y-4 text-gray-600 leading-relaxed text-sm">
@@ -311,11 +342,102 @@ export default function ProductDetailPage() {
               </ul>
             </div>
           </div>
+
+          {/* ĐÁNH GIÁ SẢN PHẨM (REVIEWS) */}
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold mb-6 bg-gray-50 p-4 rounded-lg text-gray-800 m-0 border border-gray-100">Đánh Giá Từ Khách Hàng</h2>
+            
+            {/* Form viết đánh giá */}
+            <form onSubmit={handleSubmitReview} className="mb-8 border border-gray-200 rounded-xl p-5 bg-gray-50/50">
+              <h4 className="font-bold text-gray-800 mb-3 text-sm">Viết đánh giá của bạn</h4>
+              
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-gray-600 mr-2">Chất lượng sản phẩm:</span>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button 
+                    key={star} 
+                    type="button"
+                    onClick={() => setNewRating(star)}
+                    className="text-xl focus:outline-none hover:scale-110 transition-transform"
+                  >
+                    {star <= newRating ? <StarFilled className="text-orange-500" /> : <StarOutlined className="text-gray-300" />}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative">
+                <textarea 
+                  rows="3"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+                  className="w-full p-4 rounded-lg border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-sm resize-none"
+                ></textarea>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`absolute bottom-3 right-3 px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-colors ${isSubmitting ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-orange-600 text-white hover:bg-orange-700'}`}
+                >
+                  <SendOutlined /> {isSubmitting ? 'Đang gửi...' : 'Gửi Đánh Giá'}
+                </button>
+              </div>
+            </form>
+
+            {/* Danh sách đánh giá + Phân trang (Load More) */}
+            <div className="space-y-6">
+              {reviews.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá sản phẩm này!</div>
+              ) : (
+                <>
+                  {/* Cắt mảng hiển thị dựa trên visibleCount */}
+                  {reviews.slice(0, visibleCount).map(review => (
+                    <div key={review.id} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0 flex items-center justify-center overflow-hidden text-gray-500">
+                        <UserOutlined className="text-xl" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-gray-800 text-sm">{review.userName}</span>
+                          <span className="text-xs text-gray-400">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                        <div className="flex text-orange-500 text-xs mb-2">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <span key={star}>{star <= review.rating ? <StarFilled /> : <StarOutlined />}</span>
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed m-0">{review.comment}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Nút Xem thêm / Thu gọn */}
+                  <div className="pt-4 flex justify-center border-t border-gray-100">
+                    {visibleCount < reviews.length ? (
+                      <button 
+                        onClick={() => setVisibleCount(prev => prev + 5)}
+                        className="px-6 py-2 border border-orange-600 text-orange-600 font-bold text-sm rounded-lg hover:bg-orange-50 transition-colors"
+                      >
+                        Xem thêm đánh giá ({reviews.length - visibleCount})
+                      </button>
+                    ) : reviews.length > 2 ? (
+                      <button 
+                        onClick={() => setVisibleCount(2)}
+                        className="px-6 py-2 text-gray-500 font-bold text-sm hover:text-orange-600 transition-colors"
+                      >
+                        Thu gọn
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          
         </div>
 
         {/* Cột phải: Sản phẩm cùng Shop */}
         <div className="md:col-span-4 space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-24">
             <h4 className="font-bold text-gray-800 mb-6 border-b border-gray-100 pb-3 m-0">Sản phẩm khác của Shop</h4>
             <div className="space-y-5">
               {relatedProducts.map(item => (

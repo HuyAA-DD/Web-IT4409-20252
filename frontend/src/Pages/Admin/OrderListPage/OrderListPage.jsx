@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   SearchOutlined, 
   FilterOutlined, 
@@ -7,8 +7,11 @@ import {
   DownloadOutlined,
   CalendarOutlined,
   LeftOutlined,
-  RightOutlined
+  RightOutlined,
+  EditOutlined,
+  CloseOutlined
 } from '@ant-design/icons';
+import { message } from 'antd'; // Dùng để hiện thông báo thành công
 import useDebounce from '../../../Hooks/useDebounce';
 import ADMIN_ROUTE from '../../../Routes/Admin.routes';
 
@@ -25,52 +28,86 @@ const mockOrderList = [
 export default function OrderListPage() {
   const navigate = useNavigate();
   
-  // States cho Bộ lọc giao diện
+  // States cho Bộ lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('');
-  
-  // Sửa delay xuống 500ms cho mượt mà
   const finalSearchTerm = useDebounce(searchTerm, 500); 
-  
   const [orders, setOrders] = useState(mockOrderList);
 
   // States cho Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  // ----------------------------------------------------------------------
-  // TODO: [API_CALL] - GET /api/v1/admin/orders?search=...
-  // Khi nối API, bạn sẽ dùng useEffect lắng nghe sự thay đổi của finalSearchTerm,
-  // statusFilter, dateFilter để fetch data từ BE.
-  // ----------------------------------------------------------------------
+  // =========================================================================
+  // LOGIC MODAL: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG
+  // =========================================================================
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
 
-  // 1. ÁP DỤNG BỘ LỌC VỚI USEMEMO
+  // Hàm mở Modal
+  const handleOpenEditModal = (order) => {
+    setEditingOrder(order);
+    setNewStatus(order.status); // Lấy trạng thái hiện tại làm mặc định
+    setIsEditModalOpen(true);
+  };
+
+  // Hàm đóng Modal
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setEditingOrder(null);
+  };
+
+  // Hàm Lưu (Gọi API)
+  const handleSaveStatus = async (e) => {
+    e.preventDefault();
+    
+    // TODO: [API_CALL] - PUT /api/v1/admin/orders/{editingOrder.id}/status
+    /*
+    try {
+      const response = await axios.put(`/api/v1/admin/orders/${editingOrder.id}/status`, {
+        status: newStatus
+      });
+      if (response.data.success) {
+        message.success(response.data.message);
+        // Cập nhật lại list đơn hàng từ response.data.data
+      }
+    } catch (error) {
+      message.error("Lỗi cập nhật trạng thái!");
+      return;
+    }
+    */
+
+    // MOCK UPDATE UI (Xóa đoạn này khi có API thật):
+    setOrders(prevOrders => 
+      prevOrders.map(o => o.id === editingOrder.id ? { ...o, status: newStatus } : o)
+    );
+    message.success(`Đã cập nhật trạng thái đơn hàng thành ${newStatus}!`);
+    handleCloseModal();
+  };
+
+  // =========================================================================
+  // LOGIC LỌC VÀ PHÂN TRANG
+  // =========================================================================
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-      // Lọc theo trạng thái
       const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
-      
-      // Lọc theo từ khóa (Dùng finalSearchTerm thay vì searchTerm)
       const searchLower = finalSearchTerm.toLowerCase();
       const matchesSearch = 
         order.id.toLowerCase().includes(searchLower) ||
         order.customer.toLowerCase().includes(searchLower) ||
         order.email.toLowerCase().includes(searchLower);
-        
-      // Lọc theo ngày
       const matchesDate = !dateFilter || order.date === dateFilter;
 
       return matchesStatus && matchesSearch && matchesDate;
     });
-  }, [orders, statusFilter, finalSearchTerm, dateFilter]); // Dependency phải là finalSearchTerm
+  }, [orders, statusFilter, finalSearchTerm, dateFilter]);
 
-  // Reset về trang 1 nếu bộ lọc thay đổi
   React.useEffect(() => {
     setCurrentPage(1);
   }, [finalSearchTerm, statusFilter, dateFilter]);
 
-  // 2. XỬ LÝ PHÂN TRANG (PAGINATION)
   const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
@@ -89,7 +126,7 @@ export default function OrderListPage() {
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto space-y-6 animate-fade-in transition-colors duration-500">
+    <div className="max-w-[1200px] mx-auto space-y-6 animate-fade-in transition-colors duration-500 relative">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -102,24 +139,20 @@ export default function OrderListPage() {
         </button>
       </div>
 
-      {/* TOOLBAR: TÌM KIẾM & BỘ LỌC */}
+      {/* TOOLBAR */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col md:flex-row gap-4 justify-between items-center transition-colors">
-        
-        {/* Search Bar */}
         <div className="relative w-full md:max-w-md">
           <SearchOutlined className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input 
             type="text" 
-            placeholder="Tìm theo Mã ĐH, Tên khách hàng, Email..." 
+            placeholder="Tìm theo Mã ĐH, Tên khách, Email..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all text-sm"
           />
         </div>
 
-        {/* Filters */}
         <div className="flex w-full md:w-auto gap-3 overflow-x-auto">
-          {/* Lọc Trạng thái */}
           <div className="relative shrink-0">
             <FilterOutlined className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
             <select 
@@ -134,8 +167,6 @@ export default function OrderListPage() {
               <option value="CANCELLED" className="dark:bg-slate-800">Cancelled (Đã hủy)</option>
             </select>
           </div>
-
-          {/* Lọc Thời gian */}
           <div className="relative shrink-0">
             <CalendarOutlined className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
             <input 
@@ -148,7 +179,7 @@ export default function OrderListPage() {
         </div>
       </div>
 
-      {/* BẢNG DỮ LIỆU ĐƠN HÀNG */}
+      {/* BẢNG DỮ LIỆU */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors">
         <div className="overflow-x-auto min-h-[350px]">
           <table className="w-full text-left border-collapse min-w-[800px]">
@@ -163,8 +194,6 @@ export default function OrderListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-              
-              {/* RENDER MẢNG PHÂN TRANG */}
               {paginatedOrders.map(order => (
                 <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                   <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-400 font-medium">
@@ -186,12 +215,24 @@ export default function OrderListPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <button 
-                      onClick={() => navigate(`/admin/orders/${order.id}`)}
-                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <EyeOutlined className="text-lg" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      {/* Nút Xem chi tiết */}
+                      <button 
+                        onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        title="Xem chi tiết"
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <EyeOutlined className="text-lg" />
+                      </button>
+                      {/* Nút Cập nhật trạng thái */}
+                      <button 
+                        onClick={() => handleOpenEditModal(order)}
+                        title="Cập nhật trạng thái"
+                        className="p-2 text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <EditOutlined className="text-lg" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -205,45 +246,82 @@ export default function OrderListPage() {
           </table>
         </div>
 
-        {/* --- PAGINATION UI --- */}
+        {/* PHÂN TRANG */}
         <div className="bg-white dark:bg-slate-800 p-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between transition-colors">
           <span className="text-sm text-gray-500 dark:text-gray-400">
             Hiển thị {paginatedOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, filteredOrders.length)} trên tổng số {filteredOrders.length} đơn hàng
           </span>
-          
           <div className="flex items-center gap-1">
-            <button 
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <LeftOutlined className="text-xs" />
-            </button>
-
+            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 transition-colors"><LeftOutlined className="text-xs" /></button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button 
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`w-8 h-8 rounded text-sm font-bold flex items-center justify-center transition-colors shadow-sm ${
-                  currentPage === page 
-                    ? 'bg-orange-600 text-white' 
-                    : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-medium'
-                }`}
-              >
-                {page}
-              </button>
+              <button key={page} onClick={() => handlePageChange(page)} className={`w-8 h-8 rounded text-sm font-bold flex items-center justify-center transition-colors shadow-sm ${currentPage === page ? 'bg-orange-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-medium'}`}>{page}</button>
             ))}
-
-            <button 
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages || totalPages === 0}
-              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <RightOutlined className="text-xs" />
-            </button>
+            <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 transition-colors"><RightOutlined className="text-xs" /></button>
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          MODAL: CẬP NHẬT TRẠNG THÁI (PORTAL OVERLAY)
+      ========================================================================= */}
+      {isEditModalOpen && editingOrder && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 m-0">Cập nhật trạng thái</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-0 font-mono">Đơn hàng: #{editingOrder.id.substring(0, 8)}</p>
+              </div>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                <CloseOutlined className="text-xl" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form id="statusForm" onSubmit={handleSaveStatus} className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Trạng thái mới</label>
+                <select 
+                  required
+                  value={newStatus} 
+                  onChange={(e) => setNewStatus(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                >
+                  <option value="PENDING">Chờ xử lý (PENDING)</option>
+                  <option value="SHIPPED">Đang giao hàng (SHIPPED)</option>
+                  <option value="DELIVERED">Đã hoàn thành (DELIVERED)</option>
+                  <option value="CANCELLED">Đã hủy (CANCELLED)</option>
+                </select>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 p-3 rounded-lg text-xs">
+                <strong>Lưu ý:</strong> Việc thay đổi trạng thái sẽ gửi email thông báo tự động đến khách hàng <strong>{editingOrder.customer}</strong>.
+              </div>
+            </form>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={handleCloseModal} 
+                className="px-5 py-2 rounded-lg font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                type="submit" 
+                form="statusForm" 
+                className="px-5 py-2 rounded-lg font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors shadow-sm"
+              >
+                Lưu Thay Đổi
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
 
     </div>
   );
