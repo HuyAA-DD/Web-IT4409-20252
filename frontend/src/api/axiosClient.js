@@ -1,10 +1,11 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000,
 });
 
 axiosClient.interceptors.request.use(
@@ -17,13 +18,28 @@ axiosClient.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
 axiosClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    return response.data;
+  },
   (error) => {
-    console.error("API Error:", error.response || error.message);
+    const status = error.response?.status;
+
+    if (status === 401) {
+      console.warn("Unauthorized: token may be missing or expired");
+    }
+
+    console.error("API Error:", {
+      status,
+      message: error.message,
+      data: error.response?.data,
+    });
+
     return Promise.reject(error);
   }
 );
