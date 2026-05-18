@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 
+import cartApi from "../api/cartApi";
 import productApi from "../api/productApi";
 import { formatCurrency } from "../utils/formatCurrency";
 
 const mockProduct = {
-  id: "mock-1",
+  id: 1,
   name: "Sản phẩm mẫu",
   description:
     "Đây là dữ liệu mẫu dùng để test giao diện ProductDetailPage khi backend chưa chạy hoặc API chưa đúng format.",
   price: 120000,
   stock: 20,
+  active: true,
   status: "ACTIVE",
   imageUrl: "https://via.placeholder.com/600x400?text=Product+Detail",
   categoryName: "Danh mục mẫu",
@@ -77,6 +80,7 @@ function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -93,8 +97,9 @@ function ProductDetailPage() {
         } else {
           setProduct({
             ...mockProduct,
-            id,
+            id: Number(id),
           });
+
           setErrorMessage(
             "Backend trả về dữ liệu chưa đúng format. Đang hiển thị sản phẩm mẫu."
           );
@@ -102,8 +107,9 @@ function ProductDetailPage() {
       } catch (error) {
         setProduct({
           ...mockProduct,
-          id,
+          id: Number(id),
         });
+
         setErrorMessage(
           "Chưa gọi được API chi tiết sản phẩm. Đang hiển thị dữ liệu mẫu."
         );
@@ -114,6 +120,64 @@ function ProductDetailPage() {
 
     fetchProductDetail();
   }, [id]);
+
+  const handleDecreaseQuantity = () => {
+    setSelectedQuantity((current) => Math.max(1, current - 1));
+  };
+
+  const handleIncreaseQuantity = () => {
+    const stock = getProductStock(product);
+
+    setSelectedQuantity((current) => {
+      if (stock > 0) {
+        return Math.min(stock, current + 1);
+      }
+
+      return current + 1;
+    });
+  };
+
+  const handleAddToCart = async () => {
+    const productId = Number(product?.id);
+
+    if (!productId || Number.isNaN(productId)) {
+      toast.error("Không tìm thấy productId hợp lệ để thêm vào giỏ hàng");
+      return;
+    }
+
+    if (selectedQuantity < 1) {
+      toast.error("Số lượng phải lớn hơn hoặc bằng 1");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+
+      await cartApi.addToCart({
+        productId: productId,
+        quantity: selectedQuantity,
+      });
+
+      toast.success("Đã thêm sản phẩm vào giỏ hàng");
+    } catch (error) {
+      const status = error.response?.status;
+
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.response?.data?.errors?.productId ||
+        error.response?.data?.errors?.quantity ||
+        "Thêm vào giỏ hàng thất bại";
+
+      if (status === 401 || status === 403) {
+        toast.error("Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -128,7 +192,11 @@ function ProductDetailPage() {
       <div className="container page">
         <div className="placeholder-box">Không tìm thấy sản phẩm.</div>
 
-        <Link to="/products" className="btn btn-primary" style={{ marginTop: 16 }}>
+        <Link
+          to="/products"
+          className="btn btn-primary"
+          style={{ marginTop: 16 }}
+        >
           Quay lại danh sách sản phẩm
         </Link>
       </div>
@@ -138,26 +206,6 @@ function ProductDetailPage() {
   const imageUrl = getProductImage(product);
   const price = getProductPrice(product);
   const stock = getProductStock(product);
-
-  const handleDecreaseQuantity = () => {
-    setSelectedQuantity((current) => Math.max(1, current - 1));
-  };
-
-  const handleIncreaseQuantity = () => {
-    setSelectedQuantity((current) => {
-      if (stock > 0) {
-        return Math.min(stock, current + 1);
-      }
-
-      return current + 1;
-    });
-  };
-
-  const handleAddToCart = () => {
-    alert(
-      `Tạm thời chưa code giỏ hàng. Sản phẩm: ${product.name}, số lượng: ${selectedQuantity}`
-    );
-  };
 
   return (
     <div className="container page">
@@ -180,85 +228,42 @@ function ProductDetailPage() {
         </div>
       )}
 
-      <section
-        className="info-card"
-        style={{
-          marginTop: "24px",
-          display: "grid",
-          gridTemplateColumns: "minmax(280px, 1fr) minmax(280px, 1fr)",
-          gap: "32px",
-          alignItems: "start",
-        }}
-      >
+      <section className="product-detail-card">
         <div>
           <img
             src={imageUrl}
             alt={product.name || "Product image"}
-            style={{
-              width: "100%",
-              height: "420px",
-              objectFit: "cover",
-              borderRadius: "18px",
-              background: "#f3f4f6",
-            }}
+            className="product-detail-image"
           />
         </div>
 
         <div>
-          <p
-            style={{
-              color: "#2563eb",
-              fontWeight: 700,
-              margin: "0 0 10px",
-            }}
-          >
+          <p className="product-category">
             {product.categoryName ||
               product.category?.name ||
               "Chưa có danh mục"}
           </p>
 
-          <h1
-            style={{
-              margin: "0 0 16px",
-              fontSize: "36px",
-              lineHeight: 1.2,
-            }}
-          >
+          <h1 className="product-detail-title">
             {product.name || "Không có tên sản phẩm"}
           </h1>
 
-          <p
-            style={{
-              color: "#2563eb",
-              fontWeight: 800,
-              fontSize: "28px",
-              margin: "0 0 20px",
-            }}
-          >
-            {formatCurrency(price)}
-          </p>
+          <p className="product-detail-price">{formatCurrency(price)}</p>
 
-          <p
-            style={{
-              color: "#4b5563",
-              lineHeight: 1.7,
-              marginBottom: "24px",
-            }}
-          >
+          <p className="product-detail-description">
             {product.description || "Sản phẩm chưa có mô tả."}
           </p>
 
-          <div
-            style={{
-              display: "grid",
-              gap: "12px",
-              marginBottom: "24px",
-              color: "#374151",
-            }}
-          >
+          <div className="product-meta">
+            <div>
+              <strong>ID sản phẩm:</strong> {product.id}
+            </div>
+
             <div>
               <strong>Trạng thái:</strong>{" "}
-              {product.status || "Chưa cập nhật"}
+              {product.active === false
+                ? "Không hoạt động"
+                : product.status || "Đang hoạt động"}
             </div>
 
             <div>
@@ -274,52 +279,40 @@ function ProductDetailPage() {
             </div>
           </div>
 
-          <div style={{ marginBottom: "24px" }}>
-            <p style={{ fontWeight: 700, marginBottom: "10px" }}>Số lượng</p>
+          <div className="quantity-section">
+            <p>Số lượng</p>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-              }}
-            >
+            <div className="quantity-control">
               <button
                 type="button"
                 className="btn btn-outline"
                 onClick={handleDecreaseQuantity}
+                disabled={selectedQuantity <= 1}
               >
                 -
               </button>
 
-              <span
-                style={{
-                  minWidth: "48px",
-                  textAlign: "center",
-                  fontWeight: 700,
-                  fontSize: "18px",
-                }}
-              >
-                {selectedQuantity}
-              </span>
+              <span>{selectedQuantity}</span>
 
               <button
                 type="button"
                 className="btn btn-outline"
                 onClick={handleIncreaseQuantity}
+                disabled={stock > 0 && selectedQuantity >= stock}
               >
                 +
               </button>
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div className="product-actions">
             <button
               type="button"
               className="btn btn-primary"
               onClick={handleAddToCart}
+              disabled={isAddingToCart}
             >
-              Thêm vào giỏ hàng
+              {isAddingToCart ? "Đang thêm..." : "Thêm vào giỏ hàng"}
             </button>
 
             <button type="button" className="btn btn-outline">
