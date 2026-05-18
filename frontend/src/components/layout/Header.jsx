@@ -1,9 +1,50 @@
-import { Link, NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+
+import {
+  clearAuthData,
+  getAccessToken,
+  getAuthUser,
+  onAuthChanged,
+} from "../../utils/authStorage";
 
 function Header() {
+  const navigate = useNavigate();
+
+  const [authUser, setAuthUser] = useState(getAuthUser());
+  const [token, setToken] = useState(getAccessToken());
+
   const getNavClass = ({ isActive }) => {
     return isActive ? "nav-link active" : "nav-link";
   };
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setAuthUser(getAuthUser());
+      setToken(getAccessToken());
+    };
+
+    const unsubscribe = onAuthChanged(syncAuthState);
+
+    window.addEventListener("storage", syncAuthState);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", syncAuthState);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    clearAuthData();
+    navigate("/");
+  };
+
+  const displayName =
+    authUser?.fullName ||
+    authUser?.full_name ||
+    authUser?.name ||
+    authUser?.email ||
+    "Tài khoản";
 
   return (
     <header className="header">
@@ -27,13 +68,31 @@ function Header() {
         </nav>
 
         <div className="header-actions">
-          <Link to="/login" className="btn btn-outline">
-            Đăng nhập
-          </Link>
+          {token ? (
+            <>
+              <span style={{ color: "#374151", fontWeight: 600 }}>
+                {displayName}
+              </span>
 
-          <Link to="/register" className="btn btn-primary">
-            Đăng ký
-          </Link>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={handleLogout}
+              >
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-outline">
+                Đăng nhập
+              </Link>
+
+              <Link to="/register" className="btn btn-primary">
+                Đăng ký
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
