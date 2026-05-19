@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import cartApi from "../api/cartApi";
@@ -39,16 +39,12 @@ function getItemId(item) {
 }
 
 function getItemPrice(item) {
-  return (
-    item.price ||
-    item.product?.price ||
-    item.productVariant?.price ||
-    item.variant?.price ||
-    0
-  );
+  return item.price || item.product?.price || 0;
 }
 
 function CartPage() {
+  const navigate = useNavigate();
+
   const [cartItems, setCartItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingItemId, setUpdatingItemId] = useState(null);
@@ -119,7 +115,12 @@ function CartPage() {
 
       toast.success("Đã cập nhật giỏ hàng");
     } catch (error) {
-      toast.error("Cập nhật số lượng thất bại");
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Cập nhật số lượng thất bại";
+
+      toast.error(message);
     } finally {
       setUpdatingItemId(null);
     }
@@ -150,7 +151,12 @@ function CartPage() {
 
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (error) {
-      toast.error("Xóa sản phẩm thất bại");
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Xóa sản phẩm thất bại";
+
+      toast.error(message);
     } finally {
       setUpdatingItemId(null);
     }
@@ -172,8 +178,22 @@ function CartPage() {
       setCartItems([]);
       toast.success("Đã xóa toàn bộ giỏ hàng");
     } catch (error) {
-      toast.error("Xóa giỏ hàng thất bại");
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Xóa giỏ hàng thất bại";
+
+      toast.error(message);
     }
+  };
+
+  const handleGoToCheckout = () => {
+    if (cartItems.length === 0) {
+      toast.error("Giỏ hàng đang trống");
+      return;
+    }
+
+    navigate("/checkout");
   };
 
   if (isLoading) {
@@ -258,7 +278,11 @@ function CartPage() {
               <strong>{formatCurrency(totalAmount)}</strong>
             </div>
 
-            <button type="button" className="btn btn-primary full-width">
+            <button
+              type="button"
+              className="btn btn-primary full-width"
+              onClick={handleGoToCheckout}
+            >
               Thanh toán
             </button>
 

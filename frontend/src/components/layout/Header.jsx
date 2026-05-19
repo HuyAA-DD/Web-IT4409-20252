@@ -65,6 +65,12 @@ function Header() {
           <NavLink to="/cart" className={getNavClass}>
             Giỏ hàng
           </NavLink>
+
+          {token && (
+            <NavLink to="/orders" className={getNavClass}>
+              Đơn hàng
+            </NavLink>
+          )}
         </nav>
 
         <div className="header-actions">
