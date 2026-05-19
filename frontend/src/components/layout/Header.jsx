@@ -68,6 +68,10 @@ function Header() {
 
           {token && (
             <>
+              <NavLink to="/coupons" className={getNavClass}>
+                Mã giảm giá
+              </NavLink>
+
               <NavLink to="/wishlist" className={getNavClass}>
                 Yêu thích
               </NavLink>

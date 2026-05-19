@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import cartApi from "../api/cartApi";
+import couponApi from "../api/couponApi";
 import orderApi from "../api/orderApi";
 import { formatCurrency } from "../utils/formatCurrency";
 
@@ -34,6 +35,26 @@ function normalizeCartItems(response) {
   return [];
 }
 
+function normalizeApplyCouponResponse(response) {
+  if (!response) {
+    return null;
+  }
+
+  if (response.code || response.discountAmount || response.finalAmount) {
+    return response;
+  }
+
+  if (
+    response.data?.code ||
+    response.data?.discountAmount ||
+    response.data?.finalAmount
+  ) {
+    return response.data;
+  }
+
+  return null;
+}
+
 function getItemPrice(item) {
   return item.price || item.product?.price || 0;
 }
@@ -44,17 +65,25 @@ function getItemName(item) {
 
 function CheckoutPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const couponFromUrl = searchParams.get("coupon");
+  const couponFromStorage = localStorage.getItem("selectedCouponCode");
+  const initialCouponCode = couponFromUrl || couponFromStorage || "";
 
   const [cartItems, setCartItems] = useState([]);
   const [isLoadingCart, setIsLoadingCart] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   const [formData, setFormData] = useState({
     receiverName: "",
     receiverPhone: "",
     shippingAddress: "",
-    couponCode: "",
+    couponCode: initialCouponCode,
   });
 
   const totalAmount = useMemo(() => {
@@ -65,6 +94,9 @@ function CheckoutPage() {
       return sum + price * quantity;
     }, 0);
   }, [cartItems]);
+
+  const discountAmount = Number(appliedCoupon?.discountAmount || 0);
+  const finalAmount = Number(appliedCoupon?.finalAmount ?? totalAmount);
 
   useEffect(() => {
     async function fetchCart() {
@@ -88,6 +120,19 @@ function CheckoutPage() {
     fetchCart();
   }, []);
 
+  useEffect(() => {
+    if (couponFromUrl || couponFromStorage) {
+      setFormData((current) => ({
+        ...current,
+        couponCode: couponFromUrl || couponFromStorage,
+      }));
+    }
+  }, [couponFromUrl, couponFromStorage]);
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+  }, [totalAmount]);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -95,6 +140,10 @@ function CheckoutPage() {
       ...current,
       [name]: value,
     }));
+
+    if (name === "couponCode") {
+      setAppliedCoupon(null);
+    }
   };
 
   const validateForm = () => {
@@ -121,11 +170,86 @@ function CheckoutPage() {
     return true;
   };
 
+  const handleApplyCoupon = async () => {
+    const code = formData.couponCode.trim().toUpperCase();
+
+    if (!code) {
+      toast.error("Vui lòng nhập mã giảm giá");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      toast.error("Giỏ hàng đang trống, không thể áp dụng mã");
+      return;
+    }
+
+    try {
+      setIsApplyingCoupon(true);
+
+      const response = await couponApi.applyCoupon({
+        code,
+        orderAmount: totalAmount,
+      });
+
+      const result = normalizeApplyCouponResponse(response);
+
+      if (!result) {
+        toast.error("Backend trả về dữ liệu coupon chưa đúng format");
+        return;
+      }
+
+      setAppliedCoupon(result);
+
+      setFormData((current) => ({
+        ...current,
+        couponCode: result.code || code,
+      }));
+
+      localStorage.setItem("selectedCouponCode", result.code || code);
+
+      toast.success("Áp dụng mã giảm giá thành công");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Mã giảm giá không hợp lệ hoặc đã hết hạn";
+
+      setAppliedCoupon(null);
+      toast.error(message);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    localStorage.removeItem("selectedCouponCode");
+
+    setFormData((current) => ({
+      ...current,
+      couponCode: "",
+    }));
+
+    toast.info("Đã xóa mã giảm giá");
+  };
+
   const handleSubmitOrder = async (event) => {
     event.preventDefault();
 
     if (!validateForm()) {
       return;
+    }
+
+    const couponCode = formData.couponCode.trim();
+
+    if (couponCode && !appliedCoupon) {
+      const confirmed = window.confirm(
+        "Bạn đã nhập mã giảm giá nhưng chưa áp dụng. Bạn vẫn muốn đặt hàng không?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
     }
 
     try {
@@ -135,8 +259,10 @@ function CheckoutPage() {
         receiverName: formData.receiverName.trim(),
         receiverPhone: formData.receiverPhone.trim(),
         shippingAddress: formData.shippingAddress.trim(),
-        couponCode: formData.couponCode.trim() || null,
+        couponCode: appliedCoupon?.code || couponCode || null,
       });
+
+      localStorage.removeItem("selectedCouponCode");
 
       toast.success("Đặt hàng thành công");
       navigate("/orders");
@@ -164,7 +290,7 @@ function CheckoutPage() {
     <div className="container page">
       <div className="page-header">
         <h1>Thanh toán</h1>
-        <p>Nhập thông tin nhận hàng để tạo đơn hàng.</p>
+        <p>Nhập thông tin nhận hàng và áp dụng mã giảm giá nếu có.</p>
       </div>
 
       {errorMessage && (
@@ -222,13 +348,62 @@ function CheckoutPage() {
               onChange={handleChange}
             />
 
-            <input
-              type="text"
-              name="couponCode"
-              placeholder="Mã giảm giá nếu có"
-              value={formData.couponCode}
-              onChange={handleChange}
-            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: "10px",
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="text"
+                name="couponCode"
+                placeholder="Mã giảm giá nếu có"
+                value={formData.couponCode}
+                onChange={handleChange}
+                disabled={Boolean(appliedCoupon)}
+              />
+
+              {appliedCoupon ? (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleRemoveCoupon}
+                >
+                  Xóa mã
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleApplyCoupon}
+                  disabled={isApplyingCoupon}
+                >
+                  {isApplyingCoupon ? "Đang áp dụng..." : "Áp dụng"}
+                </button>
+              )}
+            </div>
+
+            <Link to="/coupons" className="btn btn-outline full-width">
+              Xem danh sách mã giảm giá
+            </Link>
+
+            {appliedCoupon && (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "12px",
+                  background: "#ecfdf5",
+                  color: "#047857",
+                  border: "1px solid #a7f3d0",
+                  fontWeight: 700,
+                }}
+              >
+                Đã áp dụng mã {appliedCoupon.code}. Giảm{" "}
+                {formatCurrency(discountAmount)}.
+              </div>
+            )}
 
             <button
               type="submit"
@@ -281,9 +456,21 @@ function CheckoutPage() {
               <strong>{cartItems.length}</strong>
             </div>
 
-            <div className="summary-total">
+            <div className="summary-row">
               <span>Tạm tính</span>
               <strong>{formatCurrency(totalAmount)}</strong>
+            </div>
+
+            <div className="summary-row">
+              <span>Giảm giá</span>
+              <strong style={{ color: "#047857" }}>
+                -{formatCurrency(discountAmount)}
+              </strong>
+            </div>
+
+            <div className="summary-total">
+              <span>Tổng thanh toán</span>
+              <strong>{formatCurrency(finalAmount)}</strong>
             </div>
           </aside>
         </div>
