@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import orderApi from "../api/orderApi";
+import paymentApi from "../api/paymentApi";
 import { formatCurrency } from "../utils/formatCurrency";
 
 function normalizeOrders(response) {
@@ -37,10 +38,57 @@ function formatDateTime(value) {
   return date.toLocaleString("vi-VN");
 }
 
+function getStatusText(status) {
+  const statusMap = {
+    PENDING: "Chờ xử lý",
+    CONFIRMED: "Đã xác nhận",
+    SHIPPING: "Đang giao",
+    DELIVERED: "Đã giao",
+    CANCELLED: "Đã hủy",
+    UNPAID: "Chưa thanh toán",
+    PAID: "Đã thanh toán",
+    FAILED: "Thanh toán thất bại",
+    REFUNDED: "Đã hoàn tiền",
+  };
+
+  return statusMap[status] || status || "Chưa cập nhật";
+}
+
+function getPaymentBadgeStyle(paymentStatus) {
+  if (paymentStatus === "PAID") {
+    return {
+      color: "#047857",
+      background: "#d1fae5",
+      padding: "4px 10px",
+      borderRadius: "999px",
+      fontWeight: 700,
+    };
+  }
+
+  if (paymentStatus === "FAILED") {
+    return {
+      color: "#b91c1c",
+      background: "#fee2e2",
+      padding: "4px 10px",
+      borderRadius: "999px",
+      fontWeight: 700,
+    };
+  }
+
+  return {
+    color: "#92400e",
+    background: "#fffbeb",
+    padding: "4px 10px",
+    borderRadius: "999px",
+    fontWeight: 700,
+  };
+}
+
 function OrderHistoryPage() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [payingOrderId, setPayingOrderId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   const fetchOrders = async () => {
@@ -103,6 +151,71 @@ function OrderHistoryPage() {
     }
   };
 
+  const handleMockPaymentSuccess = async (orderId) => {
+    try {
+      setPayingOrderId(orderId);
+
+      await paymentApi.mockSuccess(orderId);
+
+      toast.success("Thanh toán thành công");
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) => {
+          if (order.id === orderId) {
+            return {
+              ...order,
+              paymentStatus: "PAID",
+              orderStatus: "CONFIRMED",
+            };
+          }
+
+          return order;
+        })
+      );
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Thanh toán thất bại";
+
+      toast.error(message);
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
+  const handleMockPaymentFailed = async (orderId) => {
+    try {
+      setPayingOrderId(orderId);
+
+      await paymentApi.mockFailed(orderId);
+
+      toast.error("Đã giả lập thanh toán thất bại");
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) => {
+          if (order.id === orderId) {
+            return {
+              ...order,
+              paymentStatus: "FAILED",
+            };
+          }
+
+          return order;
+        })
+      );
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Giả lập thanh toán thất bại không thành công";
+
+      toast.error(message);
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container page">
@@ -115,7 +228,10 @@ function OrderHistoryPage() {
     <div className="container page">
       <div className="page-header">
         <h1>Lịch sử đơn hàng</h1>
-        <p>Theo dõi các đơn hàng bạn đã tạo.</p>
+        <p>
+          Theo dõi các đơn hàng đã tạo, hủy đơn đang chờ xử lý và giả lập thanh
+          toán.
+        </p>
       </div>
 
       {errorMessage && (
@@ -149,6 +265,9 @@ function OrderHistoryPage() {
         <div style={{ display: "grid", gap: "18px" }}>
           {orders.map((order) => {
             const canCancel = order.orderStatus === "PENDING";
+            const canPay =
+              order.orderStatus !== "CANCELLED" &&
+              order.paymentStatus !== "PAID";
 
             return (
               <article key={order.id} className="info-card">
@@ -172,15 +291,17 @@ function OrderHistoryPage() {
 
                   <div style={{ textAlign: "right" }}>
                     <p style={{ margin: 0 }}>
-                      <strong>Trạng thái:</strong>{" "}
+                      <strong>Trạng thái đơn:</strong>{" "}
                       <span style={{ color: "#2563eb", fontWeight: 700 }}>
-                        {order.orderStatus}
+                        {getStatusText(order.orderStatus)}
                       </span>
                     </p>
 
-                    <p style={{ margin: "8px 0 0" }}>
+                    <p style={{ margin: "10px 0 0" }}>
                       <strong>Thanh toán:</strong>{" "}
-                      {order.paymentStatus || "UNPAID"}
+                      <span style={getPaymentBadgeStyle(order.paymentStatus)}>
+                        {getStatusText(order.paymentStatus || "UNPAID")}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -261,18 +382,51 @@ function OrderHistoryPage() {
                     </h3>
                   </div>
 
-                  {canCancel && (
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => handleCancelOrder(order.id)}
-                      disabled={updatingOrderId === order.id}
-                    >
-                      {updatingOrderId === order.id
-                        ? "Đang hủy..."
-                        : "Hủy đơn"}
-                    </button>
-                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    {canPay && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => handleMockPaymentSuccess(order.id)}
+                          disabled={payingOrderId === order.id}
+                        >
+                          {payingOrderId === order.id
+                            ? "Đang xử lý..."
+                            : "Thanh toán thành công"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() => handleMockPaymentFailed(order.id)}
+                          disabled={payingOrderId === order.id}
+                        >
+                          Giả lập thất bại
+                        </button>
+                      </>
+                    )}
+
+                    {canCancel && (
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={() => handleCancelOrder(order.id)}
+                        disabled={updatingOrderId === order.id}
+                      >
+                        {updatingOrderId === order.id
+                          ? "Đang hủy..."
+                          : "Hủy đơn"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             );
