@@ -29,6 +29,37 @@ function normalizeNotifications(response) {
   return [];
 }
 
+function isAdminUser(user) {
+  if (!user) {
+    return false;
+  }
+
+  if (user.role === "ADMIN" || user.role === "ROLE_ADMIN") {
+    return true;
+  }
+
+  if (Array.isArray(user.roles)) {
+    return user.roles.some(
+      (role) => role === "ADMIN" || role === "ROLE_ADMIN"
+    );
+  }
+
+  if (Array.isArray(user.authorities)) {
+    return user.authorities.some((authority) => {
+      if (typeof authority === "string") {
+        return authority === "ADMIN" || authority === "ROLE_ADMIN";
+      }
+
+      return (
+        authority.authority === "ADMIN" ||
+        authority.authority === "ROLE_ADMIN"
+      );
+    });
+  }
+
+  return false;
+}
+
 function Header() {
   const navigate = useNavigate();
 
@@ -89,6 +120,8 @@ function Header() {
     authUser?.email ||
     "Tài khoản";
 
+  const admin = isAdminUser(authUser);
+
   return (
     <header className="header">
       <div className="container header-inner">
@@ -133,6 +166,12 @@ function Header() {
                   )}
                 </span>
               </NavLink>
+
+              {admin && (
+                <NavLink to="/admin" className={getNavClass}>
+                  Admin
+                </NavLink>
+              )}
             </>
           )}
         </nav>
