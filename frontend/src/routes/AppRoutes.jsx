@@ -7,6 +7,7 @@ import ProductDetailPage from "../pages/ProductDetailPage.jsx";
 import CartPage from "../pages/CartPage.jsx";
 import CheckoutPage from "../pages/CheckoutPage.jsx";
 import OrderHistoryPage from "../pages/OrderHistoryPage.jsx";
+import WishlistPage from "../pages/WishlistPage.jsx";
 import LoginPage from "../pages/LoginPage.jsx";
 import RegisterPage from "../pages/RegisterPage.jsx";
 import NotFoundPage from "../pages/NotFoundPage.jsx";
@@ -28,6 +29,7 @@ function AppRoutes() {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/orders" element={<OrderHistoryPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
         </Route>
       </Route>
 

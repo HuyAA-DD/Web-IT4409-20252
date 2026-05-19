@@ -1,4 +1,7 @@
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+
+import wishlistApi from "../../api/wishlistApi";
 import { formatCurrency } from "../../utils/formatCurrency";
 
 function ProductCard({ product }) {
@@ -15,6 +18,31 @@ function ProductCard({ product }) {
     product.variants?.[0]?.price ||
     product.productVariants?.[0]?.price ||
     0;
+
+  const handleAddToWishlist = async () => {
+    if (!product?.id) {
+      toast.error("Không tìm thấy productId");
+      return;
+    }
+
+    try {
+      await wishlistApi.addToWishlist(product.id);
+      toast.success("Đã thêm vào danh sách yêu thích");
+    } catch (error) {
+      const status = error.response?.status;
+
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Thêm vào yêu thích thất bại";
+
+      if (status === 401 || status === 403) {
+        toast.error("Bạn cần đăng nhập để thêm sản phẩm vào yêu thích");
+      } else {
+        toast.error(message);
+      }
+    }
+  };
 
   return (
     <article className="info-card">
@@ -52,13 +80,24 @@ function ProductCard({ product }) {
         {formatCurrency(price)}
       </p>
 
-      <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginTop: "16px",
+          flexWrap: "wrap",
+        }}
+      >
         <Link to={`/products/${product.id}`} className="btn btn-outline">
           Chi tiết
         </Link>
 
-        <button type="button" className="btn btn-primary">
-          Thêm vào giỏ
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleAddToWishlist}
+        >
+          Yêu thích
         </button>
       </div>
     </article>

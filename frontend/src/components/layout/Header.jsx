@@ -67,9 +67,15 @@ function Header() {
           </NavLink>
 
           {token && (
-            <NavLink to="/orders" className={getNavClass}>
-              Đơn hàng
-            </NavLink>
+            <>
+              <NavLink to="/wishlist" className={getNavClass}>
+                Yêu thích
+              </NavLink>
+
+              <NavLink to="/orders" className={getNavClass}>
+                Đơn hàng
+              </NavLink>
+            </>
           )}
         </nav>
 

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 
 import cartApi from "../api/cartApi";
 import productApi from "../api/productApi";
+import wishlistApi from "../api/wishlistApi";
 import { formatCurrency } from "../utils/formatCurrency";
 
 const mockProduct = {
@@ -81,6 +82,7 @@ function ProductDetailPage() {
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -154,7 +156,7 @@ function ProductDetailPage() {
       setIsAddingToCart(true);
 
       await cartApi.addToCart({
-        productId: productId,
+        productId,
         quantity: selectedQuantity,
       });
 
@@ -176,6 +178,39 @@ function ProductDetailPage() {
       }
     } finally {
       setIsAddingToCart(false);
+    }
+  };
+
+  const handleAddToWishlist = async () => {
+    const productId = Number(product?.id);
+
+    if (!productId || Number.isNaN(productId)) {
+      toast.error("Không tìm thấy productId hợp lệ để thêm vào yêu thích");
+      return;
+    }
+
+    try {
+      setIsAddingToWishlist(true);
+
+      await wishlistApi.addToWishlist(productId);
+
+      toast.success("Đã thêm vào danh sách yêu thích");
+    } catch (error) {
+      const status = error.response?.status;
+
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.response?.data?.errors?.productId ||
+        "Thêm vào yêu thích thất bại";
+
+      if (status === 401 || status === 403) {
+        toast.error("Bạn cần đăng nhập để thêm sản phẩm vào yêu thích");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setIsAddingToWishlist(false);
     }
   };
 
@@ -315,8 +350,13 @@ function ProductDetailPage() {
               {isAddingToCart ? "Đang thêm..." : "Thêm vào giỏ hàng"}
             </button>
 
-            <button type="button" className="btn btn-outline">
-              Thêm vào yêu thích
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={handleAddToWishlist}
+              disabled={isAddingToWishlist}
+            >
+              {isAddingToWishlist ? "Đang thêm..." : "Thêm vào yêu thích"}
             </button>
           </div>
         </div>
