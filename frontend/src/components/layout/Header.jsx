@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
+import notificationApi from "../../api/notificationApi";
 import {
   clearAuthData,
   getAccessToken,
@@ -8,11 +9,32 @@ import {
   onAuthChanged,
 } from "../../utils/authStorage";
 
+function normalizeNotifications(response) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response?.notifications)) {
+    return response.notifications;
+  }
+
+  if (Array.isArray(response?.data?.notifications)) {
+    return response.data.notifications;
+  }
+
+  return [];
+}
+
 function Header() {
   const navigate = useNavigate();
 
   const [authUser, setAuthUser] = useState(getAuthUser());
   const [token, setToken] = useState(getAccessToken());
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const getNavClass = ({ isActive }) => {
     return isActive ? "nav-link active" : "nav-link";
@@ -34,8 +56,29 @@ function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    async function fetchUnreadCount() {
+      if (!token) {
+        setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const response = await notificationApi.getUnreadNotifications();
+        const list = normalizeNotifications(response);
+
+        setUnreadCount(list.length);
+      } catch (error) {
+        setUnreadCount(0);
+      }
+    }
+
+    fetchUnreadCount();
+  }, [token]);
+
   const handleLogout = () => {
     clearAuthData();
+    setUnreadCount(0);
     navigate("/");
   };
 
@@ -78,6 +121,17 @@ function Header() {
 
               <NavLink to="/orders" className={getNavClass}>
                 Đơn hàng
+              </NavLink>
+
+              <NavLink to="/notifications" className={getNavClass}>
+                <span className="notification-nav-link">
+                  Thông báo
+                  {unreadCount > 0 && (
+                    <span className="notification-nav-badge">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </span>
               </NavLink>
             </>
           )}
