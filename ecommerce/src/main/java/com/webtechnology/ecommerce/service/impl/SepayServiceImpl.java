@@ -8,9 +8,12 @@ import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.service.SepayService;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -37,6 +40,9 @@ public class SepayServiceImpl implements SepayService {
 
     @Value("${sepay.currency:VND}")
     private String currency;
+
+    @Value("${sepay.webhook-secret:}")
+    private String webhookSecret;
 
     @Override
     public SepayPaymentResponse initiatePayment(String externalId,
@@ -103,17 +109,19 @@ public class SepayServiceImpl implements SepayService {
 
     @Override
     public boolean verifyWebhookSignature(SepayWebhookRequest webhook) {
-        if (webhook.getSignature() == null) {
+        if (webhook.getSignature() == null || webhook.getSignature().isBlank()) {
             return false;
         }
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            throw new BadRequestException("Sepay webhook secret is not configured");
+        }
 
-        String dataToSign = webhook.getTransactionId() + "|" 
-                + webhook.getExternalId() + "|" 
-                + webhook.getStatus() + "|" 
-                + webhook.getAmount() + "|" 
-                + merchantKey;
+        String dataToSign = webhook.getTransactionId() + "|"
+                + webhook.getExternalId() + "|"
+                + webhook.getStatus() + "|"
+                + webhook.getAmount();
 
-        String expectedSignature = sha256Hash(dataToSign);
+        String expectedSignature = hmacSha256(dataToSign, webhookSecret);
         return expectedSignature.equalsIgnoreCase(webhook.getSignature());
     }
 
@@ -133,10 +141,12 @@ public class SepayServiceImpl implements SepayService {
                 .build();
     }
 
-    private String sha256Hash(String input) {
+    private String hmacSha256(String input, String secret) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
@@ -146,8 +156,8 @@ public class SepayServiceImpl implements SepayService {
                 hexString.append(hex);
             }
             return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new BadRequestException("SHA-256 algorithm not available");
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new BadRequestException("HMAC-SHA256 calculation failed");
         }
     }
 

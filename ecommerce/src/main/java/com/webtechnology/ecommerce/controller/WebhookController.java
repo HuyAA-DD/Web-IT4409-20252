@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,8 +35,13 @@ public class WebhookController {
     private final PaymentRepository paymentRepository;
 
     @PostMapping("/sepay/callback")
-    public ResponseEntity<ApiResponse<String>> sepayWebhookCallback(@Valid @RequestBody SepayWebhookRequest webhook) {
+    public ResponseEntity<ApiResponse<String>> sepayWebhookCallback(
+            @RequestHeader(name = "X-SePay-Signature", required = false) String signature,
+            @Valid @RequestBody SepayWebhookRequest webhook) {
         try {
+            if (signature != null && !signature.isBlank()) {
+                webhook.setSignature(signature);
+            }
             SepayTransactionStatusResponse statusResponse = sepayService.processWebhookCallback(webhook);
             
             UUID orderId = UUID.fromString(webhook.getExternalId());
