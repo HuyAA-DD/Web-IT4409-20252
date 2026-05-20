@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.webtechnology.ecommerce.dto.ApiResponse;
 import com.webtechnology.ecommerce.dto.PaymentResponse;
 import com.webtechnology.ecommerce.dto.SepayCheckoutRequest;
+import com.webtechnology.ecommerce.dto.SepayTransactionStatusResponse;
 import com.webtechnology.ecommerce.service.PaymentService;
 
 import jakarta.validation.Valid;
@@ -51,6 +52,20 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
                 .success(true)
                 .message("Payment status retrieved successfully")
+                .data(response)
+                .build());
+    }
+
+    @GetMapping("/orders/{orderId}/transaction-status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<SepayTransactionStatusResponse>> queryTransactionStatus(
+            @PathVariable UUID orderId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        SepayTransactionStatusResponse response = paymentService.queryTransactionStatus(userId, orderId);
+        return ResponseEntity.ok(ApiResponse.<SepayTransactionStatusResponse>builder()
+                .success(true)
+                .message("Transaction status retrieved successfully")
                 .data(response)
                 .build());
     }

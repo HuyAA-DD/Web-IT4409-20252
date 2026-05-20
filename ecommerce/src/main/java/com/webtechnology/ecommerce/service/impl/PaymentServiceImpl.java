@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.webtechnology.ecommerce.dto.PaymentResponse;
 import com.webtechnology.ecommerce.dto.SepayCheckoutRequest;
 import com.webtechnology.ecommerce.dto.SepayPaymentResponse;
+import com.webtechnology.ecommerce.dto.SepayTransactionStatusResponse;
 import com.webtechnology.ecommerce.entity.Order;
 import com.webtechnology.ecommerce.entity.Payment;
 import com.webtechnology.ecommerce.enums.OrderStatus;
@@ -102,5 +103,21 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentMethod(payment.getMethod())
                 .paymentUrl(null)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SepayTransactionStatusResponse queryTransactionStatus(UUID userId, UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new BadRequestException("You are not authorized to query payment status for this order");
+        }
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order id: " + orderId));
+
+        return sepayService.getTransactionStatus(payment.getTransactionId(), orderId.toString());
     }
 }
