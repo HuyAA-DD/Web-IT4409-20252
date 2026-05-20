@@ -67,7 +67,7 @@ public class JwtUtil {
     private SecretKey buildSigningKey(String secret) {
         try {
             return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        } catch (IllegalArgumentException exception) {
+        } catch (Exception exception) {
             byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
             return Keys.hmacShaKeyFor(bytes);
         }
