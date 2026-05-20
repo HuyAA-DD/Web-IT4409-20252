@@ -1,0 +1,25 @@
+# Maven artifacts and build output
+target/
+*.jar
+*.war
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Source control
+.git/
+.gitignore
+.gitlab-ci.yml
+.github/
+
+# Other
+node_modules/
+.env
+.env.local
+.env.*.local
+*.log
