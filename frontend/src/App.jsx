@@ -27,6 +27,8 @@ import RevenuePage from './Pages/Admin/RevenuePage/RevenuePage';
 import AdminTopProductPage from './Pages/Admin/AdminTopProductPage/AdminTopProductPage';
 import AdminNotificationPage from './Pages/Admin/AdminNotificationPage/AdminNotificationPage';
 import NotificationPage from './Pages/User/NotificationPage/NotificationPage';
+import ProductPage from "./Pages/Admin/ProductPage/ProductPage";
+import ProductListPage from './Pages/User/ProductListPage/ProductListPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -63,7 +65,7 @@ const router = createBrowserRouter([
       },
       {
         path: USER_ROUTE.Supermarket,
-        element: <NotFoundPage/>
+        element: <ProductListPage/>
       },
       {
         path: USER_ROUTE.DetailProduct, // Cái này sau track theo Params với useParams
@@ -111,7 +113,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE.Product,
-        element: <NotFoundPage/>
+        element: <ProductPage/>
       },
       {
         path: ADMIN_ROUTE.Revenue,
