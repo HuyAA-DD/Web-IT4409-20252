@@ -255,7 +255,7 @@ const getMainImage = (product) => {
   return product?.imageUrls?.[0] || "https://via.placeholder.com/120x120?text=Product";
 };
 
-const ProductPage = () => {
+const AdminProductPage = () => {
   const [form] = Form.useForm();
 
   const [products, setProducts] = useState(initialProducts);
@@ -883,4 +883,4 @@ const ProductPage = () => {
   );
 };
 
-export default ProductPage;
+export default AdminProductPage;

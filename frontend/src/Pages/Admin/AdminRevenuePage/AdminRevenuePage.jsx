@@ -16,7 +16,7 @@ const mockRevenueData = {
   netRevenue: 1205000000     // 1.2 Tỷ
 };
 
-export default function RevenuePage() {
+export default function AdminRevenuePage() {
   const [revenue, setRevenue] = useState(mockRevenueData);
   const [isLoading, setIsLoading] = useState(false);
 

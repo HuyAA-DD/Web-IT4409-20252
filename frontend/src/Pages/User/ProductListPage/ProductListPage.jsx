@@ -374,7 +374,7 @@ const ProductListPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f6f6] px-4 py-6 md:px-8">
+    <div className="min-h-screen bg-transparent px-4 py-6 md:px-8">
       <div className="mx-auto max-w-[1320px]">
         <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-orange-400 p-6 text-white shadow-sm md:p-8">
           <div className="max-w-3xl">

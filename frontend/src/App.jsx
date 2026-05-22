@@ -23,12 +23,15 @@ import OrderDetailPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
 import AuditLogPage from './Pages/Admin/AuditLogPage/AuditLogPage';
 import DashboardPage from './Pages/Admin/DashboardPage/DashboardPage';
 import CouponPage from './Pages/Admin/CouponPage/CouponPage';
-import RevenuePage from './Pages/Admin/RevenuePage/RevenuePage';
+import AdminRevenuePage from './Pages/Admin/AdminRevenuePage/AdminRevenuePage';
 import AdminTopProductPage from './Pages/Admin/AdminTopProductPage/AdminTopProductPage';
 import AdminNotificationPage from './Pages/Admin/AdminNotificationPage/AdminNotificationPage';
 import NotificationPage from './Pages/User/NotificationPage/NotificationPage';
-import ProductPage from "./Pages/Admin/ProductPage/ProductPage";
+import AdminProductPage from "./Pages/Admin/AdminProductPage/AdminProductPage";
 import ProductListPage from './Pages/User/ProductListPage/ProductListPage';
+import SellerMainLayout from './Layouts/SellerMainLayout/SellerMainLayout';
+import SellerRevenuePage from './Pages/Seller/SellerRevenuePage/SellerRevenuePage';
+import SellerProductPage from './Pages/Seller/SellerProductPage/SellerProductPage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -113,11 +116,11 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE.Product,
-        element: <ProductPage/>
+        element: <AdminProductPage/>
       },
       {
         path: ADMIN_ROUTE.Revenue,
-        element : <RevenuePage/>
+        element : <AdminRevenuePage/>
       },
       {
         path: ADMIN_ROUTE.Setting,
@@ -142,6 +145,27 @@ const router = createBrowserRouter([
     element: <OrderDetailPage/>
   },
   // SELLER ROUTE
+  {
+    path: SELLER_ROUTE.Home,
+    element: <SellerMainLayout/>,
+
+    children:[
+      {
+        index: true,
+        element: <div/>
+      },
+      {
+        path : SELLER_ROUTE.Revenue,
+        element: <SellerRevenuePage/>
+      },
+      {
+        path: SELLER_ROUTE.Product,
+        element: <SellerProductPage/>
+      }
+    ]
+      
+
+  },
 
 
   //OTHER
