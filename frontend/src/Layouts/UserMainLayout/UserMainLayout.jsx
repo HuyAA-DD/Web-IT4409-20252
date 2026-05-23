@@ -168,11 +168,11 @@ const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) 
               <ShoppingCartOutlined className={`text-[26px] transition-all ${isDarkMode ? 'text-gray-100 hover:text-orange-400' : 'text-gray-600 hover:text-orange-600'}`} />
             </Badge>
           </div>
-          <div className={`flex items-center gap-3 cursor-pointer pl-6 border-l ${isDarkMode ? 'border-slate-700' : 'border-gray-200'}`}>
+          <div className={`flex items-center gap-3 cursor-pointer pl-6 border-l ${isDarkMode ? 'border-slate-700' : 'border-gray-200'}`} onClick={() => {navigate(USER_ROUTE.Profile); setActiveIndex(-1);}}>
             <Avatar size={45} src={userAvatar} icon={<UserOutlined />} className="border-2 border-transparent hover:border-orange-600 transition-all shadow-sm" />
             <div className="flex flex-col">
               <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Tài khoản</span>
-              <span className={`text-sm font-bold truncate max-w-[80px] transition-colors cursor-pointer ${isDarkMode ? 'text-gray-200 hover:text-orange-500' : 'text-gray-700 hover:text-orange-600'}`} onClick={() => {navigate('/auth/login&register'); setActiveIndex(-1);}}>Đăng nhập</span>
+              <span className={`text-sm font-bold truncate max-w-[80px] transition-colors cursor-pointer ${isDarkMode ? 'text-gray-200 hover:text-orange-500' : 'text-gray-700 hover:text-orange-600'}`} onClick={() => {navigate(USER_ROUTE.Login); setActiveIndex(-1);}}>Đăng nhập</span>
             </div>
             <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode}/>
           </div>

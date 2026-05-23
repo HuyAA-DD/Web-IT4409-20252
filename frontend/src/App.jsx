@@ -32,6 +32,7 @@ import ProductListPage from './Pages/User/ProductListPage/ProductListPage';
 import SellerMainLayout from './Layouts/SellerMainLayout/SellerMainLayout';
 import SellerRevenuePage from './Pages/Seller/SellerRevenuePage/SellerRevenuePage';
 import SellerProductPage from './Pages/Seller/SellerProductPage/SellerProductPage';
+import UserProfilePage from './Pages/User/UserProfilePage/UserProfilePage';
 
 // Thiết lập router
 const router = createBrowserRouter([
@@ -77,6 +78,10 @@ const router = createBrowserRouter([
       {
         path : USER_ROUTE.Notification,
         element: <NotificationPage/>
+      },
+      {
+        path: USER_ROUTE.Profile,
+        element: <UserProfilePage/>
       }
 
       // [TODO] Sau này bạn có thể thêm các trang khác vào đây:

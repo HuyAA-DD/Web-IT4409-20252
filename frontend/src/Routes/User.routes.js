@@ -7,7 +7,8 @@ const USER_ROUTE = {
     "Discover": "/discover",
     "Supermarket": "/supermarket",
     "Seapay": "/seapay",
-    "Notification" : "/notification"
+    "Notification" : "/notification",
+    "Profile" : "/profile"
 
 }
 
