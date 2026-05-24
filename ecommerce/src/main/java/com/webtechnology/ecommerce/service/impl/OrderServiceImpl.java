@@ -17,6 +17,8 @@ import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.OrderRepository;
 import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
+import com.webtechnology.ecommerce.dto.CouponCalculationResponse;
+import com.webtechnology.ecommerce.service.CouponService;
 import com.webtechnology.ecommerce.service.OrderService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,6 +37,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final CouponService couponService;
     private final OrderMapper orderMapper;
 
     @Override
@@ -47,7 +50,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("Address does not belong to the user");
         }
 
-        // Create order
+        // Create order entity (pre-save to get ID if needed, but we can do it later)
         Order order = Order.builder()
                 .user(user)
                 .address(address)
@@ -55,9 +58,11 @@ public class OrderServiceImpl implements OrderService {
                 .status(OrderStatus.PENDING)
                 .build();
 
-        // Create order items and calculate total
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        // Save order first to get ID for items
         order = orderRepository.save(order);
+
+        // Create order items and calculate subtotal
+        BigDecimal subTotal = BigDecimal.ZERO;
 
         for (var itemRequest : request.getItems()) {
             ProductVariant variant = findProductVariantById(itemRequest.getProductVariantId());
@@ -77,8 +82,8 @@ public class OrderServiceImpl implements OrderService {
 
             orderItemRepository.save(orderItem);
 
-            // Add to total
-            totalAmount = totalAmount.add(
+            // Add to subtotal
+            subTotal = subTotal.add(
                     variant.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()))
             );
 
@@ -87,6 +92,27 @@ public class OrderServiceImpl implements OrderService {
             productVariantRepository.save(variant);
         }
 
+        BigDecimal totalAmount = subTotal;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+
+        // Apply coupon if provided
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            CouponCalculationResponse couponResult = couponService.calculateDiscount(request.getCouponCode(), subTotal);
+            if (couponResult.getIsValid()) {
+                discountAmount = couponResult.getDiscountAmount();
+                totalAmount = couponResult.getFinalAmount();
+                order.setCouponCode(request.getCouponCode());
+                order.setDiscountAmount(discountAmount);
+                
+                // Record usage AFTER order is successful (this is inside a transaction)
+                couponService.recordUsage(request.getCouponCode(), userId, order.getId());
+            } else {
+                // Optionally throw error or just ignore invalid coupon
+                throw new BadRequestException("Invalid coupon: " + couponResult.getMessage());
+            }
+        }
+
+        order.setSubTotal(subTotal);
         order.setTotalAmount(totalAmount);
         order = orderRepository.save(order);
 

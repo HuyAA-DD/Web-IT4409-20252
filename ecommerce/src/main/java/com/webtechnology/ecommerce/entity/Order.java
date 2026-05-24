@@ -46,6 +46,15 @@ public class Order {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "sub_total", nullable = false, precision = 15, scale = 2)
+    private BigDecimal subTotal;
+
+    @Column(name = "discount_amount", precision = 15, scale = 2)
+    private BigDecimal discountAmount;
+
+    @Column(name = "coupon_code", length = 50)
+    private String couponCode;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderStatus status;

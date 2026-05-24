@@ -3,10 +3,16 @@ package com.webtechnology.ecommerce.service.impl;
 import com.webtechnology.ecommerce.dto.CouponRequest;
 import com.webtechnology.ecommerce.dto.CouponResponse;
 import com.webtechnology.ecommerce.dto.CouponCalculationResponse;
+import com.webtechnology.ecommerce.entity.CouponUsage;
+import com.webtechnology.ecommerce.entity.Order;
+import com.webtechnology.ecommerce.entity.User;
 import com.webtechnology.ecommerce.entity.Coupon;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
 import com.webtechnology.ecommerce.mapper.CouponMapper;
 import com.webtechnology.ecommerce.repository.CouponRepository;
+import com.webtechnology.ecommerce.repository.CouponUsageRepository;
+import com.webtechnology.ecommerce.repository.OrderRepository;
+import com.webtechnology.ecommerce.repository.UserRepository;
 import com.webtechnology.ecommerce.service.CouponService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,6 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class CouponServiceImpl implements CouponService {
 
     private final CouponRepository couponRepository;
+    private final CouponUsageRepository couponUsageRepository;
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
     private final CouponMapper couponMapper;
 
     @Override
@@ -70,7 +79,7 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     @Transactional(readOnly = true)
-    public CouponCalculationResponse applyCoupon(String code, BigDecimal orderAmount) {
+    public CouponCalculationResponse calculateDiscount(String code, BigDecimal orderAmount) {
         Coupon coupon = couponRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found with code: " + code));
 
@@ -140,10 +149,6 @@ public class CouponServiceImpl implements CouponService {
             finalAmount = BigDecimal.ZERO;
         }
 
-        // Increment usage count
-        coupon.setCurrentUsage(coupon.getCurrentUsage() + 1);
-        couponRepository.save(coupon);
-
         return response
                 .isValid(true)
                 .message("Coupon applied successfully")
@@ -151,6 +156,28 @@ public class CouponServiceImpl implements CouponService {
                 .discountAmount(discountAmount)
                 .finalAmount(finalAmount)
                 .build();
+    }
+
+    @Override
+    public void recordUsage(String code, UUID userId, UUID orderId) {
+        Coupon coupon = couponRepository.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found with code: " + code));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        // Increment usage count
+        coupon.setCurrentUsage(coupon.getCurrentUsage() + 1);
+        couponRepository.save(coupon);
+
+        // Record usage
+        CouponUsage usage = CouponUsage.builder()
+                .coupon(coupon)
+                .user(user)
+                .order(order)
+                .build();
+        couponUsageRepository.save(usage);
     }
 
     private Coupon findCouponById(UUID id) {

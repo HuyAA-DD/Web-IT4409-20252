@@ -94,7 +94,7 @@ public class CouponController {
         @PostMapping("/apply")
         public ResponseEntity<ApiResponse<CouponCalculationResponse>> applyCoupon(
                         @Valid @RequestBody ApplyCouponRequest request) {
-                CouponCalculationResponse response = couponService.applyCoupon(request.getCode(), request.getOrderAmount());
+                CouponCalculationResponse response = couponService.calculateDiscount(request.getCode(), request.getOrderAmount());
                 return ResponseEntity.ok(ApiResponse.<CouponCalculationResponse>builder()
                                 .success(response.getIsValid())
                                 .message(response.getMessage())

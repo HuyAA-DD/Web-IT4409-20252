@@ -26,6 +26,9 @@ public class AdminOrderResponse {
     private UUID addressId;
     private AddressResponse address;
     private BigDecimal totalAmount;
+    private BigDecimal subTotal;
+    private BigDecimal discountAmount;
+    private String couponCode;
     private OrderStatus status;
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
