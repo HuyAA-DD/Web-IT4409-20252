@@ -20,6 +20,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "products")
@@ -27,6 +29,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SQLDelete(sql = "UPDATE products SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class Product {
 
     @Id
@@ -71,14 +75,6 @@ public class Product {
         if (status == null) {
             status = ProductStatus.ACTIVE;
         }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-}
-    }
     }
 
     @PreUpdate
