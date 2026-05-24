@@ -57,6 +57,10 @@ public class Product {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @PrePersist
     public void prePersist() {
         LocalDateTime now = LocalDateTime.now();
@@ -67,6 +71,14 @@ public class Product {
         if (status == null) {
             status = ProductStatus.ACTIVE;
         }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}
+    }
     }
 
     @PreUpdate

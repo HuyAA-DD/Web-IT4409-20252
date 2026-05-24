@@ -76,6 +76,8 @@ public class OrderServiceImpl implements OrderService {
                     .order(order)
                     .product(variant.getProduct())
                     .productVariant(variant)
+                    .productName(variant.getProduct().getName())
+                    .sku(variant.getSku())
                     .price(variant.getPrice())
                     .quantity(itemRequest.getQuantity())
                     .build();
