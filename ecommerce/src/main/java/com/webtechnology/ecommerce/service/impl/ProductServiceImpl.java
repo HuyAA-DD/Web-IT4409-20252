@@ -26,6 +26,8 @@ import com.webtechnology.ecommerce.repository.ProductImageRepository;
 import com.webtechnology.ecommerce.repository.ProductRepository;
 import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
+import com.webtechnology.ecommerce.dto.AuditLogRequest;
+import com.webtechnology.ecommerce.service.AuditLogService;
 import com.webtechnology.ecommerce.service.FileUploadService;
 import com.webtechnology.ecommerce.service.ProductService;
 import com.webtechnology.ecommerce.enums.ProductStatus;
@@ -44,6 +46,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductVariantRepository productVariantRepository;
     private final ProductMapper productMapper;
     private final FileUploadService fileUploadService;
+    private final AuditLogService auditLogService;
 
     @Override
     public ProductResponse createProduct(ProductRequest request) {
@@ -56,6 +59,15 @@ public class ProductServiceImpl implements ProductService {
 
         saveImages(savedProduct, request.getImageUrls());
         saveVariants(savedProduct, request);
+
+        // Log action
+        auditLogService.createAuditLog(AuditLogRequest.builder()
+                .userId(request.getSellerId())
+                .action("CREATE_PRODUCT")
+                .entityType("PRODUCT")
+                .entityId(savedProduct.getId())
+                .newValue(savedProduct.getName())
+                .build());
 
         return buildProductResponse(savedProduct);
     }
@@ -127,6 +139,8 @@ public class ProductServiceImpl implements ProductService {
         validateVariantSkus(request);
 
         Product existingProduct = findProductById(id);
+        String oldName = existingProduct.getName();
+        
         productMapper.updateEntityFromRequest(request, existingProduct);
         existingProduct.setCategory(findCategoryById(request.getCategoryId()));
         existingProduct.setSeller(findUserById(request.getSellerId()));
@@ -137,6 +151,16 @@ public class ProductServiceImpl implements ProductService {
         saveImages(savedProduct, request.getImageUrls());
         saveVariants(savedProduct, request);
 
+        // Log action
+        auditLogService.createAuditLog(AuditLogRequest.builder()
+                .userId(request.getSellerId())
+                .action("UPDATE_PRODUCT")
+                .entityType("PRODUCT")
+                .entityId(savedProduct.getId())
+                .oldValue(oldName)
+                .newValue(savedProduct.getName())
+                .build());
+
         return buildProductResponse(savedProduct);
     }
 
@@ -146,6 +170,14 @@ public class ProductServiceImpl implements ProductService {
         productImageRepository.deleteByProductId(id);
         productVariantRepository.deleteByProductId(id);
         productRepository.delete(product);
+
+        // Log action
+        auditLogService.createAuditLog(AuditLogRequest.builder()
+                .action("DELETE_PRODUCT")
+                .entityType("PRODUCT")
+                .entityId(id)
+                .oldValue(product.getName())
+                .build());
     }
 
     private ProductResponse buildProductResponse(Product product) {

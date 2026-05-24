@@ -17,7 +17,9 @@ import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.OrderRepository;
 import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
+import com.webtechnology.ecommerce.dto.AuditLogRequest;
 import com.webtechnology.ecommerce.dto.CouponCalculationResponse;
+import com.webtechnology.ecommerce.service.AuditLogService;
 import com.webtechnology.ecommerce.service.CouponService;
 import com.webtechnology.ecommerce.service.OrderService;
 import java.math.BigDecimal;
@@ -38,6 +40,7 @@ public class OrderServiceImpl implements OrderService {
     private final AddressRepository addressRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CouponService couponService;
+    private final AuditLogService auditLogService;
     private final OrderMapper orderMapper;
 
     @Override
@@ -151,36 +154,51 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found for user"));
 
-        // Only allow cancellation for PENDING or CONFIRMED orders
-        if (!order.getStatus().equals(OrderStatus.PENDING) && !order.getStatus().equals(OrderStatus.CONFIRMED)) {
-            throw new BadRequestException("Cannot cancel order with status: " + order.getStatus());
-        }
-
-        // Restore stock for all items
-        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
-        for (OrderItem item : items) {
-            ProductVariant variant = item.getProductVariant();
-            variant.setStock(variant.getStock() + item.getQuantity());
-            productVariantRepository.save(variant);
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
-        order = orderRepository.save(order);
-
-        return buildOrderResponse(order);
+        return updateOrderStatus(orderId, OrderStatus.CANCELLED);
     }
 
     @Override
     public OrderResponse updateOrderStatus(UUID orderId, OrderStatus newStatus) {
         Order order = findOrderById(orderId);
+        OrderStatus oldStatus = order.getStatus();
+
+        // If status is already the same, just return
+        if (order.getStatus().equals(newStatus)) {
+            return buildOrderResponse(order);
+        }
 
         // Validate status transition
         validateStatusTransition(order.getStatus(), newStatus);
 
+        // If transitioning to CANCELLED, restore stock
+        if (newStatus.equals(OrderStatus.CANCELLED)) {
+            restoreStock(orderId);
+        }
+
         order.setStatus(newStatus);
         order = orderRepository.save(order);
 
+        // Log action
+        auditLogService.createAuditLog(AuditLogRequest.builder()
+                .action("UPDATE_ORDER_STATUS")
+                .entityType("ORDER")
+                .entityId(orderId)
+                .oldValue(oldStatus.name())
+                .newValue(newStatus.name())
+                .build());
+
         return buildOrderResponse(order);
+    }
+
+    private void restoreStock(UUID orderId) {
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        for (OrderItem item : items) {
+            ProductVariant variant = item.getProductVariant();
+            if (variant != null) {
+                variant.setStock(variant.getStock() + item.getQuantity());
+                productVariantRepository.save(variant);
+            }
+        }
     }
 
     @Override

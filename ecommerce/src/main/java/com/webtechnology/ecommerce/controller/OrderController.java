@@ -3,7 +3,8 @@ package com.webtechnology.ecommerce.controller;
 import com.webtechnology.ecommerce.dto.ApiResponse;
 import com.webtechnology.ecommerce.dto.OrderRequest;
 import com.webtechnology.ecommerce.dto.OrderResponse;
-import com.webtechnology.ecommerce.enums.OrderStatus;
+import com.webtechnology.ecommerce.entity.Invoice;
+import com.webtechnology.ecommerce.service.InvoiceService;
 import com.webtechnology.ecommerce.service.OrderService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orderService;
+    private final InvoiceService invoiceService;
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
@@ -94,6 +96,22 @@ public class OrderController {
                 .success(true)
                 .message("Order tracking information retrieved successfully")
                 .data(response)
+                .build());
+    }
+
+    @GetMapping("/{id}/invoice")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Invoice>> getOrderInvoice(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        // Simple security check: getOrderByIdAndUserId will throw if not owned
+        orderService.getOrderByIdAndUserId(id, UUID.fromString(authentication.getName()));
+        
+        Invoice invoice = invoiceService.createInvoiceForOrder(id);
+        return ResponseEntity.ok(ApiResponse.<Invoice>builder()
+                .success(true)
+                .message("Invoice retrieved successfully")
+                .data(invoice)
                 .build());
     }
 }
