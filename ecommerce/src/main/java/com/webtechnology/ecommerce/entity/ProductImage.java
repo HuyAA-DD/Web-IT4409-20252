@@ -14,6 +14,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "product_images")
@@ -21,6 +23,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SQLDelete(sql = "UPDATE product_images SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class ProductImage {
 
     @Id
@@ -33,4 +37,8 @@ public class ProductImage {
 
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

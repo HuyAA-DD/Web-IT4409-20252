@@ -11,5 +11,5 @@ public interface AuthService {
 
     AuthResponse login(AuthLoginRequest request);
 
-    UserResponse getCurrentUser(String email);
+    UserResponse getCurrentUser(java.util.UUID userId);
 }

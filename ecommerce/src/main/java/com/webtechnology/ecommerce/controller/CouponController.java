@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/coupons")
+@RequestMapping("/api/v1/coupons")
 @RequiredArgsConstructor
 public class CouponController {
 
@@ -94,7 +94,7 @@ public class CouponController {
         @PostMapping("/apply")
         public ResponseEntity<ApiResponse<CouponCalculationResponse>> applyCoupon(
                         @Valid @RequestBody ApplyCouponRequest request) {
-                CouponCalculationResponse response = couponService.applyCoupon(request.getCode(), request.getOrderAmount());
+                CouponCalculationResponse response = couponService.calculateDiscount(request.getCode(), request.getOrderAmount());
                 return ResponseEntity.ok(ApiResponse.<CouponCalculationResponse>builder()
                                 .success(response.getIsValid())
                                 .message(response.getMessage())

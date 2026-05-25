@@ -26,4 +26,6 @@ public class AuthRegisterRequest {
     @NotBlank(message = "Full name is required")
     @Size(max = 150, message = "Full name must not exceed 150 characters")
     private String fullName;
+
+    private com.webtechnology.ecommerce.entity.Role role;
 }

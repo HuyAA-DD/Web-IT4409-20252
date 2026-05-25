@@ -9,12 +9,14 @@ import com.webtechnology.ecommerce.service.SepayService;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Objects;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -161,81 +163,26 @@ public class SepayServiceImpl implements SepayService {
         }
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class SepayTransactionStatusRequest {
-
-        private final String transactionId;
-        private final String externalId;
-
-        public SepayTransactionStatusRequest(String transactionId, String externalId) {
-            this.transactionId = transactionId;
-            this.externalId = externalId;
-        }
-
-        public String getTransactionId() {
-            return transactionId;
-        }
-
-        public String getExternalId() {
-            return externalId;
-        }
+        private String transactionId;
+        private String externalId;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class SepayStatusResponse {
-
         private String transactionId;
         private String externalId;
         private String status;
         private String amount;
         private String currency;
         private String timestamp;
-
-        public String getTransactionId() {
-            return transactionId;
-        }
-
-        public void setTransactionId(String transactionId) {
-            this.transactionId = transactionId;
-        }
-
-        public String getExternalId() {
-            return externalId;
-        }
-
-        public void setExternalId(String externalId) {
-            this.externalId = externalId;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public String getAmount() {
-            return amount;
-        }
-
-        public void setAmount(String amount) {
-            this.amount = amount;
-        }
-
-        public String getCurrency() {
-            return currency;
-        }
-
-        public void setCurrency(String currency) {
-            this.currency = currency;
-        }
-
-        public String getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(String timestamp) {
-            this.timestamp = timestamp;
-        }
     }
 
     private PaymentStatus mapPaymentStatus(String status) {
@@ -254,89 +201,27 @@ public class SepayServiceImpl implements SepayService {
         return PaymentStatus.PENDING;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class SepayRequest {
-
-        private final String merchantCode;
-        private final String merchantKey;
-        private final String externalId;
-        private final BigDecimal amount;
-        private final String currency;
-        private final String returnUrl;
-        private final String description;
-
-        public SepayRequest(String merchantCode,
-                            String merchantKey,
-                            String externalId,
-                            BigDecimal amount,
-                            String currency,
-                            String returnUrl,
-                            String description) {
-            this.merchantCode = merchantCode;
-            this.merchantKey = merchantKey;
-            this.externalId = externalId;
-            this.amount = amount;
-            this.currency = currency;
-            this.returnUrl = returnUrl;
-            this.description = description;
-        }
-
-        public String getMerchantCode() {
-            return merchantCode;
-        }
-
-        public String getMerchantKey() {
-            return merchantKey;
-        }
-
-        public String getExternalId() {
-            return externalId;
-        }
-
-        public BigDecimal getAmount() {
-            return amount;
-        }
-
-        public String getCurrency() {
-            return currency;
-        }
-
-        public String getReturnUrl() {
-            return returnUrl;
-        }
-
-        public String getDescription() {
-            return description;
-        }
+        private String merchantCode;
+        private String merchantKey;
+        private String externalId;
+        private BigDecimal amount;
+        private String currency;
+        private String returnUrl;
+        private String description;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class SepayResponse {
-
         private String transactionId;
         private String paymentUrl;
         private String status;
-
-        public String getTransactionId() {
-            return transactionId;
-        }
-
-        public void setTransactionId(String transactionId) {
-            this.transactionId = transactionId;
-        }
-
-        public String getPaymentUrl() {
-            return paymentUrl;
-        }
-
-        public void setPaymentUrl(String paymentUrl) {
-            this.paymentUrl = paymentUrl;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
     }
 }

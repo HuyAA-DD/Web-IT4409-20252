@@ -8,6 +8,7 @@ import com.webtechnology.ecommerce.entity.User;
 import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
 import com.webtechnology.ecommerce.mapper.ReviewMapper;
+import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.ProductRepository;
 import com.webtechnology.ecommerce.repository.ReviewRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
@@ -26,10 +27,15 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ReviewMapper reviewMapper;
 
     @Override
     public ReviewResponse createReview(ReviewRequest request) {
+        if (!orderItemRepository.hasUserPurchasedProduct(request.getUserId(), request.getProductId())) {
+            throw new BadRequestException("You can only review products you have purchased and received");
+        }
+
         if (reviewRepository.existsByUserIdAndProductId(request.getUserId(), request.getProductId())) {
             throw new BadRequestException("User has already reviewed this product");
         }

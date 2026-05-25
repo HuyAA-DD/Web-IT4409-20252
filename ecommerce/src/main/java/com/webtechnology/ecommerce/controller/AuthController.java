@@ -21,7 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -51,7 +51,8 @@ public class AuthController {
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> me(Authentication authentication) {
-        UserResponse response = authService.getCurrentUser(authentication.getName());
+        java.util.UUID userId = java.util.UUID.fromString(authentication.getName());
+        UserResponse response = authService.getCurrentUser(userId);
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message("Current user retrieved successfully")

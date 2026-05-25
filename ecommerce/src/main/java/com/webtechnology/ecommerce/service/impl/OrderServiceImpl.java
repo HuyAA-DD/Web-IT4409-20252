@@ -1,5 +1,7 @@
 package com.webtechnology.ecommerce.service.impl;
 
+import com.webtechnology.ecommerce.dto.AuditLogRequest;
+import com.webtechnology.ecommerce.dto.CouponCalculationResponse;
 import com.webtechnology.ecommerce.dto.OrderItemResponse;
 import com.webtechnology.ecommerce.dto.OrderRequest;
 import com.webtechnology.ecommerce.dto.OrderResponse;
@@ -17,10 +19,14 @@ import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.OrderRepository;
 import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
+import com.webtechnology.ecommerce.service.AuditLogService;
+import com.webtechnology.ecommerce.service.CouponService;
 import com.webtechnology.ecommerce.service.OrderService;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +41,8 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final CouponService couponService;
+    private final AuditLogService auditLogService;
     private final OrderMapper orderMapper;
 
     @Override
@@ -42,12 +50,10 @@ public class OrderServiceImpl implements OrderService {
         User user = findUserById(userId);
         Address address = findAddressById(request.getAddressId());
 
-        // Validate that address belongs to the user
         if (!address.getUser().getId().equals(userId)) {
             throw new BadRequestException("Address does not belong to the user");
         }
 
-        // Create order
         Order order = Order.builder()
                 .user(user)
                 .address(address)
@@ -55,14 +61,12 @@ public class OrderServiceImpl implements OrderService {
                 .status(OrderStatus.PENDING)
                 .build();
 
-        // Create order items and calculate total
-        BigDecimal totalAmount = BigDecimal.ZERO;
         order = orderRepository.save(order);
+        BigDecimal subTotal = BigDecimal.ZERO;
 
         for (var itemRequest : request.getItems()) {
             ProductVariant variant = findProductVariantById(itemRequest.getProductVariantId());
 
-            // Validate stock
             if (itemRequest.getQuantity() > variant.getStock()) {
                 throw new BadRequestException("Insufficient stock for product variant: " + variant.getId());
             }
@@ -71,22 +75,36 @@ public class OrderServiceImpl implements OrderService {
                     .order(order)
                     .product(variant.getProduct())
                     .productVariant(variant)
+                    .productName(variant.getProduct().getName())
+                    .sku(variant.getSku())
                     .price(variant.getPrice())
                     .quantity(itemRequest.getQuantity())
                     .build();
 
             orderItemRepository.save(orderItem);
+            subTotal = subTotal.add(variant.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity())));
 
-            // Add to total
-            totalAmount = totalAmount.add(
-                    variant.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()))
-            );
-
-            // Reduce stock
             variant.setStock(variant.getStock() - itemRequest.getQuantity());
             productVariantRepository.save(variant);
         }
 
+        BigDecimal totalAmount = subTotal;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            CouponCalculationResponse couponResult = couponService.calculateDiscount(request.getCouponCode(), subTotal);
+            if (couponResult.getIsValid()) {
+                discountAmount = couponResult.getDiscountAmount();
+                totalAmount = couponResult.getFinalAmount();
+                order.setCouponCode(request.getCouponCode());
+                order.setDiscountAmount(discountAmount);
+                couponService.recordUsage(request.getCouponCode(), userId, order.getId());
+            } else {
+                throw new BadRequestException("Invalid coupon: " + couponResult.getMessage());
+            }
+        }
+
+        order.setSubTotal(subTotal);
         order.setTotalAmount(totalAmount);
         order = orderRepository.save(order);
 
@@ -96,7 +114,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getUserOrders(UUID userId) {
-        findUserById(userId); // Validate user exists
+        findUserById(userId);
         return orderRepository.findByUserId(userId)
                 .stream()
                 .map(this::buildOrderResponse)
@@ -123,44 +141,70 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found for user"));
 
-        // Only allow cancellation for PENDING or CONFIRMED orders
-        if (!order.getStatus().equals(OrderStatus.PENDING) && !order.getStatus().equals(OrderStatus.CONFIRMED)) {
-            throw new BadRequestException("Cannot cancel order with status: " + order.getStatus());
-        }
-
-        // Restore stock for all items
-        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
-        for (OrderItem item : items) {
-            ProductVariant variant = item.getProductVariant();
-            variant.setStock(variant.getStock() + item.getQuantity());
-            productVariantRepository.save(variant);
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
-        order = orderRepository.save(order);
-
-        return buildOrderResponse(order);
+        return updateOrderStatusInternal(order, OrderStatus.CANCELLED);
     }
 
     @Override
     public OrderResponse updateOrderStatus(UUID orderId, OrderStatus newStatus) {
         Order order = findOrderById(orderId);
+        return updateOrderStatusInternal(order, newStatus);
+    }
 
-        // Validate status transition
+    private OrderResponse updateOrderStatusInternal(Order order, OrderStatus newStatus) {
+        UUID orderId = order.getId();
+        OrderStatus oldStatus = order.getStatus();
+
+        if (order.getStatus().equals(newStatus)) {
+            return buildOrderResponse(order);
+        }
+
         validateStatusTransition(order.getStatus(), newStatus);
 
-        order.setStatus(newStatus);
-        order = orderRepository.save(order);
+        if (newStatus.equals(OrderStatus.CANCELLED)) {
+            restoreStock(orderId);
+        }
 
-        return buildOrderResponse(order);
+        order.setStatus(newStatus);
+        Order savedOrder = orderRepository.save(order);
+
+        auditLogService.createAuditLog(AuditLogRequest.builder()
+                .action("UPDATE_ORDER_STATUS")
+                .entityType("ORDER")
+                .entityId(orderId)
+                .oldValue(oldStatus.name())
+                .newValue(newStatus.name())
+                .build());
+
+        return buildOrderResponse(savedOrder);
+    }
+
+    private void restoreStock(UUID orderId) {
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        for (OrderItem item : items) {
+            ProductVariant variant = item.getProductVariant();
+            if (variant != null) {
+                variant.setStock(variant.getStock() + item.getQuantity());
+                productVariantRepository.save(variant);
+            }
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll()
-                .stream()
-                .map(this::buildOrderResponse)
+        List<Order> orders = orderRepository.findAllWithDetails();
+        List<UUID> orderIds = orders.stream().map(Order::getId).toList();
+        
+        List<OrderItem> allItems = orderItemRepository.findByOrderIdIn(orderIds);
+        
+        Map<UUID, List<OrderItem>> itemsByOrderId = allItems.stream()
+                .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
+        
+        return orders.stream()
+                .map(order -> {
+                    List<OrderItem> items = itemsByOrderId.getOrDefault(order.getId(), List.of());
+                    return buildOrderResponse(order, items);
+                })
                 .toList();
     }
 
@@ -174,6 +218,10 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderResponse buildOrderResponse(Order order) {
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        return buildOrderResponse(order, items);
+    }
+
+    private OrderResponse buildOrderResponse(Order order, List<OrderItem> items) {
         List<OrderItemResponse> itemResponses = items.stream()
                 .map(orderMapper::toOrderItemResponse)
                 .toList();
@@ -204,7 +252,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        // Define valid transitions
         switch (currentStatus) {
             case PENDING:
                 if (!newStatus.equals(OrderStatus.CONFIRMED) && !newStatus.equals(OrderStatus.CANCELLED)) {

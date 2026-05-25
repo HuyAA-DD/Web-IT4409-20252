@@ -17,6 +17,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 @Entity
@@ -25,6 +27,8 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SQLDelete(sql = "UPDATE product_variants SET deleted = true, sku = CONCAT(sku, '_del_', id) WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class ProductVariant {
 
     @Id
@@ -47,4 +51,8 @@ public class ProductVariant {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
     private Map<String, Object> attributes;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

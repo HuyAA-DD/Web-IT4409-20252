@@ -10,9 +10,9 @@ import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
 import com.webtechnology.ecommerce.repository.OrderRepository;
 import com.webtechnology.ecommerce.repository.PaymentRepository;
+import com.webtechnology.ecommerce.service.OrderService;
 import com.webtechnology.ecommerce.service.SepayService;
 import jakarta.validation.Valid;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class WebhookController {
 
     private final SepayService sepayService;
+    private final OrderService orderService;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
 
@@ -74,13 +75,11 @@ public class WebhookController {
 
             if (PaymentStatus.PAID.equals(paymentStatus)) {
                 order.setPaymentStatus(PaymentStatus.PAID);
-                order.setStatus(OrderStatus.CONFIRMED);
-                orderRepository.save(order);
+                orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED);
                 log.info("Order {} payment confirmed via Sepay webhook", orderId);
             } else if (PaymentStatus.FAILED.equals(paymentStatus)) {
                 order.setPaymentStatus(PaymentStatus.FAILED);
-                order.setStatus(OrderStatus.CANCELLED);
-                orderRepository.save(order);
+                orderService.updateOrderStatus(orderId, OrderStatus.CANCELLED);
                 log.warn("Order {} payment failed via Sepay webhook", orderId);
             }
 

@@ -21,6 +21,8 @@ public interface CouponService {
 
     void deleteCoupon(UUID id);
 
-    CouponCalculationResponse applyCoupon(String code, BigDecimal orderAmount);
+    CouponCalculationResponse calculateDiscount(String code, BigDecimal orderAmount);
+
+    void recordUsage(String code, UUID userId, UUID orderId);
 }
 

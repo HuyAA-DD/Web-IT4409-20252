@@ -40,6 +40,12 @@ public class OrderItem {
     @JoinColumn(name = "product_variant_id", nullable = false)
     private ProductVariant productVariant;
 
+    @Column(name = "product_name", nullable = false, length = 200)
+    private String productName;
+
+    @Column(nullable = false, length = 100)
+    private String sku;
+
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 

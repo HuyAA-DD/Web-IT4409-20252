@@ -3,7 +3,6 @@ package com.webtechnology.ecommerce.dto;
 import com.webtechnology.ecommerce.enums.OrderStatus;
 import com.webtechnology.ecommerce.enums.PaymentMethod;
 import com.webtechnology.ecommerce.enums.PaymentStatus;
-import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +25,9 @@ public class AdminOrderResponse {
     private UUID addressId;
     private AddressResponse address;
     private BigDecimal totalAmount;
+    private BigDecimal subTotal;
+    private BigDecimal discountAmount;
+    private String couponCode;
     private OrderStatus status;
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
