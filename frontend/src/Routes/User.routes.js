@@ -4,11 +4,11 @@ const USER_ROUTE = {
     "TopProduct": "/top-product",
     "Cart": "/cart",
     "DetailProduct":"/product-detail", // cái này sau này phải Params id
-    "Discover": "/discover",
     "Supermarket": "/supermarket",
     "Seapay": "/seapay",
     "Notification" : "/notification",
-    "Profile" : "/profile"
+    "Profile" : "/profile",
+
 
 }
 

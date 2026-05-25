@@ -35,3 +35,4 @@ build/
 .m2repo
 .test
 target/
+.env

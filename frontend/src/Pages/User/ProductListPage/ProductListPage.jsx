@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Button,
   Card,
@@ -9,6 +9,7 @@ import {
   Space,
   Tag,
   Typography,
+  message,
 } from "antd";
 import {
   AppstoreOutlined,
@@ -17,6 +18,9 @@ import {
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { getAuthUser } from '../../../Utils/Auth';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -78,197 +82,7 @@ const formatCurrency = (value) => {
  * };
  */
 
-const mockCategories = [
-  {
-    id: "ALL",
-    name: "Tất cả",
-  },
-  {
-    id: "11111111-1111-1111-1111-111111111111",
-    name: "Thời trang nam",
-  },
-  {
-    id: "22222222-2222-2222-2222-222222222222",
-    name: "Giày dép",
-  },
-  {
-    id: "33333333-3333-3333-3333-333333333333",
-    name: "Phụ kiện",
-  },
-  {
-    id: "44444444-4444-4444-4444-444444444444",
-    name: "Đồ công nghệ",
-  },
-  {
-    id: "55555555-5555-5555-5555-555555555555",
-    name: "Đồ gia dụng",
-  },
-];
-
-const mockProducts = [
-  {
-    id: "p-001",
-    name: "Áo thun basic nam form rộng",
-    description: "Áo thun cotton basic, form rộng, dễ phối đồ.",
-    categoryId: "11111111-1111-1111-1111-111111111111",
-    categoryName: "Thời trang nam",
-    sellerId: "seller-001",
-    sellerName: "MegaMart Official",
-    status: "ACTIVE",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=700",
-    ],
-    variants: [
-      {
-        id: "v-001",
-        sku: "TSHIRT-BASIC-WHITE-M",
-        price: 199000,
-        stock: 120,
-        attributes: {
-          color: "Trắng",
-          size: "M",
-        },
-      },
-    ],
-    soldCount: 320,
-    rating: 4.7,
-  },
-  {
-    id: "p-002",
-    name: "Giày sneaker trắng tối giản",
-    description: "Giày sneaker trắng phong cách tối giản, phù hợp đi học, đi làm.",
-    categoryId: "22222222-2222-2222-2222-222222222222",
-    categoryName: "Giày dép",
-    sellerId: "seller-001",
-    sellerName: "MegaMart Official",
-    status: "ACTIVE",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=700",
-    ],
-    variants: [
-      {
-        id: "v-002",
-        sku: "SNEAKER-WHITE-42",
-        price: 799000,
-        stock: 42,
-        attributes: {
-          color: "Trắng",
-          size: "42",
-        },
-      },
-    ],
-    soldCount: 214,
-    rating: 4.8,
-  },
-  {
-    id: "p-003",
-    name: "Túi canvas đi học / đi làm",
-    description: "Túi canvas rộng rãi, chất liệu bền, màu sắc trung tính.",
-    categoryId: "33333333-3333-3333-3333-333333333333",
-    categoryName: "Phụ kiện",
-    sellerId: "seller-002",
-    sellerName: "Canvas Store",
-    status: "ACTIVE",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=700",
-    ],
-    variants: [
-      {
-        id: "v-003",
-        sku: "BAG-CANVAS-BEIGE",
-        price: 259000,
-        stock: 0,
-        attributes: {
-          color: "Be",
-          material: "Canvas",
-        },
-      },
-    ],
-    soldCount: 168,
-    rating: 4.5,
-  },
-  {
-    id: "p-004",
-    name: "Tai nghe bluetooth mini",
-    description: "Tai nghe bluetooth nhỏ gọn, âm thanh ổn định.",
-    categoryId: "44444444-4444-4444-4444-444444444444",
-    categoryName: "Đồ công nghệ",
-    sellerId: "seller-003",
-    sellerName: "Tech House",
-    status: "ACTIVE",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=700",
-    ],
-    variants: [
-      {
-        id: "v-004",
-        sku: "HEADPHONE-BT-BLACK",
-        price: 395000,
-        stock: 85,
-        attributes: {
-          color: "Đen",
-          type: "Bluetooth",
-        },
-      },
-    ],
-    soldCount: 132,
-    rating: 4.4,
-  },
-  {
-    id: "p-005",
-    name: "Bình giữ nhiệt inox 500ml",
-    description: "Bình giữ nhiệt inox dung tích 500ml, giữ nóng/lạnh tốt.",
-    categoryId: "55555555-5555-5555-5555-555555555555",
-    categoryName: "Đồ gia dụng",
-    sellerId: "seller-004",
-    sellerName: "Home Mall",
-    status: "ACTIVE",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=700",
-    ],
-    variants: [
-      {
-        id: "v-005",
-        sku: "BOTTLE-INOX-500ML",
-        price: 189000,
-        stock: 66,
-        attributes: {
-          capacity: "500ml",
-          material: "Inox",
-        },
-      },
-    ],
-    soldCount: 98,
-    rating: 4.6,
-  },
-  {
-    id: "p-006",
-    name: "Balo laptop chống nước",
-    description: "Balo laptop nhiều ngăn, chất liệu chống nước, phù hợp đi học và đi làm.",
-    categoryId: "33333333-3333-3333-3333-333333333333",
-    categoryName: "Phụ kiện",
-    sellerId: "seller-002",
-    sellerName: "Canvas Store",
-    status: "ACTIVE",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=700",
-    ],
-    variants: [
-      {
-        id: "v-006",
-        sku: "BACKPACK-LAPTOP-BLACK",
-        price: 459000,
-        stock: 38,
-        attributes: {
-          color: "Đen",
-          size: "15.6 inch",
-        },
-      },
-    ],
-    soldCount: 76,
-    rating: 4.3,
-  },
-];
+// categories and products are loaded from API (remove UI mocks)
 
 const getMainVariant = (product) => {
   return product?.variants?.[0] || {
@@ -285,13 +99,41 @@ const getMainImage = (product) => {
 
 const ProductListPage = () => {
   const navigate = useNavigate();
+  const authUser = getAuthUser();
+  const userId = authUser?.id;
 
-  const [products] = useState(mockProducts);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([{ id: 'ALL', name: 'Tất cả' }]);
   const [keyword, setKeyword] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("ALL");
   const [sortType, setSortType] = useState("DEFAULT");
   const [priceRange, setPriceRange] = useState([0, 1000000]);
   const [stockFilter, setStockFilter] = useState("ALL");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await api.get(API_ENDPOINTS.products.list);
+        setProducts(response?.data || response || []);
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách sản phẩm', error);
+      }
+    };
+
+    fetchProducts();
+    // fetch categories
+    const fetchCategories = async () => {
+      try {
+        const resp = await api.get(API_ENDPOINTS.categories.list);
+        const list = resp?.data || resp || [];
+        setCategories([{ id: 'ALL', name: 'Tất cả' }, ...list]);
+      } catch (err) {
+        console.error('Không tải được categories', err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     let result = products.filter((product) => {
@@ -345,23 +187,29 @@ const ProductListPage = () => {
     return result;
   }, [products, keyword, selectedCategoryId, sortType, priceRange, stockFilter]);
 
-  const handleAddToCart = (event, product) => {
+  const handleAddToCart = async (event, product) => {
     event.stopPropagation();
-
-    /**
-     * TODO_BACKEND:
-     * Sau này thay message mock bằng:
-     *
-     * await cartApi.addToCart({
-     *   productId: product.id,
-     *   variantId: product.variants[0].id,
-     *   quantity: 1,
-     * });
-     */
     const mainVariant = getMainVariant(product);
 
-    if (mainVariant.stock <= 0) {
+    if (!userId) {
+      message.warning('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.');
       return;
+    }
+
+    if (mainVariant.stock <= 0) {
+      message.warning('Sản phẩm hiện đã hết hàng.');
+      return;
+    }
+
+    try {
+      await api.post(API_ENDPOINTS.cart.items(userId), {
+        productVariantId: mainVariant.id,
+        quantity: 1,
+      });
+      message.success('Đã thêm sản phẩm vào giỏ hàng.');
+    } catch (error) {
+      console.error('Lỗi thêm vào giỏ hàng', error);
+      message.error('Không thể thêm sản phẩm vào giỏ hàng.');
     }
   };
 
@@ -417,7 +265,7 @@ const ProductListPage = () => {
                 <div>
                   <div className="mb-2 text-sm font-medium">Danh mục</div>
                   <div className="space-y-2">
-                    {mockCategories.map((category) => (
+                    {categories.map((category) => (
                       <button
                         key={category.id}
                         type="button"

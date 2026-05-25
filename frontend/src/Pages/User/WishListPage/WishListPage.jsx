@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Checkbox, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Checkbox, Button, message } from 'antd';
 import { useOutletContext } from 'react-router-dom';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { getAuthUser } from '../../../Utils/Auth';
 import { 
   DeleteOutlined, 
   ShoppingCartOutlined, 
@@ -58,7 +61,20 @@ export default function WishListPage() {
      - Lấy danh sách wishlist từ API: GET /api/user/wishlist 
      - set lại state `items` 
   */
-  const [items, setItems] = useState(MOCK_WISHLIST_ITEMS); 
+  const authUser = getAuthUser();
+  const userId = authUser?.id;
+  const [items, setItems] = useState([]);
+  
+  useEffect(() => {
+    if (!userId) return;
+    api.get(API_ENDPOINTS.wishlists.byUser(userId))
+      .then((resp) => {
+        setItems(resp?.data || resp || []);
+      })
+      .catch(() => {
+        setItems([]);
+      });
+  }, [userId]);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
   // Vẫn giữ lại context nếu bạn cần xử lý riêng cho Ant Design ConfigProvider sau này,
@@ -80,20 +96,39 @@ export default function WishListPage() {
   };
 
   const handleRemoveItem = (id) => {
-    /* [TODO: API] Gọi API xóa sản phẩm khỏi Wishlist: DELETE /api/user/wishlist/:id */
-    setItems(items.filter(item => item.id !== id));
+    /* API: DELETE wishlist by user/product */
+    if (!userId) return;
+    api.delete(API_ENDPOINTS.wishlists.deleteByUserProduct(userId, id))
+      .then(() => {
+        setItems(items.filter(item => item.id !== id));
+      })
+      .catch(() => {
+        setItems(items.filter(item => item.id !== id));
+      });
     setSelectedItemIds(selectedItemIds.filter(itemId => itemId !== id));
   };
 
   const handleRemoveSelected = () => {
-    /* [TODO: API] Gọi API xóa hàng loạt: POST /api/user/wishlist/delete-multiple { ids: selectedItemIds } */
-    setItems(items.filter(item => !selectedItemIds.includes(item.id)));
-    setSelectedItemIds([]);
+    if (!userId) return;
+    // best-effort: remove locally and call API per item
+    Promise.all(selectedItemIds.map(id => api.delete(API_ENDPOINTS.wishlists.delete(id)).catch(() => {})))
+      .finally(() => {
+        setItems(items.filter(item => !selectedItemIds.includes(item.id)));
+        setSelectedItemIds([]);
+      });
   };
 
   const handleMoveToCart = () => {
-    /* [TODO: API] Gọi API thêm vào giỏ hàng: POST /api/cart/add-multiple { ids: selectedItemIds } */
-    console.log("Moving to cart IDs:", selectedItemIds);
+    if (!userId) {
+      message.warning('Vui lòng đăng nhập');
+      return;
+    }
+    Promise.all(selectedItemIds.map(id => api.post(API_ENDPOINTS.cart.items(userId), { productVariantId: id, quantity: 1 }).catch(() => {})))
+      .finally(() => {
+        // remove moved items from UI
+        setItems(items.filter(item => !selectedItemIds.includes(item.id)));
+        setSelectedItemIds([]);
+      });
   };
 
   const isAllSelected = items.length > 0 && selectedItemIds.length === items.length;

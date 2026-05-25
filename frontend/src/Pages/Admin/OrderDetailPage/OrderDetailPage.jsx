@@ -12,6 +12,9 @@ import {
   PhoneOutlined 
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { message } from 'antd';
 
 // FIXME: [MOCK_DATA] - Xóa dữ liệu này khi kết nối API. 
 // Dữ liệu bám sát chuẩn DTO OrderResponse (kèm OrderItemResponse & AddressResponse)
@@ -63,27 +66,37 @@ const mockOrderResponse = {
 
 export default function OrderDetailPage() {
   const navigate = useNavigate();
-  // const { id } = useParams(); // Lấy ID Đơn hàng từ Router
+  const { id } = useParams(); // Lấy ID Đơn hàng từ Router
 
-  // FIXME: [MOCK_DATA] - Đổi state khởi tạo thành useState(null) khi nối API
-  const [order, setOrder] = useState(mockOrderResponse);
+  const [order, setOrder] = useState(null);
 
-  // ----------------------------------------------------------------------
-  // TODO: [API_CALL] - GET /api/v1/admin/orders/{id}
-  // useEffect(() => {
-  //   const fetchOrderDetails = async () => {
-  //      try {
-  //        const response = await axios.get(`/api/v1/admin/orders/${id}`);
-  //        setOrder(response.data);
-  //      } catch(e) { console.log(e) }
-  //   };
-  //   fetchOrderDetails();
-  // }, [id]);
-  // ----------------------------------------------------------------------
+  useEffect(() => {
+    if (!id) return;
 
-  const handleUpdateStatus = () => {
-    // TODO: [API_CALL] - PUT /api/v1/admin/orders/{id}/status
-    console.log("Mở modal cập nhật trạng thái OrderStatus");
+    const fetchOrderDetails = async () => {
+      try {
+        const response = await api.get(API_ENDPOINTS.orders.byId(id));
+        setOrder(response?.data || response);
+      } catch (error) {
+        console.error('Lỗi khi tải chi tiết đơn hàng', error);
+        message.error('Không thể tải chi tiết đơn hàng.');
+      }
+    };
+
+    fetchOrderDetails();
+  }, [id]);
+
+  const handleUpdateStatus = async () => {
+    if (!id) return;
+    try {
+      const response = await api.put(API_ENDPOINTS.orders.cancel(id));
+      const updatedOrder = response?.data || response;
+      setOrder(updatedOrder);
+      message.success('Đã cập nhật trạng thái đơn hàng.');
+    } catch (error) {
+      console.error('Lỗi cập nhật trạng thái đơn hàng', error);
+      message.error('Không thể cập nhật trạng thái đơn hàng.');
+    }
   };
 
   if (!order) return <div className="p-10 text-center text-gray-500">Đang tải thông tin đơn hàng...</div>;

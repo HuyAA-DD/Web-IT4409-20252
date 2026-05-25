@@ -11,15 +11,7 @@ import {
   ShopOutlined
 } from '@ant-design/icons';
 import { Avatar, Badge, Button } from 'antd';
-
-// TODO: Đổi thành đường dẫn thật của SELLER_ROUTE
-// import SELLER_ROUTE from '../../Routes/Seller.routes';
-const SELLER_ROUTE = {
-  Revenue: '/seller/revenue',
-  Product: '/seller/products',
-  Setting: '/seller/settings',
-  Notification: '/seller/notification'
-};
+import SELLER_ROUTE from '../../Routes/Seller.routes';
 
 // --- COMPONENT: SELLER SIDEBAR ---
 const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -66,12 +58,12 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
     <>
       {/* Mobile Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/60 z-[100] lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
+        className={`fixed inset-0 bg-black/60 z-100 lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
         onClick={onCloseMobile} 
       />
 
       {/* Sidebar Container */}
-      <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-[101] flex flex-col transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-101 flex flex-col transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         
         {/* Mobile Header in Sidebar */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-gray-200 lg:hidden">

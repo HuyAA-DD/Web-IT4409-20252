@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DeleteOutlined, 
   CloseOutlined, 
@@ -14,67 +14,52 @@ import {
   CustomerServiceOutlined
 } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
-// FIXME: [MOCK_DATA] - Xóa toàn bộ biến này khi có API.
-// Mock data tuân thủ chính xác cấu trúc DTO CartResponse bọc ngoài CartItemResponse
-const mockCartResponse = {
-  id: "c7d8e9f0-3456-7890-12ab-cdef34567890",
-  userId: "u1a2b3c4-9876-5432-10fe-dcba98765432",
-  createdAt: "2026-05-13T14:53:03",
-  totalItems: 2,
-  totalAmount: 478.99, // Tổng tiền do BE trả về (Có thể dùng để check đối chiếu)
-  items: [
-    {
-      id: "a1b2c3d4-1234-5678-90ab-cdef12345678",
-      productId: "p1000000-0000-0000-0000-000000000001",
-      productName: "UltraBoost Velocity Pro - Orange/Black Limited Edition",
-      productVariantId: "v1000000-0000-0000-0000-000000000001",
-      sku: "UB-ORG-42",
-      price: 129.99,
-      quantity: 1,
-      lineTotal: 129.99,
-      attributes: {
-        imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDH46lkiY2NUy2qZG3OQbJfEmtpWHG6vdfFGNaKYitsLbvmA-_96-0p38i6BlbnwonuP5YwCtfSZ7tVH8NCNaqI8-36mMkK8vTXLv292d-iLqO6GbYNxEnbunz-9cv9CxeDZ9mkRGYL-H0-bhUQ0hplhSsNHgg6R75MEau9umK9KeCmeN89LhFSagdY8_LOWDEP-oOK6h3BVbnKXKjChcihHBXCfObXgvEb1Zy4DCrbjZra7aWzHFz13kLjzxEdzjGVJkyWRlSY-893",
-        originalPrice: 180.00,
-        color: "Sunset Orange",
-        size: "42",
-        isFlashSale: false,
-        isPreferred: true
-      },
-      selected: true // Thuộc tính bổ sung trên Frontend
-    },
-    {
-      id: "b2c3d4e5-2345-6789-01bc-def012345679",
-      productId: "p2000000-0000-0000-0000-000000000002",
-      productName: "Nova Smart Watch Series 5 - Ceramic White",
-      productVariantId: "v2000000-0000-0000-0000-000000000002",
-      sku: "NW5-WHT-44",
-      price: 349.00,
-      quantity: 1,
-      lineTotal: 349.00,
-      attributes: {
-        imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBroTZCLnvxUVvjyln8veaXh0gnui8NNJ-xKEkxxH19evW7BieE0MD3qkamtlbiMWTBPU304eu_Z2wPBjNNnyoSnuHD78K8bV-iM_9kex_WHiTXlXWmNeoNQizUbF9cGGRKTqLDDrShgj4eccB4KlFRHSzVdH6ES6qF4cbDe52kNRV8dk6s67m39I1elJotZjr_GkkcZcLP_B77GfxE926masXQ-uaaOkSjJ-Sd5r8-naiR8aQrEYshcCiUdBhDb023tLTmAEBVzumF",
-        originalPrice: 349.00,
-        color: "Ceramic White",
-        size: "44mm",
-        isFlashSale: true,
-        isPreferred: false
-      },
-      selected: true
-    }
-  ]
-};
+import { message } from 'antd';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { getAuthUser } from '../../../Utils/Auth';
+import { useMemo } from 'react';
 
-// FIXME: [MOCK_DATA] - Xóa mảng `recommendations` này và thay bằng API.
-const recommendations = [
-  { id: 1, productName: "LuxeVision Polarized Sport Sunglasses", price: 45.00, sold: "1.2k", discount: "-15%", imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuARhzrA3j6c2R2Bm2NVLe9DNVBTg8L26TtSxI6I1qoRbIps9oNZJZfI5dvnUOsBYvnTs9ZKYX7U8CWD6KzkSgagN8hV7Rt3l5OfcNrCC28vFLwkZqXg21-0ac8veA5j0qvEAfYd0s8h7W80RcEgoabulnlGeu-oJDcwlrEaqXGLPrDCzka-Q51W9jugIvyAmfLvpSMMQFjiaJ4NyyRu3zw73C46ygPY5ZgL75wHo3hJ1oGboFPda616NQ4ObpT2ZeZn9JtB7YavtfFF" },
-  { id: 2, productName: "ProClick RGB Wireless Gaming Mouse", price: 62.90, sold: "850", discount: null, imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDHsCtRSyfx6y-q_AVmowOAmdpW19P0WOb-XpcMaxEiDO8t7Oa9ggannmT1zR9ju_2nurcL6KrjUtndwljlPqVaZEI1lffUamduBs4fdBZRZXuW7ZWy-8LUouQgba702OUA6YFl-YLOroJ9TE01QIj6Y4aTygdCZCq_pE7S-YlAgGaSnof_J0qSeIVTMYNyUmkR5Qt7KoCqYWDxuneb4qgCQ0N-_yRd2mdhL7_OlukxWY36DA4GyqHvtZj201mwttk4dcZPIUTwAanx" }
-];
+// Recommendations loaded from products API when available
 
 export default function CartPage() {
   const {isDarkMode} = useOutletContext();
-  // FIXME: [MOCK_DATA] - Khi có API, đổi thành `useState(null)` để làm trạng thái loading ban đầu
-  const [cart, setCart] = useState(mockCartResponse);
+  const authUser = getAuthUser();
+  const userId = authUser?.id;
+  const [cart, setCart] = useState(null);
   const [voucher, setVoucher] = useState('');
+  const [recommendations, setRecommendations] = useState([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchCart = async () => {
+      try {
+        const response = await api.get(API_ENDPOINTS.cart.byUser(userId));
+        const cartData = response?.data || response;
+        if (cartData?.items) {
+          cartData.items = cartData.items.map(item => ({ ...item, selected: true }));
+        }
+        setCart(cartData);
+      } catch (error) {
+        console.error('Lỗi khi tải giỏ hàng', error);
+      }
+    };
+    fetchCart();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const resp = await api.get(`${API_ENDPOINTS.products.list}?limit=6`);
+        setRecommendations(resp?.data || resp || []);
+      } catch (err) {
+        // silently ignore recommendations failure
+        console.debug('Could not load recommendations', err);
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
 
   // ----------------------------------------------------------------------
   // TODO: [API_CALL] - GET /api/v1/cart
@@ -114,35 +99,58 @@ export default function CartPage() {
     }));
   };
 
-  const updateQuantity = (id, delta) => {
-    // TODO: [API_CALL] - PUT /api/v1/cart/items/{id} kèm body { quantity: newQuantity }
-    // Có thể Backend sẽ trả về cục CartResponse mới cập nhật `totalAmount`, lúc đó chỉ cần `setCart(response.data)`
-    setCart(prev => ({
-      ...prev,
-      items: prev.items.map(item => {
-        if (item.id === id) {
-          const newQuantity = Math.max(1, item.quantity + delta); 
-          return { ...item, quantity: newQuantity, lineTotal: item.price * newQuantity };
-        }
-        return item;
-      })
-    }));
+  const updateQuantity = async (id, delta) => {
+    if (!cart) return;
+    const item = cart.items.find(item => item.id === id);
+    if (!item) return;
+
+    const newQuantity = Math.max(1, item.quantity + delta);
+
+    try {
+      const response = await api.put(API_ENDPOINTS.cart.item(userId, id), { quantity: newQuantity });
+      const updatedCart = response?.data || response;
+      const updatedItems = (updatedCart?.items || []).map((updatedItem) => {
+        const existing = cart.items.find(i => i.id === updatedItem.id);
+        return { ...updatedItem, selected: existing?.selected ?? true };
+      });
+      setCart({ ...updatedCart, items: updatedItems });
+    } catch (error) {
+      console.error('Lỗi cập nhật số lượng giỏ hàng', error);
+      message.error('Cập nhật số lượng thất bại. Vui lòng thử lại.');
+    }
   };
 
-  const handleRemoveItem = (id) => {
-    // TODO: [API_CALL] - DELETE /api/v1/cart/items/{id}
-    setCart(prev => ({
-      ...prev,
-      items: prev.items.filter(item => item.id !== id)
-    }));
+  const handleRemoveItem = async (id) => {
+    if (!cart) return;
+    try {
+      await api.delete(API_ENDPOINTS.cart.item(userId, id));
+      setCart(prev => ({
+        ...prev,
+        items: prev.items.filter(item => item.id !== id)
+      }));
+      message.success('Đã xóa sản phẩm khỏi giỏ hàng.');
+    } catch (error) {
+      console.error('Lỗi xóa sản phẩm giỏ hàng', error);
+      message.error('Xóa sản phẩm thất bại. Vui lòng thử lại.');
+    }
   };
 
-  const handleRemoveSelectedItems = () => {
-    // TODO: [API_CALL] - DELETE /api/v1/cart/items/batch
-    setCart(prev => ({
-      ...prev,
-      items: prev.items.filter(item => !item.selected)
-    }));
+  const handleRemoveSelectedItems = async () => {
+    if (!cart) return;
+    const selectedIds = cart.items.filter(item => item.selected).map(item => item.id);
+    if (selectedIds.length === 0) return;
+
+    try {
+      await Promise.all(selectedIds.map((itemId) => api.delete(API_ENDPOINTS.cart.item(userId, itemId))));
+      setCart(prev => ({
+        ...prev,
+        items: prev.items.filter(item => !item.selected)
+      }));
+      message.success('Đã xóa các sản phẩm đã chọn.');
+    } catch (error) {
+      console.error('Lỗi xóa sản phẩm đã chọn', error);
+      message.error('Xóa sản phẩm thất bại. Vui lòng thử lại.');
+    }
   };
 
   const handleApplyVoucher = () => {

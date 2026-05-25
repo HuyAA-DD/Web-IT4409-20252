@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BellOutlined, 
   CheckOutlined, 
@@ -13,52 +13,65 @@ import {
   RightOutlined
 } from '@ant-design/icons';
 import { message } from 'antd';
-
-// --- [MOCK_DATA] --- Dữ liệu giả lập khớp với DTO NotificationResponse
-const mockNotifications = [
-  { id: "n-001", userId: "admin-1", title: "Đơn hàng mới chờ xác nhận", message: "Khách hàng Nguyễn Văn A vừa đặt một đơn hàng mới (Tổng: 1.500.000đ). Vui lòng xử lý sớm.", type: "ORDER", relatedEntityType: "ORDER", relatedEntityId: "ord-883", isRead: false, isSent: true, createdAt: "2026-05-18T09:30:00" },
-  { id: "n-002", userId: "admin-1", title: "Cảnh báo hết hàng", message: "Sản phẩm 'MacBook Air M2' (SKU: APL-MBA-M2) hiện chỉ còn 2 chiếc trong kho.", type: "ALERT", relatedEntityType: "PRODUCT", relatedEntityId: "p-02", isRead: false, isSent: true, createdAt: "2026-05-18T08:15:00" },
-  { id: "n-003", userId: "admin-1", title: "Yêu cầu hoàn tiền", message: "Người dùng Trần Thị B đã gửi yêu cầu hoàn tiền cho đơn hàng #f47ac10b.", type: "ORDER", relatedEntityType: "ORDER", relatedEntityId: "f47ac10b-58cc-4372-a567-0e02b2c3d479", isRead: true, isSent: true, createdAt: "2026-05-17T15:45:00" },
-  { id: "n-004", userId: "admin-1", title: "Khuyến mãi hết hạn", message: "Mã giảm giá 'FREESHIP50' đã hết hạn vào lúc 23:59 ngày hôm qua.", type: "PROMOTION", relatedEntityType: "COUPON", relatedEntityId: "c-002", isRead: true, isSent: true, createdAt: "2026-05-16T00:05:00" },
-  { id: "n-005", userId: "admin-1", title: "Hệ thống bảo trì", message: "Lịch bảo trì máy chủ định kỳ sẽ diễn ra vào 02:00 AM ngày mai.", type: "SYSTEM", relatedEntityType: null, relatedEntityId: null, isRead: true, isSent: true, createdAt: "2026-05-15T10:00:00" },
-  { id: "n-006", userId: "admin-1", title: "Người dùng mới đăng ký", message: "Có 50 người dùng mới đã đăng ký tài khoản trong 24 giờ qua.", type: "USER", relatedEntityType: "USER", relatedEntityId: null, isRead: true, isSent: true, createdAt: "2026-05-14T08:00:00" },
-];
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminNotificationPage() {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('ALL'); // 'ALL' | 'UNREAD'
   
   // Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  // =========================================================================
-  // TODO: [API_CALL] - GET /api/v1/admin/notifications
-  // =========================================================================
-  /*
-  React.useEffect(() => {
-    // Lấy danh sách thông báo khi vào trang
-    // axios.get('/api/v1/admin/notifications').then(res => setNotifications(res.data.data));
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await api.get(API_ENDPOINTS.notifications.list);
+        setNotifications(response?.data || response || []);
+      } catch (error) {
+        console.error('Lỗi khi tải thông báo admin', error);
+      }
+    };
+
+    fetchNotifications();
   }, []);
-  */
 
   // --- XỬ LÝ ĐÁNH DẤU ĐÃ ĐỌC ---
-  const handleMarkAsRead = (id) => {
-    // TODO: [API_CALL] - PUT /api/v1/admin/notifications/{id}/read
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.put(API_ENDPOINTS.notifications.markAsRead(id));
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      message.success('Đã đánh dấu là đã đọc!');
+    } catch (error) {
+      console.error('Lỗi đánh dấu thông báo đã đọc', error);
+      message.error('Không thể đánh dấu thông báo.');
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    // TODO: [API_CALL] - PUT /api/v1/admin/notifications/read-all
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    message.success("Đã đánh dấu tất cả là đã đọc!");
+  const handleMarkAllAsRead = async () => {
+    try {
+      await Promise.all(
+        notifications.filter(n => !n.isRead).map(n => api.put(API_ENDPOINTS.notifications.markAsRead(n.id)))
+      );
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      message.success('Đã đánh dấu tất cả là đã đọc!');
+    } catch (error) {
+      console.error('Lỗi đánh dấu tất cả đã đọc', error);
+      message.error('Không thể đánh dấu tất cả thông báo.');
+    }
   };
 
   // --- XỬ LÝ XÓA THÔNG BÁO ---
-  const handleDelete = (id) => {
-    // TODO: [API_CALL] - DELETE /api/v1/admin/notifications/{id}
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    message.success("Đã xóa thông báo!");
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(API_ENDPOINTS.notifications.byId(id));
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      message.success('Đã xóa thông báo!');
+    } catch (error) {
+      console.error('Lỗi xóa thông báo', error);
+      message.error('Không thể xóa thông báo.');
+    }
   };
 
   // --- UI HELPERS ---

@@ -8,47 +8,33 @@ import {
   SafetyCertificateOutlined,
   UserOutlined
 } from '@ant-design/icons';
-import { Avatar, Tag, Button } from 'antd';
-
-// --- MOCK DATA ---
-// Dữ liệu giả lập khớp với DTO UserResponse
-const mockUser = {
-  id: "550e8400-e29b-41d4-a716-446655440000",
-  email: "giahuy@example.com",
-  fullName: "Gia Huy",
-  role: "USER", 
-  createdAt: "2026-04-10T08:15:30"
-};
+import { Avatar, Tag, Button, message } from 'antd';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { clearAuthUser } from '../../../Utils/Auth';
 
 export default function UserProfilePage() {
   const navigate = useNavigate();
-  // Khởi tạo state với mock data (Sau này sẽ thay bằng dữ liệu gọi từ API)
-  const [user, setUser] = useState(mockUser);
+  const [user, setUser] = useState(null);
 
-  // =========================================================================
-  // TODO: [API_CALL] - Lấy thông tin user đang đăng nhập
-  // =========================================================================
-  /*
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // const response = await axios.get('/api/v1/users/me');
-        // setUser(response.data.data);
+        const response = await api.get(API_ENDPOINTS.users.profile);
+        const profile = response?.data || response;
+        setUser(profile);
       } catch (error) {
-        console.error("Lỗi khi tải thông tin người dùng", error);
+        console.error('Lỗi khi tải thông tin người dùng', error);
+        message.error('Không thể tải thông tin tài khoản. Vui lòng thử lại.');
       }
     };
     fetchUserProfile();
   }, []);
-  */
 
   // --- XỬ LÝ ĐĂNG XUẤT ---
   const handleLogout = () => {
-    // TODO: Thêm logic xóa Token / Context / Redux Store ở đây
-    // localStorage.removeItem('token');
-    
-    // Điều hướng ra trang đăng nhập
-    navigate('auth/login&register');
+    clearAuthUser();
+    navigate('/auth/login&register');
   };
 
   // --- UI HELPERS ---

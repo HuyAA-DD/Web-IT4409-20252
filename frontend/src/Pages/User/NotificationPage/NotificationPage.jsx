@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BellOutlined, 
   ShoppingOutlined, 
@@ -11,54 +11,73 @@ import {
 } from '@ant-design/icons';
 import { message, Dropdown } from 'antd';
 import { useOutletContext } from 'react-router-dom';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { getAuthUser } from '../../../Utils/Auth';
 
-// --- [MOCK_DATA] --- Dữ liệu giả lập cho USER
-// Phản ánh các luồng: Đơn hàng, Khuyến mãi, Hệ thống...
-const mockUserNotifications = [
-  { id: "n-u-01", userId: "u-123", title: "Đơn hàng đang được giao!", message: "Đơn hàng #f47ac10b của bạn đã được giao cho đơn vị vận chuyển. Vui lòng chú ý điện thoại.", type: "ORDER", relatedEntityType: "ORDER", relatedEntityId: "f47ac10b", isRead: false, isSent: true, createdAt: "2026-05-18T08:30:00" },
-  { id: "n-u-02", userId: "u-123", title: "Tặng bạn mã Giảm giá 50K 🎁", message: "MegaMart tặng bạn mã FREESHIP50 cho đơn hàng từ 200k. Hạn sử dụng đến cuối tháng này. Mua sắm ngay!", type: "PROMOTION", relatedEntityType: "COUPON", relatedEntityId: "c-002", isRead: false, isSent: true, createdAt: "2026-05-17T14:00:00" },
-  { id: "n-u-03", userId: "u-123", title: "Thanh toán thành công", message: "Đơn hàng #e28bc21c đã được thanh toán qua VNPay thành công. Chúng tôi đang đóng gói sản phẩm.", type: "ORDER", relatedEntityType: "ORDER", relatedEntityId: "e28bc21c", isRead: true, isSent: true, createdAt: "2026-05-16T10:15:00" },
-  { id: "n-u-04", userId: "u-123", title: "Chào mừng đến với MegaMart", message: "Cảm ơn bạn đã đăng ký tài khoản. Hãy khám phá hàng ngàn sản phẩm ưu đãi dành riêng cho bạn.", type: "SYSTEM", relatedEntityType: "USER", relatedEntityId: "u-123", isRead: true, isSent: true, createdAt: "2026-05-10T09:00:00" },
-];
+// const mockUserNotifications = [];
 
 export default function NotificationPage() {
-  const [notifications, setNotifications] = useState(mockUserNotifications);
+  const authUser = getAuthUser();
+  const userId = authUser?.id;
+  const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'UNREAD'
 
   const {isDarkMode}  = useOutletContext();
 
-  // =========================================================================
-  // TODO: [API_CALL] - Tích hợp các API của User theo tài liệu
-  // Lấy userId từ Context (VD: AuthContext.user.id)
-  // const userId = "u-123"; 
-  // =========================================================================
-  /*
   useEffect(() => {
-    // 1. GET /api/v1/notifications/by-user/:userId
-    // Hoặc GET /api/v1/notifications/by-user/:userId/unread (Nếu activeTab === 'UNREAD')
-    // axios.get(`/api/v1/notifications/by-user/${userId}`).then(...)
-  }, [activeTab]);
-  */
+    if (!userId) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const endpoint = activeTab === 'UNREAD'
+          ? API_ENDPOINTS.notifications.unreadByUser(userId)
+          : API_ENDPOINTS.notifications.byUser(userId);
+        const response = await api.get(endpoint);
+        setNotifications(response?.data || response || []);
+      } catch (error) {
+        console.error('Lỗi khi tải thông báo', error);
+      }
+    };
+
+    fetchNotifications();
+  }, [userId, activeTab]);
 
   // --- XỬ LÝ ĐÁNH DẤU ĐÃ ĐỌC (Từng cái) ---
-  const handleMarkAsRead = (id) => {
-    // TODO: [API_CALL] - PUT /api/v1/notification/:id/mark-as-read
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.put(API_ENDPOINTS.notifications.markAsRead(id));
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      message.success('Đã đánh dấu là đã đọc.');
+    } catch (error) {
+      console.error('Lỗi đánh dấu đã đọc', error);
+      message.error('Không thể cập nhật trạng thái thông báo.');
+    }
   };
 
   // --- XỬ LÝ XÓA THÔNG BÁO (Từng cái) ---
-  const handleDelete = (id) => {
-    // TODO: [API_CALL] - DELETE /api/v1/notifications/:id
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    message.success("Đã xóa thông báo!");
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(API_ENDPOINTS.notifications.byId(id));
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      message.success('Đã xóa thông báo!');
+    } catch (error) {
+      console.error('Lỗi xóa thông báo', error);
+      message.error('Không thể xóa thông báo.');
+    }
   };
 
   // --- XỬ LÝ XÓA TẤT CẢ ---
-  const handleDeleteAll = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa tất cả thông báo không?")) {
-      // TODO: [API_CALL] - DELETE /api/v1/notifications/by-user/:userId
-      setNotifications([]);
-      message.success("Đã dọn dẹp hòm thư thông báo!");
+  const handleDeleteAll = async () => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa tất cả thông báo không?')) {
+      try {
+        await Promise.all(notifications.map((notif) => api.delete(API_ENDPOINTS.notifications.byId(notif.id))));
+        setNotifications([]);
+        message.success('Đã dọn dẹp hòm thư thông báo!');
+      } catch (error) {
+        console.error('Lỗi xóa tất cả thông báo', error);
+        message.error('Không thể xóa tất cả thông báo.');
+      }
     }
   };
 

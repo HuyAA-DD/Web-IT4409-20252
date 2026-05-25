@@ -11,7 +11,10 @@ import {
   SendOutlined
 } from '@ant-design/icons';
 import { message } from 'antd';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useLocation, useParams } from 'react-router-dom';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { getAuthUser } from '../../../Utils/Auth';
 
 // FIXME: [MOCK_DATA] - Xóa toàn bộ dữ liệu này khi kết nối API.
 const mockProductResponse = {
@@ -45,46 +48,52 @@ const relatedProducts = [
   { id: 2, name: "MechType Z Mechanical RGB Keyboard - Brown Switches", price: 129.00, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAyKnt1mOxYodxYeKkhqtR1ZoHYgo7QErOhl_Ywsx9QdgafxhTTPra5I8-tqfuizIPzc9vpKAycGNrpG0sibzsrej2SBOLEueC90j4-jAiDDlbpyGZt7jv4Xa0KOQPDm9d3d_NdJzmYlRpbvBwRBAEjvp39J5h0cZ17lYGC6keMSqpK_kThCW77BHcP2dWlFpI06zX5hP1GxkGUrGlWN-EjDfpgut5ETTXapSkk4qtKQyPmcZLQriWx9MQbYGI66Pa81qDfCjI33Rju" }
 ];
 
-const mockReviews = [
-  { id: "r-01", userId: "u-101", userName: "Nguyễn Văn A", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 5, comment: "Máy chạy cực kỳ mượt, màn hình OLED 4K hiển thị màu đen sâu thẳm. Render video 4K phà phà không bị drop frame. Rất đáng tiền!", createdAt: "2024-05-15T08:30:00" },
-  { id: "r-02", userId: "u-102", userName: "Trần Thị B", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 4, comment: "Chất lượng build tốt, phím gõ nảy. Điểm trừ duy nhất là máy hơi nóng khi chơi game AAA trong thời gian dài.", createdAt: "2024-05-14T14:20:00" },
-  { id: "r-03", userId: "u-103", userName: "Lê Minh C", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 5, comment: "Giao hàng nhanh, đóng gói cẩn thận. Cấu hình này dư sức code mười mấy năm nữa :))", createdAt: "2024-05-10T10:00:00" },
-  { id: "r-04", userId: "u-104", userName: "Phạm D", productId: "p1000000-0000-0000-0000-000000000001", productName: "ProStream Elite Z9 Laptop", rating: 5, comment: "Tuyệt vời, săn sale được giá quá hời.", createdAt: "2024-05-08T09:15:00" }
-];
-
 export default function ProductDetailPage() {
   const {isDarkMode} = useOutletContext();
-  const [product, setProduct] = useState(mockProductResponse);
+  const { id: productIdFromParams } = useParams();
+  const location = useLocation();
+  const searchId = new URLSearchParams(location.search).get('id');
+  const productId = productIdFromParams || searchId;
+  const authUser = getAuthUser();
+  const userId = authUser?.id;
+  const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
   
-  const [selectedAttributes, setSelectedAttributes] = useState({
-    Color: "Space Gray",
-    Memory: "32GB"
-  });
+  const [selectedAttributes, setSelectedAttributes] = useState({});
 
   // --- STATES CHO REVIEWS ---
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(2); // Số lượng review hiển thị ban đầu
 
-  // ----------------------------------------------------------------------
-  // [API_CALL] - LẤY THÔNG TIN SẢN PHẨM & ĐÁNH GIÁ (GET)
-  // ----------------------------------------------------------------------
-  /*
   useEffect(() => {
+    if (!productId) return;
+
     const fetchProductData = async () => {
       try {
-        // const productRes = await axios.get(`/api/v1/products/${productId}`);
-        // setProduct(productRes.data.data);
-        // const reviewRes = await axios.get(`/api/v1/reviews/product/${productId}?page=1&size=5`);
-        // setReviews(reviewRes.data.data.content);
-      } catch(e) { console.error(e) }
+        const productResponse = await api.get(API_ENDPOINTS.products.byId(productId));
+        const fetchedProduct = productResponse?.data || productResponse;
+        setProduct(fetchedProduct);
+
+        const reviewResponse = await api.get(API_ENDPOINTS.reviews.byProduct(productId));
+        setReviews(reviewResponse?.data || reviewResponse || []);
+      } catch (error) {
+        console.error('Lỗi khi tải thông tin sản phẩm hoặc đánh giá', error);
+        message.error('Không thể tải thông tin sản phẩm.');
+      }
     };
+
     fetchProductData();
   }, [productId]);
-  */
+
+  useEffect(() => {
+    if (!product?.variants?.length) return;
+    const firstVariant = product.variants[0];
+    setSelectedAttributes(firstVariant.attributes || {});
+    setSelectedImage(0);
+  }, [product]);
 
   if (!product) return <div className="text-center py-20">Đang tải sản phẩm...</div>;
 
@@ -97,9 +106,27 @@ export default function ProductDetailPage() {
 
   const handleAttributeSelect = (key, value) => setSelectedAttributes(prev => ({ ...prev, [key]: value }));
   
-  const handleAddToCart = () => {
-    console.log("Adding to cart:", currentVariant);
-    message.success("Đã thêm vào giỏ hàng!");
+  const handleAddToCart = async () => {
+    if (!userId) {
+      message.warning('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.');
+      return;
+    }
+
+    if (!currentVariant?.id) {
+      message.error('Không xác định phiên bản sản phẩm để thêm vào giỏ hàng.');
+      return;
+    }
+
+    try {
+      await api.post(API_ENDPOINTS.cart.items(userId), {
+        productVariantId: currentVariant.id,
+        quantity: 1,
+      });
+      message.success('Đã thêm vào giỏ hàng.');
+    } catch (error) {
+      console.error('Lỗi thêm sản phẩm vào giỏ hàng', error);
+      message.error('Không thể thêm sản phẩm vào giỏ hàng.');
+    }
   };
 
   // ----------------------------------------------------------------------
@@ -114,24 +141,25 @@ export default function ProductDetailPage() {
 
     setIsSubmitting(true);
 
-    // MOCK UPDATE UI:
-    setTimeout(() => {
-      const mockNewReview = {
-        id: `r-new-${Date.now()}`,
-        userId: "u-me",
-        userName: "Người dùng hiện tại",
+    try {
+      const payload = {
+        userId,
         productId: product.id,
-        productName: product.name,
         rating: newRating,
         comment: newComment,
-        createdAt: new Date().toISOString()
       };
-      setReviews([mockNewReview, ...reviews]);
-      message.success("Đánh giá của bạn đã được đăng tải!");
+      const response = await api.post(API_ENDPOINTS.reviews.create, payload);
+      const createdReview = response?.data || response;
+      setReviews(prevReviews => [createdReview, ...prevReviews]);
+      message.success('Đánh giá của bạn đã được đăng tải!');
       setNewComment("");
       setNewRating(5);
+    } catch (error) {
+      console.error('Lỗi khi gửi đánh giá', error);
+      message.error('Không thể gửi đánh giá. Vui lòng thử lại.');
+    } finally {
       setIsSubmitting(false);
-    }, 800); 
+    }
   };
 
   return (

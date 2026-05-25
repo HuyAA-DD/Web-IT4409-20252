@@ -37,26 +37,25 @@ const HeroBanner = () => {
 };
 
 // --- COMPONENT: CATEGORIES ---
+// --- COMPONENT: CATEGORIES ---
 const Categories = () => {
   /* [TODO: API] GET /api/categories */
   const cats = [
-    { icon: <MobileOutlined />, name: "Điện thoại" },
-    { icon: <SkinOutlined />, name: "Thời trang" },
-    { icon: <HomeOutlined />, name: "Nhà cửa" },
-    { icon: <SmileOutlined />, name: "Làm đẹp" },
-    { icon: <RocketOutlined />, name: "Đồ chơi" },
-    { icon: <TrophyOutlined />, name: "Thể thao" },
-    { icon: <ShopOutlined />, name: "Bách hóa" },
-    { icon: <CompassOutlined />, name: "Thú cưng" },
+    { icon: <ShopOutlined />, name: "Tất cả" },
+    { icon: <SkinOutlined />, name: "Thời trang nam" },
+    { icon: <RocketOutlined />, name: "Giày dép" },
+    { icon: <SmileOutlined />, name: "Phụ kiện" },
+    { icon: <MobileOutlined />, name: "Đồ công nghệ" },
+    { icon: <HomeOutlined />, name: "Đồ gia dụng" },
   ];
 
   return (
     <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-800 m-0">Danh Mục Kênh</h3>
+        <h3 className="text-lg font-bold text-gray-800 m-0">Danh Mục</h3>
         <a className="text-orange-600 font-semibold text-sm hover:underline" href="#">Xem Tất Cả</a>
       </div>
-      <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-4">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
         {cats.map((c, i) => (
           <div key={i} className="group flex flex-col items-center text-center cursor-pointer">
             <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-orange-100 group-hover:scale-110 transition-all mb-2">
