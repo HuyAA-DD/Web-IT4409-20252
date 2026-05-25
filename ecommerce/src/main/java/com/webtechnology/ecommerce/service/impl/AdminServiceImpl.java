@@ -4,6 +4,7 @@ import com.webtechnology.ecommerce.dto.DashboardResponse;
 import com.webtechnology.ecommerce.dto.RevenueResponse;
 import com.webtechnology.ecommerce.dto.TopProductResponse;
 import com.webtechnology.ecommerce.entity.Order;
+import com.webtechnology.ecommerce.entity.OrderItem;
 import com.webtechnology.ecommerce.enums.OrderStatus;
 import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.OrderRepository;
@@ -12,9 +13,12 @@ import com.webtechnology.ecommerce.repository.UserRepository;
 import com.webtechnology.ecommerce.service.AdminService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,15 +102,15 @@ public class AdminServiceImpl implements AdminService {
         List<UUID> orderIds = deliveredOrders.stream().map(Order::getId).toList();
         
         if (orderIds.isEmpty()) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
 
-        List<com.webtechnology.ecommerce.entity.OrderItem> allItems = orderItemRepository.findByOrderIdIn(orderIds);
+        List<OrderItem> allItems = orderItemRepository.findByOrderIdIn(orderIds);
 
         return allItems.stream()
                 .collect(Collectors.groupingBy(
-                        orderItem -> orderItem.getProduct(),
-                        java.util.stream.Collector.of(
+                        OrderItem::getProduct,
+                        Collector.of(
                                 ProductStats::new,
                                 (acc, item) -> {
                                     acc.count += item.getQuantity();
@@ -132,10 +136,9 @@ public class AdminServiceImpl implements AdminService {
                 .toList();
     }
 
-    @lombok.Data
+    @Data
     private static class ProductStats {
         long count = 0;
         BigDecimal revenue = BigDecimal.ZERO;
     }
-
 }
