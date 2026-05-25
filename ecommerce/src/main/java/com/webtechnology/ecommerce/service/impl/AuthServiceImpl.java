@@ -37,11 +37,11 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .role(Role.USER)
+                .role(request.getRole() != null && request.getRole() != Role.ADMIN ? request.getRole() : Role.USER)
                 .build();
 
         User savedUser = userRepository.save(user);
-        String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole());
+        String token = jwtUtil.generateToken(savedUser.getId().toString(), savedUser.getRole());
 
         return AuthResponse.builder()
                 .accessToken(token)
@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Invalid email or password");
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(user.getId().toString(), user.getRole());
 
         return AuthResponse.builder()
                 .accessToken(token)
@@ -71,9 +71,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    public UserResponse getCurrentUser(java.util.UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         return userMapper.toResponse(user);
     }
 }

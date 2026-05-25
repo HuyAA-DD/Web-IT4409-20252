@@ -13,7 +13,7 @@ import com.webtechnology.ecommerce.enums.ProductStatus;
 
 public interface ProductService {
 
-    ProductResponse createProduct(ProductRequest request);
+    ProductResponse createProduct(ProductRequest request, UUID sellerId);
 
     List<ProductResponse> getAllProducts();
 
@@ -25,7 +25,7 @@ public interface ProductService {
 
     ProductResponse getProductById(UUID id);
 
-    ProductResponse updateProduct(UUID id, ProductRequest request);
+    ProductResponse updateProduct(UUID id, ProductRequest request, UUID sellerId);
 
     void deleteProduct(UUID id);
 

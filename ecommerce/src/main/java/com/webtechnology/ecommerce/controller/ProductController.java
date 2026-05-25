@@ -37,8 +37,17 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
-    public ResponseEntity<ApiResponse<ProductResponse>> createProduct(@Valid @RequestBody ProductRequest request) {
-        ProductResponse response = productService.createProduct(request);
+    public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
+            @Valid @RequestBody ProductRequest request,
+            org.springframework.security.core.Authentication authentication) {
+        UUID sellerId;
+        if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            sellerId = request.getSellerId() != null ? request.getSellerId() : UUID.fromString(authentication.getName());
+        } else {
+            sellerId = UUID.fromString(authentication.getName());
+        }
+        
+        ProductResponse response = productService.createProduct(request, sellerId);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.<ProductResponse>builder()
                 .success(true)
@@ -61,8 +70,8 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID sellerId,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String sortDir
     ) {
@@ -78,8 +87,8 @@ public class ProductController {
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(required = false) UUID sellerId,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String sortDir
     ) {
@@ -103,12 +112,20 @@ public class ProductController {
     @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable UUID id,
-            @Valid @RequestBody ProductRequest request
+            @Valid @RequestBody ProductRequest request,
+            org.springframework.security.core.Authentication authentication
     ) {
+        UUID sellerId;
+        if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            sellerId = request.getSellerId() != null ? request.getSellerId() : UUID.fromString(authentication.getName());
+        } else {
+            sellerId = UUID.fromString(authentication.getName());
+        }
+
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
             .success(true)
             .message("Product updated successfully")
-            .data(productService.updateProduct(id, request))
+            .data(productService.updateProduct(id, request, sellerId))
             .build());
     }
 

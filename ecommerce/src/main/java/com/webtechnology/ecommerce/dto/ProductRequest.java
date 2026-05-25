@@ -28,7 +28,6 @@ public class ProductRequest {
     @NotNull(message = "Category id is required")
     private UUID categoryId;
 
-    @NotNull(message = "Seller id is required")
     private UUID sellerId;
 
     private ProductStatus status;
