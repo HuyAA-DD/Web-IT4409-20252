@@ -154,12 +154,17 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found for user"));
 
-        return updateOrderStatus(orderId, OrderStatus.CANCELLED);
+        return updateOrderStatusInternal(order, OrderStatus.CANCELLED);
     }
 
     @Override
     public OrderResponse updateOrderStatus(UUID orderId, OrderStatus newStatus) {
         Order order = findOrderById(orderId);
+        return updateOrderStatusInternal(order, newStatus);
+    }
+
+    private OrderResponse updateOrderStatusInternal(Order order, OrderStatus newStatus) {
+        UUID orderId = order.getId();
         OrderStatus oldStatus = order.getStatus();
 
         // If status is already the same, just return
@@ -176,7 +181,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(newStatus);
-        order = orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         // Log action
         auditLogService.createAuditLog(AuditLogRequest.builder()
@@ -187,7 +192,7 @@ public class OrderServiceImpl implements OrderService {
                 .newValue(newStatus.name())
                 .build());
 
-        return buildOrderResponse(order);
+        return buildOrderResponse(savedOrder);
     }
 
     private void restoreStock(UUID orderId) {
@@ -204,9 +209,18 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll()
-                .stream()
-                .map(this::buildOrderResponse)
+        List<Order> orders = orderRepository.findAllWithDetails();
+        List<UUID> orderIds = orders.stream().map(Order::getId).toList();
+        
+        // Fetch all items for these orders in ONE query
+        List<OrderItem> allItems = orderItemRepository.findByOrderIdIn(orderIds);
+        
+        // Group items by order ID
+        java.util.Map<UUID, List<OrderItem>> itemsByOrderId = allItems.stream()
+                .collect(java.util.stream.Collectors.groupingBy(item -> item.getOrder().getId()));
+        
+        return orders.stream()
+                .map(order -> buildOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), java.util.List.of())))
                 .toList();
     }
 
@@ -220,6 +234,10 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderResponse buildOrderResponse(Order order) {
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        return buildOrderResponse(order, items);
+    }
+
+    private OrderResponse buildOrderResponse(Order order, List<OrderItem> items) {
         List<OrderItemResponse> itemResponses = items.stream()
                 .map(orderMapper::toOrderItemResponse)
                 .toList();

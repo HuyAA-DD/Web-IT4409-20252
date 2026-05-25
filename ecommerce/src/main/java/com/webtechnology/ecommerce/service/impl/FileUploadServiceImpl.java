@@ -54,12 +54,14 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     private FileUploadResponse uploadToCloudinary(MultipartFile file, String resourceType, String folder) {
         try {
+            @SuppressWarnings("unchecked")
             Map<String, Object> uploadParams = ObjectUtils.asMap(
                     "folder", folder,
                     "resource_type", resourceType,
                     "format", "jpg"
             );
 
+            @SuppressWarnings("unchecked")
             Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
 
             return FileUploadResponse.builder()

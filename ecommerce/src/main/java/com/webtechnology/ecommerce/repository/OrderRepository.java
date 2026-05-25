@@ -2,6 +2,7 @@ package com.webtechnology.ecommerce.repository;
 
 import com.webtechnology.ecommerce.entity.Order;
 import com.webtechnology.ecommerce.enums.OrderStatus;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,12 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     List<Order> findByStatus(OrderStatus status);
 
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.user LEFT JOIN FETCH o.address")
+    List<Order> findAllWithDetails();
+
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status")
     long countByStatus(@Param("status") OrderStatus status);
+
+    @Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.status = :status")
+    BigDecimal calculateTotalRevenueByStatus(@Param("status") OrderStatus status);
 }
