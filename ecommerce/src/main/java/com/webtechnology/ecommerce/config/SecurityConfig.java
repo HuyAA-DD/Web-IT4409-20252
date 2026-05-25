@@ -62,7 +62,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/search/**").permitAll()
                         .requestMatchers("/api/v1/products/**").permitAll() // Allow viewing products
                         .requestMatchers("/api/v1/categories/**").permitAll()
-                        .requestMatchers("/api/v1/chatbot/**").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/api/v1/webhooks/**").permitAll()
                         .anyRequest().authenticated()
