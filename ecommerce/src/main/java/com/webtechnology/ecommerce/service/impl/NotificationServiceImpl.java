@@ -68,11 +68,15 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public NotificationResponse markAsRead(UUID id) {
+    public NotificationResponse markAsRead(UUID id, UUID requesterId) {
         Notification notification = findNotificationById(id);
+        // Chỉ owner mới được đánh dấu đã đọc
+        if (!notification.getUser().getId().equals(requesterId)) {
+            throw new com.webtechnology.ecommerce.exception.BadRequestException(
+                    "You are not authorized to mark this notification as read");
+        }
         notification.setIsRead(true);
-        Notification updatedNotification = notificationRepository.save(notification);
-        return notificationMapper.toResponse(updatedNotification);
+        return notificationMapper.toResponse(notificationRepository.save(notification));
     }
 
     @Override

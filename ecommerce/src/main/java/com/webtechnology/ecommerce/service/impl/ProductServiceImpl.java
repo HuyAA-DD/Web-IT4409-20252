@@ -139,28 +139,16 @@ public class ProductServiceImpl implements ProductService {
         validateVariantSkus(request);
 
         Product existingProduct = findProductById(id);
-        
-        // Security check: only own seller or admin (handled by controller passing correct sellerId)
-        // If the controller passed a sellerId that doesn't match the product's seller, 
-        // and it's not an admin action (though controller logic should prevent this), we should check.
-        // Actually, let's keep it simple: if sellerId doesn't match existingProduct.seller.id, it's an error
-        // UNLESS the caller is an admin (which we don't know here easily without more context, but 
-        // the controller logic we wrote passes request.sellerId for admins if provided).
-        
-        // Let's refine: if sellerId provided doesn't match and it's not an admin, controller already handles it.
-        // But for safety:
+
+        // Ownership check: SELLER chỉ được sửa sản phẩm của mình
         if (!existingProduct.getSeller().getId().equals(sellerId) && !isAdmin(sellerId)) {
-             // We need a way to check if sellerId is an admin. 
-             // Or just trust the controller for now.
+            throw new BadRequestException("You are not authorized to update this product");
         }
 
         String oldName = existingProduct.getName();
-        
         productMapper.updateEntityFromRequest(request, existingProduct);
         existingProduct.setCategory(findCategoryById(request.getCategoryId()));
-        // Note: we might NOT want to allow changing the seller of a product via update.
-        // existingProduct.setSeller(findUserById(sellerId)); 
-        
+
         Product savedProduct = productRepository.save(existingProduct);
 
         productImageRepository.deleteByProductId(id);
@@ -168,7 +156,6 @@ public class ProductServiceImpl implements ProductService {
         saveImages(savedProduct, request.getImageUrls());
         saveVariants(savedProduct, request);
 
-        // Log action
         auditLogService.createAuditLog(AuditLogRequest.builder()
                 .userId(sellerId)
                 .action("UPDATE_PRODUCT")
@@ -182,19 +169,24 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private boolean isAdmin(UUID userId) {
-        User user = findUserById(userId);
-        return user.getRole() == com.webtechnology.ecommerce.entity.Role.ADMIN;
+        return findUserById(userId).getRole() == com.webtechnology.ecommerce.entity.Role.ADMIN;
     }
 
     @Override
-    public void deleteProduct(UUID id) {
+    public void deleteProduct(UUID id, UUID callerId, boolean isAdmin) {
         Product product = findProductById(id);
+
+        // Ownership check: SELLER chỉ được xóa sản phẩm của mình
+        if (!isAdmin && !product.getSeller().getId().equals(callerId)) {
+            throw new BadRequestException("You are not authorized to delete this product");
+        }
+
         productImageRepository.deleteByProductId(id);
         productVariantRepository.deleteByProductId(id);
         productRepository.delete(product);
 
-        // Log action
         auditLogService.createAuditLog(AuditLogRequest.builder()
+                .userId(callerId)
                 .action("DELETE_PRODUCT")
                 .entityType("PRODUCT")
                 .entityId(id)

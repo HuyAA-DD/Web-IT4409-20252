@@ -32,7 +32,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -42,7 +42,7 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> updateCurrentUserProfile(
             @Valid @RequestBody UserRequest request
     ) {
@@ -54,7 +54,7 @@ public class UserController {
     }
 
     @PostMapping("/me/avatar")
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> updateCurrentUserAvatar(
             @RequestParam("file") MultipartFile file
     ) {

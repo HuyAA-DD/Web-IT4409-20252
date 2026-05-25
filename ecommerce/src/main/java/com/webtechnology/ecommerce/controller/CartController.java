@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,15 +24,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/cart/{userId}")
+@RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','USER')")
+@PreAuthorize("isAuthenticated()")
 public class CartController {
 
     private final CartService cartService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<CartResponse>> getCart(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<CartResponse>> getCart(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
                 .success(true)
                 .message("Cart retrieved successfully")
@@ -41,43 +43,44 @@ public class CartController {
 
     @PostMapping("/items")
     public ResponseEntity<ApiResponse<CartResponse>> addCartItem(
-            @PathVariable UUID userId,
-            @Valid @RequestBody AddCartItemRequest request
-    ) {
+            @Valid @RequestBody AddCartItemRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-            .success(true)
-            .message("Cart item added successfully")
-            .data(cartService.addItemToCart(userId, request))
-            .build());
+                .success(true)
+                .message("Cart item added successfully")
+                .data(cartService.addItemToCart(userId, request))
+                .build());
     }
 
     @PutMapping("/items/{itemId}")
     public ResponseEntity<ApiResponse<CartResponse>> updateCartItem(
-            @PathVariable UUID userId,
             @PathVariable UUID itemId,
-            @Valid @RequestBody UpdateCartItemRequest request
-    ) {
+            @Valid @RequestBody UpdateCartItemRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-            .success(true)
-            .message("Cart item updated successfully")
-            .data(cartService.updateCartItem(userId, itemId, request))
-            .build());
+                .success(true)
+                .message("Cart item updated successfully")
+                .data(cartService.updateCartItem(userId, itemId, request))
+                .build());
     }
 
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<ApiResponse<CartResponse>> removeCartItem(
-            @PathVariable UUID userId,
-            @PathVariable UUID itemId
-    ) {
+            @PathVariable UUID itemId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
-            .success(true)
-            .message("Cart item removed successfully")
-            .data(cartService.removeCartItem(userId, itemId))
-            .build());
+                .success(true)
+                .message("Cart item removed successfully")
+                .data(cartService.removeCartItem(userId, itemId))
+                .build());
     }
 
     @DeleteMapping("/items")
-    public ResponseEntity<ApiResponse<CartResponse>> clearCart(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<CartResponse>> clearCart(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<CartResponse>builder()
                 .success(true)
                 .message("Cart cleared successfully")

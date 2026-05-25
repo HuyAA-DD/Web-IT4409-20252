@@ -98,8 +98,15 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public void deleteReview(UUID id) {
+    public void deleteReview(UUID id, UUID requesterId) {
         Review review = findReviewById(id);
+        // Chỉ owner hoặc ADMIN mới được xóa
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + requesterId));
+        if (!review.getUser().getId().equals(requesterId)
+                && requester.getRole() != com.webtechnology.ecommerce.entity.Role.ADMIN) {
+            throw new BadRequestException("You are not authorized to delete this review");
+        }
         reviewRepository.delete(review);
     }
 

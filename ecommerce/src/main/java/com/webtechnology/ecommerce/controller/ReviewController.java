@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,9 +31,13 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
+    /** userId luôn lấy từ JWT — không tin body */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
-    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(@Valid @RequestBody ReviewRequest request) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
+            @Valid @RequestBody ReviewRequest request,
+            Authentication authentication) {
+        request.setUserId(UUID.fromString(authentication.getName()));
         ReviewResponse response = reviewService.createReview(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<ReviewResponse>builder()
@@ -78,12 +83,14 @@ public class ReviewController {
                 .build());
     }
 
+    /** userId từ JWT — chỉ owner hoặc ADMIN mới update được (service kiểm tra) */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ReviewResponse>> updateReview(
             @PathVariable UUID id,
-            @Valid @RequestBody ReviewRequest request
-    ) {
+            @Valid @RequestBody ReviewRequest request,
+            Authentication authentication) {
+        request.setUserId(UUID.fromString(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.<ReviewResponse>builder()
                 .success(true)
                 .message("Review updated successfully")
@@ -91,10 +98,14 @@ public class ReviewController {
                 .build());
     }
 
+    /** Chỉ owner hoặc ADMIN mới xóa được */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
-    public ResponseEntity<ApiResponse<Void>> deleteReview(@PathVariable UUID id) {
-        reviewService.deleteReview(id);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        reviewService.deleteReview(id, userId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Review deleted successfully")

@@ -27,5 +27,6 @@ public class AuthRegisterRequest {
     @Size(max = 150, message = "Full name must not exceed 150 characters")
     private String fullName;
 
+    /** USER hoặc SELLER — không thể tự đăng ký ADMIN */
     private com.webtechnology.ecommerce.entity.Role role;
 }

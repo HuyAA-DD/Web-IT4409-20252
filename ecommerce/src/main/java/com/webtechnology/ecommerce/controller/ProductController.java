@@ -130,8 +130,13 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable UUID id) {
-        productService.deleteProduct(id);
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+            @PathVariable UUID id,
+            org.springframework.security.core.Authentication authentication) {
+        UUID callerId = UUID.fromString(authentication.getName());
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        productService.deleteProduct(id, callerId, isAdmin);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
             .success(true)
             .message("Product deleted successfully")

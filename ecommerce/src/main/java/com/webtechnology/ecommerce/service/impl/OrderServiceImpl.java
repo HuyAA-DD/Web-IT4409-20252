@@ -11,6 +11,7 @@ import com.webtechnology.ecommerce.entity.OrderItem;
 import com.webtechnology.ecommerce.entity.ProductVariant;
 import com.webtechnology.ecommerce.entity.User;
 import com.webtechnology.ecommerce.enums.OrderStatus;
+import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
 import com.webtechnology.ecommerce.mapper.OrderMapper;
@@ -59,6 +60,7 @@ public class OrderServiceImpl implements OrderService {
                 .address(address)
                 .paymentMethod(request.getPaymentMethod())
                 .status(OrderStatus.PENDING)
+                .paymentStatus(PaymentStatus.PENDING)
                 .build();
 
         order = orderRepository.save(order);

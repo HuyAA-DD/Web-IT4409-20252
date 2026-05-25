@@ -18,7 +18,6 @@ public interface UserMapper {
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "avatarUrl", ignore = true)
     User toEntity(UserRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -26,6 +25,5 @@ public interface UserMapper {
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "avatarUrl", ignore = true)
     void updateEntityFromRequest(UserRequest request, @MappingTarget User user);
 }

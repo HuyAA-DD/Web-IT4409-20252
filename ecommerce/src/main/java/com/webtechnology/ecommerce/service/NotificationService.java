@@ -17,7 +17,7 @@ public interface NotificationService {
 
     List<NotificationResponse> getUnreadNotificationsByUserId(UUID userId);
 
-    NotificationResponse markAsRead(UUID id);
+    NotificationResponse markAsRead(UUID id, UUID requesterId);
 
     NotificationResponse markAsSent(UUID id);
 
