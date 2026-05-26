@@ -1,7 +1,8 @@
 const AUTH_ENDPOINTS = {
-  register: "/api/auth/register",
-  login: "/api/auth/login",
-  me: "/api/auth/me"
-}
+  register: "/auth/register",
+  login: "/auth/login",
+  authMe: "/auth/me",
+  userMe: "/users/me",
+};
 
 export default AUTH_ENDPOINTS;

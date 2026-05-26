@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, Suspense} from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // <-- Đã thêm useLocation
 import { Canvas, useThree } from '@react-three/fiber';
 import { Clone, Float, useGLTF, Environment, Center, PresentationControls, OrbitControls } from '@react-three/drei';
-import { Input, Badge, FloatButton, Button, Avatar } from 'antd';
+import { Input, Badge, FloatButton, Button, Avatar, message } from "antd";
 import USER_ROUTE from '../../Routes/User.routes';
 import {
   ShoppingCartOutlined,
@@ -22,6 +22,18 @@ import {
   CloseOutlined,
 } from '@ant-design/icons';
 
+import api from "../../Apis/apiConfig";
+import API_ENDPOINTS from "../../Apis/apiEndpoints";
+
+import {
+  clearAuthUser,
+  getAuthUser,
+  getAuthUserAvatar,
+  getAuthUserName,
+  isAuthenticated,
+  updateAuthUser,
+} from "../../Utils/Auth";
+
 //Data import
 import { ObjectModels, StarPosition } from '../../Data/3Dmodels';
 
@@ -35,23 +47,63 @@ import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
 const { Search } = Input;
 
-useGLTF.preload('assets/Shopping_cart.glb');
-useGLTF.preload('assets/juice_carton_shop.glb');
-useGLTF.preload('assets/box.glb');
-useGLTF.preload('assets/present_1_low_poly.glb');
-useGLTF.preload('assets/stylized_planet.glb');
-useGLTF.preload('assets/planet_earth.glb');
-useGLTF.preload('assets/star.glb');
-useGLTF.preload('assets/sun.glb');
-useGLTF.preload('assets/blender_planet_basic.glb');
-useGLTF.preload('assets/nike_shoe_box.glb');
+useGLTF.preload("/assets/Shopping_cart.glb");
+useGLTF.preload("/assets/juice_carton_shop.glb");
+useGLTF.preload("/assets/box.glb");
+useGLTF.preload("/assets/present_1_low_poly.glb");
+useGLTF.preload("/assets/stylized_planet.glb");
+useGLTF.preload("/assets/planet_earth.glb");
+useGLTF.preload("/assets/star.glb");
+useGLTF.preload("/assets/sun.glb");
+useGLTF.preload("/assets/blender_planet_basic.glb");
+useGLTF.preload("/assets/nike_shoe_box.glb");
 
 // --- COMPONENT: TOP NAVBAR ---
-const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) => {
+const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) => {
   const navigate = useNavigate();
+
   const [cartCount] = useState(2);
   const [notiCount] = useState(5);
-  const [userAvatar] = useState(null);
+  const [currentUser, setCurrentUser] = useState(getAuthUser());
+
+  const isLoggedIn = isAuthenticated();
+  const userName = getAuthUserName();
+  const userAvatar = getAuthUserAvatar();
+
+  useEffect(() => {
+    const syncUserFromBackend = async () => {
+      if (!isAuthenticated()) {
+        setCurrentUser(null);
+        return;
+      }
+
+      try {
+        const response = await api.get(API_ENDPOINTS.users.profile);
+
+        const userData = response?.data || response;
+
+        updateAuthUser(userData);
+        setCurrentUser(getAuthUser());
+      } catch (error) {
+        console.warn("Không thể lấy thông tin user từ backend:", error);
+        setCurrentUser(getAuthUser());
+      }
+    };
+
+    syncUserFromBackend();
+
+    const handleAuthChanged = () => {
+      setCurrentUser(getAuthUser());
+    };
+
+    window.addEventListener("auth-changed", handleAuthChanged);
+    window.addEventListener("storage", handleAuthChanged);
+
+    return () => {
+      window.removeEventListener("auth-changed", handleAuthChanged);
+      window.removeEventListener("storage", handleAuthChanged);
+    };
+  }, []);
 
   const Navbar3DModel = ({ path }) => {
     const { scene } = useGLTF(path);
@@ -62,6 +114,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) 
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+
           if (child.material.map) {
             child.material.map.anisotropy = gl.capabilities.getMaxAnisotropy();
           }
@@ -69,118 +122,154 @@ const TopNavBar = ({ onMenuClick, isDarkMode , toggleDarkMode, setActiveIndex}) 
       });
     }, [scene, gl]);
 
-    return (
-      <PresentationControls 
-        global={false} 
-        cursor={true} 
-        snap={{ mass: 1, tension: 150, friction: 100 }} 
-        polar={[-Math.PI / 4, Math.PI / 4]} 
-        azimuth={[-Math.PI / 4, Math.PI / 4]}
-      >
-        <Float speed={5} rotationIntensity={0.5} floatIntensity={1}>
-          <Center><Clone object={scene} scale={1.2} rotation={[Math.PI/10, -Math.PI/4, 0]} /></Center>
-        </Float>
-      </PresentationControls>
-    );
+    return <primitive object={scene} />;
   };
 
-  const handleSearch = (value) => console.log("Searching:", value);
+  const handleSearch = (value) => {
+    console.log("Searching:", value);
+  };
+
+  const handleLogin = () => {
+    navigate("/auth/login-register");
+    setActiveIndex(-1);
+  };
+
+  const handleLogout = () => {
+    clearAuthUser();
+    setCurrentUser(null);
+
+    window.dispatchEvent(new Event("auth-changed"));
+
+    message.success("Đã đăng xuất.");
+
+    navigate("/auth/login-register");
+    setActiveIndex(-1);
+  };
 
   return (
-    <header className={`relative shadow-sm sticky top-0 z-50 w-full border-b transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'}`}>
-      
-      {/* Mini Canvas: Cái Shop ở bên trái */}
-      <div className="absolute -left-[2rem] -top-[4rem] w-48 h-48 md:w-60 md:h-60 cursor-grab active:cursor-grabbing z-[0] md:pointer-events-none">
-        <Canvas camera={{ position: [0, 0, 9], fov: 45 }} shadows dpr={[1, 2]} gl={{ antialias: true, powerPreference: "high-performance", alpha: true }}>
-          <Suspense fallback={null}>
-            {!isDarkMode && <Environment preset="city" />}
-            <ambientLight intensity={isDarkMode ? 0.02 : 0.5} />
-            <directionalLight position={[5, 5, 5]} intensity={isDarkMode ? 0 : 1.5} castShadow={!isDarkMode} />
-            
-            {isDarkMode && (
-              <spotLight position={[0, 7, 3]} angle={0.6} penumbra={0.5} intensity={2500} distance={20} decay={1.5} castShadow color="#ffaa00" />
+    <header
+      className={`fixed top-0 left-0 right-0 h-20 z-40 flex items-center justify-between px-4 md:px-8 transition-colors duration-300 ${
+        isDarkMode
+          ? "bg-black/30 backdrop-blur-md border-b border-white/10"
+          : "bg-[#fff7ed]/80 backdrop-blur-md border-b border-orange-100"
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        <Button
+          type="text"
+          icon={<MenuOutlined />}
+          onClick={onMenuClick}
+          className={isDarkMode ? "!text-white" : "!text-gray-700"}
+        />
+
+        <div
+          onClick={() => {
+            navigate("/");
+            setActiveIndex(0);
+          }}
+          className="flex items-center gap-3 cursor-pointer select-none"
+        >
+          <div className="w-12 h-12 hidden sm:block">
+            {!isDarkMode && (
+              <Canvas camera={{ position: [0, 0, 4], fov: 35 }}>
+                <ambientLight intensity={1.5} />
+                <directionalLight position={[3, 3, 3]} intensity={1.8} />
+                <Suspense fallback={null}>
+                  <Navbar3DModel path="/assets/Shopping_cart.glb" />
+                </Suspense>
+              </Canvas>
             )}
-            <Navbar3DModel path='assets/juice_carton_shop.glb' />
-          </Suspense>
-        </Canvas>
+
+            {isDarkMode && (
+              <Canvas camera={{ position: [0, 0, 4], fov: 35 }}>
+                <ambientLight intensity={1.5} />
+                <directionalLight position={[3, 3, 3]} intensity={1.8} />
+                <Suspense fallback={null}>
+                  <Navbar3DModel path="/assets/planet_earth.glb" />
+                </Suspense>
+              </Canvas>
+            )}
+          </div>
+
+          <h1
+            className={`text-xl md:text-2xl font-black tracking-tight ${
+              isDarkMode ? "text-white" : "text-orange-600"
+            }`}
+          >
+            MegA MaRt
+          </h1>
+        </div>
       </div>
 
-      {/* Mini Canvas: Trái Đất ở góc phải (Chỉ hiển thị khi DarkMode) */}
-      {isDarkMode && (
-        <div className="absolute -right-[1rem] -top-[3rem] w-40 h-40 md:w-56 md:h-56 z-[0] pointer-events-none">
-          <Canvas camera={{ position: [0, 0, 20], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
-            <Suspense fallback={null}>
-              <Environment preset = "city"></Environment>
-              <ambientLight intensity={0.1} />
-              <spotLight position={[0, 10, 5]} angle={0.5} intensity={2000} color="#ffaa00" />
-              <RotatingPlanet path="assets/planet_earth.glb" scale={1.3} rotationSpeed={-0.005} />
-            </Suspense>
-          </Canvas>
-        </div>
-      )}
+      <div className="hidden md:flex flex-1 max-w-xl mx-8">
+        <Search
+          placeholder="Tìm kiếm sản phẩm..."
+          allowClear
+          enterButton={<SearchOutlined />}
+          size="large"
+          onSearch={handleSearch}
+        />
+      </div>
 
-      {!isDarkMode && (
-        <div className="absolute -right-[1rem] -top-[3rem] w-40 h-40 md:w-56 md:h-56 z-[0] pointer-events-none">
-          <Canvas camera={{ position: [0, 0, 5], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
-            <Suspense fallback={null}>
-              <Environment preset = "city"></Environment>
-              <ambientLight intensity={0.1} />
-              <spotLight position={[0, 10, 5]} angle={0.5} intensity={2000} color="#ffaa00" />
-              <RotatingPlanet path="assets/blender_planet_basic.glb" scale={1.3} rotationSpeed={-0.005} />
-            </Suspense>
-          </Canvas>
-        </div>
-      )}
+      <div className="flex items-center gap-3">
+        <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
 
-      <div className="relative flex flex-col md:flex-row items-center justify-between px-6 py-4 max-w-7xl mx-auto gap-4 pointer-events-none">
-        <div className="flex items-center justify-between w-full md:w-auto pointer-events-auto z-10 md:mr-20">
-          <div className="flex items-center gap-4">
-            <MenuOutlined className={`text-xl cursor-pointer transition-colors ${isDarkMode ? 'text-gray-300 hover:text-orange-500' : 'text-gray-600 hover:text-orange-600'}`} onClick={onMenuClick} />
-            <h1 className="relative text-3xl md:text-4xl font-black tracking-tighter m-0 cursor-pointer select-none leading-none w-fit group" onClick={() => { navigate('/'); setActiveIndex(0); }}>
-              <span className={`relative z-20 inline-block transition-transform ${isDarkMode ? 'text-orange-500' : 'text-orange-600 [-webkit-text-stroke:0.5px_#ffffff] md:[-webkit-text-stroke:1px_#ffffff] drop-shadow-md'}`}>MegA</span>
-              <span className={`italic absolute top-[35%] md:top-[40%] -right-[50%] md:-right-[65%] text-transparent z-10 whitespace-nowrap drop-shadow-sm ${isDarkMode ? '[-webkit-text-stroke:1.5px_#f97316] md:[-webkit-text-stroke:2px_#f97316]' : '[-webkit-text-stroke:1.5px_#ea580c] md:[-webkit-text-stroke:2px_#ea580c]'}`}>MaRt</span>
-            </h1>
-            <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} className="md:hidden ml-16" />
-          </div>
+        <Badge count={cartCount} size="small">
+          <Button
+            shape="circle"
+            icon={<ShoppingCartOutlined />}
+            onClick={() => {
+              navigate(USER_ROUTE.Cart);
+              setActiveIndex(-1);
+            }}
+          />
+        </Badge>
 
-          <div className="md:hidden flex gap-5 text-2xl items-center ">
-            <div className="cursor-pointer" onClick={() => {navigate('/cart'); setActiveIndex(-1)}}>
-              <Badge count={cartCount} size="small"><ShoppingCartOutlined className={isDarkMode ? "text-gray-100" : "text-orange-600"} /></Badge>
-            </div>
-            <Avatar size="medium" icon={<UserOutlined />}  />
-          </div>
-        </div>
+        <Badge count={notiCount} size="small">
+          <Button
+            shape="circle"
+            icon={<BellOutlined />}
+            onClick={() => {
+              navigate(USER_ROUTE.Notification);
+              setActiveIndex(-1);
+            }}
+          />
+        </Badge>
 
-        <div className="flex-grow max-w-xl w-full pointer-events-auto z-10">
-          <Search placeholder="Săn deal hot tại MegaMart..." allowClear onSearch={handleSearch} enterButton={<Button type="primary" className="bg-orange-600 hover:bg-orange-500 border-none px-6"><SearchOutlined style={{ fontSize: '18px' }} /></Button>} size="large" />
-        </div>
-
-        <div className="hidden md:flex items-center gap-6 pointer-events-auto z-10 mr-[130px]" >
-         <div className="relative cursor-pointer group flex items-center justify-center" onClick={() => { navigate('/notification'); setActiveIndex(-1) }}>
-          <Badge count={notiCount} overflowCount={99} offset={[2, 2]}>
-            <BellOutlined 
-              className={`text-[24px] transition-all ${isDarkMode ? 'text-gray-200 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-600'}`} 
+        {isLoggedIn && currentUser ? (
+          <div className="flex items-center gap-2">
+            <Avatar
+              src={userAvatar}
+              icon={!userAvatar ? <UserOutlined /> : null}
+              className="border-2 border-orange-500 shadow-sm cursor-pointer"
+              onClick={() => {
+                navigate(USER_ROUTE.Profile);
+                setActiveIndex(-1);
+              }}
             />
-          </Badge>
-        </div>
-          <div className="relative cursor-pointer group flex items-center justify-center " onClick={() => {navigate('/cart'); setActiveIndex(-1)}}>
-            <Badge count={cartCount} offset={[2, 2]}>
-              <ShoppingCartOutlined className={`text-[26px] transition-all ${isDarkMode ? 'text-gray-100 hover:text-orange-400' : 'text-gray-600 hover:text-orange-600'}`} />
-            </Badge>
+
+            <span
+              className={`hidden lg:inline max-w-[140px] truncate font-semibold ${
+                isDarkMode ? "text-white" : "text-gray-700"
+              }`}
+            >
+              {userName}
+            </span>
+
+            <Button danger onClick={handleLogout}>
+              Đăng xuất
+            </Button>
           </div>
-          <div className={`flex items-center gap-3 cursor-pointer pl-6 border-l ${isDarkMode ? 'border-slate-700' : 'border-gray-200'}`} >
-            <Avatar size={45} src={userAvatar} icon={<UserOutlined />} className="border-2 border-transparent hover:border-orange-600 transition-all shadow-sm" onClick={() => {navigate(USER_ROUTE.Profile); setActiveIndex(-1);}} />
-            <div className="flex flex-col">
-              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Tài khoản</span>
-              <span className={`text-sm font-bold truncate max-w-[80px] transition-colors cursor-pointer ${isDarkMode ? 'text-gray-200 hover:text-orange-500' : 'text-gray-700 hover:text-orange-600'}`} onClick={() => {navigate('auth/login&register'); setActiveIndex(-1);}}>Đăng nhập</span>
-            </div>
-            <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode}/>
-          </div>
-        </div>
+        ) : (
+          <Button type="primary" onClick={handleLogin}>
+            Đăng nhập
+          </Button>
+        )}
       </div>
     </header>
   );
 };
+
 
 // --- COMPONENT: SIDEBAR ---
 const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActiveIndex, activeIndex }) => {
