@@ -1,15 +1,18 @@
 const USER_ROUTE = {
-    "Home" : "/",
-    "WishList" : "/wish-list",
-    "TopProduct": "/top-product",
-    "Cart": "/cart",
-    "DetailProduct":"/product-detail", // cái này sau này phải Params id
-    "Supermarket": "/supermarket",
-    "Seapay": "/seapay",
-    "Notification" : "/notification",
-    "Profile" : "/profile",
+  Home: "/",
 
+  WishList: "/wish-list",
+  TopProduct: "/top-product",
+  Cart: "/cart",
 
-}
+  Supermarket: "/supermarket",
+
+  DetailProduct: "/products/:id",
+  ProductDetailBase: "/products",
+
+  Seapay: "/seapay",
+  Notification: "/notification",
+  Profile: "/profile",
+};
 
 export default USER_ROUTE;
