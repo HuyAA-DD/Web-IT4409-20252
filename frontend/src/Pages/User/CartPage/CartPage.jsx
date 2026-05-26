@@ -11,7 +11,8 @@ import {
   SafetyCertificateOutlined, 
   CarOutlined, 
   RightOutlined,
-  CustomerServiceOutlined
+  CustomerServiceOutlined,
+  ShoppingCartOutlined
 } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import { message } from 'antd';

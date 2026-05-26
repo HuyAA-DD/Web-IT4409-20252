@@ -19,4 +19,5 @@ public class UserResponse {
     private String fullName;
     private Role role;
     private LocalDateTime createdAt;
+    private String avatarUrl;
 }

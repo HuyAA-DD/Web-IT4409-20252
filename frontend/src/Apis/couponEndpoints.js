@@ -1,11 +1,11 @@
 const COUPON_ENDPOINTS = {
-  list: "/api/coupons",
-  byId: (id) => `/api/coupons/${id}`,
-  byCode: (code) => `/api/coupons/by-code/${code}`,
-  create: "/api/coupons",
-  apply: "/api/coupons/apply",
-  update: (id) => `/api/coupons/${id}`,
-  delete: (id) => `/api/coupons/${id}`
+  list: "/api/v1/coupons",
+  byId: (id) => `/api/v1/coupons/${id}`,
+  byCode: (code) => `/api/v1/coupons/by-code/${code}`,
+  create: "/api/v1/coupons",
+  apply: "/api/v1/coupons/apply",
+  update: (id) => `/api/v1/coupons/${id}`,
+  delete: (id) => `/api/v1/coupons/${id}`
 }
 
 export default COUPON_ENDPOINTS;

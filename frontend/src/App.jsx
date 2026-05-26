@@ -54,7 +54,7 @@ const router = createBrowserRouter([
       {
         path: USER_ROUTE.WishList,
         // Yêu cầu đăng nhập để xem danh sách yêu thích
-        element: <RequireAuth><WishListPage /></RequireAuth>, 
+        element: <RequireAuth requiredRole={"USER"}><WishListPage /></RequireAuth>, 
       },
       {
         path: USER_ROUTE.TopProduct,
@@ -62,11 +62,11 @@ const router = createBrowserRouter([
       },
       {
         path: USER_ROUTE.Cart, 
-        element: <RequireAuth><CartPage/></RequireAuth>
+        element: <RequireAuth requiredRole={"USER"}><CartPage/></RequireAuth>
       },
       {
         path: USER_ROUTE.Seapay,
-        element: <RequireAuth><PaymentPage/></RequireAuth>
+        element: <RequireAuth requiredRole={"USER"}><PaymentPage/></RequireAuth>
       },
       {
         path: USER_ROUTE.Supermarket,
@@ -78,12 +78,12 @@ const router = createBrowserRouter([
       },
       {
         path : USER_ROUTE.Notification,
-        element: <RequireAuth><NotificationPage/></RequireAuth>
+        element: <RequireAuth requiredRole={"USER"}><NotificationPage/></RequireAuth>
       },
       {
         path: USER_ROUTE.Profile,
         // Yêu cầu đăng nhập để xem/sửa profile
-        element: <RequireAuth><UserProfilePage/></RequireAuth> 
+        element: <RequireAuth requiredRole={"USER"}><UserProfilePage/></RequireAuth> 
       }
     ],
   },
@@ -92,7 +92,7 @@ const router = createBrowserRouter([
   {
     path : ADMIN_ROUTE.Home,
     // Bọc toàn bộ layout Admin bằng RequireAuth
-    element: <RequireAuth><AdminMainLayout/></RequireAuth>, 
+    element: <RequireAuth requiredRole={"ADMIN"}><AdminMainLayout/></RequireAuth>, 
 
     children:[
       {
@@ -136,19 +136,19 @@ const router = createBrowserRouter([
   {
     path: ADMIN_ROUTE.Order,
     // Bọc RequireAuth vì trang này nằm ngoài AdminMainLayout
-    element: <RequireAuth><OrderDetailPage/></RequireAuth> 
+    element: <RequireAuth requiredRole={"ADMIN"}><OrderDetailPage/></RequireAuth> 
   },
   
   // SELLER ROUTE
   {
     path: SELLER_ROUTE.Home,
     // Bọc toàn bộ layout Seller bằng RequireAuth
-    element: <RequireAuth><SellerMainLayout/></RequireAuth>, 
+    element: <RequireAuth requiredRole={"SELLER"}><SellerMainLayout/></RequireAuth>, 
 
     children:[
       {
         index: true,
-        element: <SellerPage />
+        element: <RequireAuth requiredRole={"SELLER"}><SellerPage/></RequireAuth>
       },
       {
         path : SELLER_ROUTE.Revenue,

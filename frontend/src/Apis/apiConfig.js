@@ -27,7 +27,8 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.message?.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!')
-      window.location.href = '/auth/login&register'
+      window.location.href = "/auth/login&register"
+
     }
 
     return Promise.reject(error)

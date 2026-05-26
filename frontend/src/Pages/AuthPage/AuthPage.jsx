@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthBackground from '../../Components/AuthBackground/AuthBackground';
-import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { EyeOutlined, EyeInvisibleOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, message } from 'antd';
 import api from '../../Apis/apiConfig';
 import API_ENDPOINTS from '../../Apis/apiEndpoints';
@@ -9,7 +9,7 @@ import { saveAuthUser } from '../../Utils/Auth';
 import USER_ROUTE from '../../Routes/User.routes';
 import ADMIN_ROUTE from '../../Routes/Admin.routes';
 import SELLER_ROUTE from '../../Routes/Seller.routes';
-import './AuthDecorations.css'; // Import file CSS animation vừa tạo
+import './AuthDecorations.css'; 
 
 // Khối Component vẽ hình tam giác bo góc (sử dụng SVG để bo góc hoàn hảo)
 const RoundedTriangle = ({ id, className, colorClass }) => (
@@ -34,6 +34,7 @@ const AuthPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('USER'); // <-- Thêm state lưu Role
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -47,8 +48,9 @@ const AuthPage = () => {
   const normalizeAuthResult = (responseData) => {
     if (!responseData) return null;
 
-    const token = responseData.accessToken || responseData.token || responseData?.data?.accessToken || responseData?.data?.token;
-    const user = responseData.user || responseData?.data?.user || responseData?.data || responseData;
+    const authResponse = responseData?.data || responseData;
+    const token = authResponse?.accessToken || authResponse?.token;
+    const user = authResponse?.user || authResponse;
 
     return {
       ...user,
@@ -85,6 +87,7 @@ const AuthPage = () => {
 
       if (!isLogin) {
         payload.fullName = fullName.trim();
+        payload.role = role;
       }
 
       const endpoint = isLogin ? API_ENDPOINTS.auth.login : API_ENDPOINTS.auth.register;
@@ -197,6 +200,38 @@ const AuthPage = () => {
                 </p>
               </div>
               <form className="space-y-6" onSubmit={handleSubmit}>
+                
+                {/* --- TOGGLE CHỌN ROLE (Chỉ hiện khi Đăng ký) --- */}
+                {!isLogin && (
+                  <div className="flex flex-col mb-4">
+                    <label className="text-xs text-gray-500 block uppercase font-bold tracking-wider mb-3">Bạn muốn đăng ký làm:</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setRole('USER')}
+                        className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-bold transition-all duration-200 ${
+                          role === 'USER' 
+                            ? 'bg-orange-50 border-2 border-orange-500 text-orange-600' 
+                            : 'bg-white border border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-500'
+                        }`}
+                      >
+                        <UserOutlined /> Khách hàng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole('SELLER')}
+                        className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-bold transition-all duration-200 ${
+                          role === 'SELLER' 
+                            ? 'bg-orange-50 border-2 border-orange-500 text-orange-600' 
+                            : 'bg-white border border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-500'
+                        }`}
+                      >
+                        <ShopOutlined /> Người bán
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {!isLogin && (
                   <div className="flex flex-col">
                     <label className="text-xs text-gray-500 block uppercase font-bold tracking-wider mb-2">Họ và tên</label>
