@@ -18,7 +18,6 @@ import WEBHOOK_ENDPOINTS from "./webhookEndpoints";
 const API_ENDPOINTS = {
   auth: AUTH_ENDPOINTS,
 
-  // dùng cả 2 tên để tránh lỗi import cũ
   user: USER_ENDPOINTS,
   users: USER_ENDPOINTS,
 
@@ -29,10 +28,14 @@ const API_ENDPOINTS = {
   categories: CATEGORY_ENDPOINTS,
 
   cart: CART_ENDPOINTS,
+
   order: ORDER_ENDPOINTS,
   coupon: COUPON_ENDPOINTS,
   payment: PAYMENT_ENDPOINTS,
+
   wishlist: WISHLIST_ENDPOINTS,
+  wishlists: WISHLIST_ENDPOINTS,
+
   notification: NOTIFICATION_ENDPOINTS,
   review: REVIEW_ENDPOINTS,
   address: ADDRESS_ENDPOINTS,
