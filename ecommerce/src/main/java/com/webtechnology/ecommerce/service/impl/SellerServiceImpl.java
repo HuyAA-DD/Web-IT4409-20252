@@ -10,6 +10,9 @@ import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.OrderRepository;
 import com.webtechnology.ecommerce.service.SellerService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -46,26 +49,56 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public DashboardResponse getSellerDashboard(UUID sellerId) {
-        List<OrderResponse> sellerOrders = getSellerOrders(sellerId);
+    public DashboardResponse getSellerDashboard(UUID sellerId, Integer year, Integer month, Integer quarter) {
+        List<OrderItem> sellerItems;
+        if (year == null && month == null && quarter == null) {
+            sellerItems = orderItemRepository.findByProductSellerId(sellerId);
+        } else {
+            LocalDateTime[] range = calculateDateRange(year, month, quarter);
+            sellerItems = orderItemRepository.findByProductSellerIdAndOrderCreatedAtBetween(sellerId, range[0], range[1]);
+        }
         
-        long totalOrders = sellerOrders.size();
-        BigDecimal totalRevenue = sellerOrders.stream()
-                .map(order -> order.getItems().stream()
-                        .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add))
+        long totalOrders = sellerItems.stream()
+                .map(item -> item.getOrder().getId())
+                .distinct()
+                .count();
+
+        BigDecimal totalRevenue = sellerItems.stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // This is a simplified dashboard for now
+        long totalProducts = sellerItems.stream()
+                .map(item -> item.getProduct().getId())
+                .distinct()
+                .count();
+
         return DashboardResponse.builder()
                 .totalOrders(totalOrders)
                 .totalRevenue(totalRevenue)
-                .totalProducts((long) sellerOrders.stream()
-                        .flatMap(o -> o.getItems().stream())
-                        .map(OrderItemResponse::getProductId)
-                        .distinct()
-                        .count())
+                .totalProducts(totalProducts)
                 .build();
+    }
+
+    private LocalDateTime[] calculateDateRange(Integer year, Integer month, Integer quarter) {
+        if (year == null) year = LocalDate.now().getYear();
+        
+        LocalDateTime start;
+        LocalDateTime end;
+
+        if (month != null) {
+            start = LocalDateTime.of(year, month, 1, 0, 0);
+            end = LocalDateTime.of(year, month, YearMonth.of(year, month).lengthOfMonth(), 23, 59, 59);
+        } else if (quarter != null) {
+            int startMonth = (quarter - 1) * 3 + 1;
+            start = LocalDateTime.of(year, startMonth, 1, 0, 0);
+            int endMonth = startMonth + 2;
+            end = LocalDateTime.of(year, endMonth, YearMonth.of(year, endMonth).lengthOfMonth(), 23, 59, 59);
+        } else {
+            start = LocalDateTime.of(year, 1, 1, 0, 0);
+            end = LocalDateTime.of(year, 12, 31, 23, 59, 59);
+        }
+
+        return new LocalDateTime[]{start, end};
     }
 
     private OrderResponse buildSellerOrderResponse(Order order, UUID sellerId) {
