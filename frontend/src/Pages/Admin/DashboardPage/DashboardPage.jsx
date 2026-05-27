@@ -12,20 +12,8 @@ import {
   CloseCircleOutlined
 } from '@ant-design/icons';
 import { Progress } from 'antd';
-
-// FIXME: [MOCK_DATA] - Dữ liệu giả lập khớp 100% với DTO DashboardResponse
-const mockDashboardData = {
-  totalOrders: 1250,
-  pendingOrders: 150,
-  confirmedOrders: 200,
-  processingOrders: 100,
-  shippedOrders: 350,
-  deliveredOrders: 400,
-  cancelledOrders: 50,
-  totalRevenue: 45678.90, // Tương đương BigDecimal
-  totalUsers: 840,
-  totalProducts: 320
-};
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 // =========================================================================
 // 1. ĐÃ CHUYỂN COMPONENT CON RA NGOÀI ĐỂ TRÁNH LỖI RE-RENDER
@@ -67,22 +55,27 @@ const OrderStatusCard = ({ title, count, icon, colorClass, strokeColor, percent 
 // 2. COMPONENT CHA CHÍNH
 // =========================================================================
 export default function DashboardPage() {
-  const [data, setData] = useState(mockDashboardData);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // ----------------------------------------------------------------------
-  // TODO: [API_CALL] - GET /api/v1/admin/dashboard
-  // useEffect(() => {
-  //   const fetchDashboardData = async () => {
-  //      try {
-  //        const res = await axios.get('/api/v1/admin/dashboard');
-  //        setData(res.data);
-  //      } catch(e) { console.error(e) }
-  //   };
-  //   fetchDashboardData();
-  // }, []);
-  // ----------------------------------------------------------------------
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get(API_ENDPOINTS.admin.dashboard);
+        setData(response?.data || response);
+      } catch (error) {
+        console.error('Lỗi tải dữ liệu dashboard', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!data) return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu tổng quan...</div>;
+    fetchDashboardData();
+  }, []);
+
+  if (loading) return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu tổng quan...</div>;
+  if (!data) return <div className="p-10 text-center text-gray-500">Không có dữ liệu tổng quan.</div>;
 
   // Tính phần trăm cho Progress Bar (bảo vệ lỗi chia cho 0)
   const getPercent = (value) => {

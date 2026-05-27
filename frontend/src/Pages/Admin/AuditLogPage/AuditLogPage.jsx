@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   DownloadOutlined, 
   UserOutlined, 
@@ -7,26 +7,13 @@ import {
   PlusOutlined,
   LeftOutlined
 } from '@ant-design/icons';
-
-// --- [MOCK_DATA] --- Đã mở rộng để test phân trang
-const mockAuditLogs = [
-  { id: "log-001", userId: "u-101", userName: "admin.manager@megamart.vn", action: "UPDATE", entityType: "Product", entityId: "p-9921", oldValue: "{\n  \"price\": 1500000\n}", newValue: "{\n  \"price\": 1350000\n}", ipAddress: "192.168.1.45", createdAt: "2026-05-17T14:32:05" },
-  { id: "log-002", userId: "u-999", userName: "system.worker@internal", action: "DELETE", entityType: "Category", entityId: "c-402", oldValue: "{\n  \"status\": \"INACTIVE\"\n}", newValue: null, ipAddress: "10.0.0.12", createdAt: "2026-05-16T10:15:22" },
-  { id: "log-003", userId: "u-102", userName: "nguyen.van.a@megamart.vn", action: "CREATE", entityType: "PromotionCampaign", entityId: "promo-001", oldValue: null, newValue: "{\n  \"discountPercent\": 20\n}", ipAddress: "113.190.22.105", createdAt: "2026-05-15T16:45:01" },
-  { id: "log-004", userId: "u-101", userName: "admin.manager@megamart.vn", action: "UPDATE", entityType: "SystemSettings", entityId: "sys-01", oldValue: "{\n  \"maintenanceMode\": false\n}", newValue: "{\n  \"maintenanceMode\": true\n}", ipAddress: "192.168.1.45", createdAt: "2026-05-14T09:05:11" },
-  { id: "log-005", userId: "u-103", userName: "tran.b@megamart.vn", action: "CREATE", entityType: "User", entityId: "u-104", oldValue: null, newValue: "{\n  \"role\": \"SELLER\"\n}", ipAddress: "14.161.22.10", createdAt: "2026-05-13T08:00:00" },
-  { id: "log-006", userId: "u-105", userName: "le.c@megamart.vn", action: "DELETE", entityType: "Product", entityId: "p-1122", oldValue: "{\n  \"status\": \"OUT_OF_STOCK\"\n}", newValue: null, ipAddress: "192.168.1.50", createdAt: "2026-05-12T11:20:00" },
-  { id: "log-007", userId: "u-101", userName: "admin.manager@megamart.vn", action: "UPDATE", entityType: "Order", entityId: "ord-883", oldValue: "{\n  \"status\": \"PENDING\"\n}", newValue: "{\n  \"status\": \"SHIPPED\"\n}", ipAddress: "192.168.1.45", createdAt: "2026-05-11T15:10:00" },
-  { id: "log-008", userId: "u-102", userName: "nguyen.van.a@megamart.vn", action: "UPDATE", entityType: "Product", entityId: "p-3344", oldValue: "{\n  \"stock\": 5\n}", newValue: "{\n  \"stock\": 50\n}", ipAddress: "113.190.22.105", createdAt: "2026-05-10T09:30:00" },
-  { id: "log-009", userId: "u-999", userName: "system.worker@internal", action: "CREATE", entityType: "Backup", entityId: "bkp-001", oldValue: null, newValue: "{\n  \"size\": \"5GB\"\n}", ipAddress: "10.0.0.12", createdAt: "2026-05-09T02:00:00" },
-  { id: "log-010", userId: "u-101", userName: "admin.manager@megamart.vn", action: "DELETE", entityType: "Review", entityId: "rv-776", oldValue: "{\n  \"content\": \"Spam comment\"\n}", newValue: null, ipAddress: "192.168.1.45", createdAt: "2026-05-08T14:00:00" },
-  { id: "log-011", userId: "u-103", userName: "tran.b@megamart.vn", action: "UPDATE", entityType: "User", entityId: "u-104", oldValue: "{\n  \"status\": \"ACTIVE\"\n}", newValue: "{\n  \"status\": \"BANNED\"\n}", ipAddress: "14.161.22.10", createdAt: "2026-05-07T16:20:00" },
-  { id: "log-012", userId: "u-105", userName: "le.c@megamart.vn", action: "CREATE", entityType: "Category", entityId: "c-405", oldValue: null, newValue: "{\n  \"name\": \"Đồ công nghệ\"\n}", ipAddress: "192.168.1.50", createdAt: "2026-05-06T10:10:00" }
-];
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminAuditLogPage() {
-  const [logs, setLogs] = useState(mockAuditLogs);
+  const [logs, setLogs] = useState([]);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // --- STATES BỘ LỌC ---
   const [searchUser, setSearchUser] = useState('');
@@ -48,6 +35,39 @@ export default function AdminAuditLogPage() {
     setCurrentPage(1); // QUAN TRỌNG: Reset về trang 1 khi đổi bộ lọc
     setExpandedRowKeys([]); // Đóng tất cả các hàng đang mở
   };
+
+  useEffect(() => {
+    const fetchAuditLogs = async () => {
+      setIsLoading(true);
+      try {
+        const params = {
+          user: appliedFilters.searchUser || undefined,
+          action: appliedFilters.actionFilter || undefined,
+          startDate: appliedFilters.startDate || undefined,
+          endDate: appliedFilters.endDate || undefined,
+          page: currentPage - 1,
+          size: pageSize,
+        };
+
+        const response = await api.get(API_ENDPOINTS.auditLogs.list, params);
+        const data = response?.data || response;
+
+        if (Array.isArray(data?.content)) {
+          setLogs(data.content);
+        } else if (Array.isArray(data)) {
+          setLogs(data);
+        } else {
+          setLogs([]);
+        }
+      } catch (error) {
+        console.error('Lỗi tải nhật ký hệ thống', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAuditLogs();
+  }, [appliedFilters, currentPage]);
 
   // 1. CHẠY BỘ LỌC TRƯỚC
   const filteredLogs = useMemo(() => {

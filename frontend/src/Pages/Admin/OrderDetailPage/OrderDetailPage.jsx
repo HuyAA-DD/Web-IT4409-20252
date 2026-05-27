@@ -16,54 +16,6 @@ import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 import { message } from 'antd';
 
-// FIXME: [MOCK_DATA] - Xóa dữ liệu này khi kết nối API. 
-// Dữ liệu bám sát chuẩn DTO OrderResponse (kèm OrderItemResponse & AddressResponse)
-const mockOrderResponse = {
-  id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  userId: "u1000000-0000-0000-0000-000000000001",
-  userName: "Jane Doe",
-  addressId: "a1000000-0000-0000-0000-000000000001",
-  address: {
-    receiverName: "Jane Doe",
-    phone: "+1 (555) 123-4567",
-    street: "123 Marketplace Blvd, Apt 4B",
-    city: "Metropolis",
-    state: "NY",
-    zipCode: "10001",
-    country: "United States"
-  },
-  totalAmount: 1364.98,
-  status: "PENDING",       // Enum OrderStatus
-  paymentStatus: "PAID",   // Enum PaymentStatus
-  paymentMethod: "CREDIT_CARD", // Enum PaymentMethod
-  items: [
-    {
-      id: "i1",
-      productId: "p1",
-      productName: "Nike Air Max 270 - Crimson Red Sportswear",
-      productVariantId: "v1",
-      sku: "NK-AM270-RD-10",
-      price: 149.99,
-      quantity: 1,
-      lineTotal: 149.99,
-      // Mở rộng attributes trên frontend để lấy hình ảnh hiển thị UI
-      attributes: { Size: "10", Color: "Red", imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuAka-On_QzaGQ-1KVm6_upHuj7JCKh__sUwGXAajn_nF_CgSQgi1RikYOIYW0eYef3iveGcWO1Bn8X4pUWsWcB_HOKclZ-cNUqeHpIn0i980ffVbCis0rYxT0_ESNrxDpw-2e92myw6sAfmYSSdQYwjpP8I0rlRJVhLl0xEgejN7ubnLRb_1mGWPmZgJ4eT3WIRKcWxyLSq7zqur-vV6VvzwuISR__WxOfm1UwtRL87o8kOdEopJh2q_wSq8CSqr7IxXWI0cRoAcrSc" }
-    },
-    {
-      id: "i2",
-      productId: "p2",
-      productName: "MacBook Pro 14\" M2 Pro Chip 512GB SSD",
-      productVariantId: "v2",
-      sku: "AP-MBP14-M2-512",
-      price: 1099.99,
-      quantity: 1,
-      lineTotal: 1099.99,
-      attributes: { Color: "Space Gray", imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuCSHrP8G6FvP0f43_MZLSYG4foKYZ8udrUSDeY9BOGy4OfPuQsaxqF8iDtpEbUsBK7C11uYSy0HQLT2bPWEuMpMrRups95iL68EOfbaEQoZo7iMWP1Bs3YLoB3TCIFrjpg8nlc2I2qy1J31kbODsF2IG6-Fs8e2u3V-435QNznlc2RuRbIlmIELB2sTQYLgjo9dHp80GqBrNGe8iNT8Cqafx1i_fbKqqHiLXWzTpQ1d7RfGXLxJdvh7ZaSxp0Igq8UXIV4vMAVzNSqK" }
-    }
-  ],
-  createdAt: "2023-10-24T14:30:00"
-};
-
 export default function OrderDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams(); // Lấy ID Đơn hàng từ Router

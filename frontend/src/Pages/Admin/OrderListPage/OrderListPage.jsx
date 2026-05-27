@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   SearchOutlined, 
@@ -14,16 +14,8 @@ import {
 import { message } from 'antd'; // Dùng để hiện thông báo thành công
 import useDebounce from '../../../Hooks/useDebounce';
 import ADMIN_ROUTE from '../../../Routes/Admin.routes';
-
-// FIXME: [MOCK_DATA] - Xóa dữ liệu này khi kết nối API
-const mockOrderList = [
-  { id: "f47ac10b-58cc-4372-a567-0e02b2c3d479", customer: "Jane Doe", email: "jane@example.com", total: 1364.98, status: "PENDING", date: "2023-10-24" },
-  { id: "e28bc21c-69dd-4123-b123-123456789abc", customer: "John Smith", email: "john@example.com", total: 54.00, status: "DELIVERED", date: "2023-10-23" },
-  { id: "a12bc34d-89ee-4f3a-9c2b-ab1234567890", customer: "Alice Nguyen", email: "alice@example.com", total: 899.50, status: "SHIPPED", date: "2023-10-22" },
-  { id: "b34cd56e-12ff-4444-5555-666666666666", customer: "Bob Tran", email: "bob@example.com", total: 12.99, status: "CANCELLED", date: "2023-10-21" },
-  { id: "c56de78f-34aa-7777-8888-999999999999", customer: "Charlie Le", email: "charlie@example.com", total: 340.00, status: "PENDING", date: "2023-10-24" },
-  { id: "d67ef89g-45bb-8888-9999-000000000000", customer: "David Vu", email: "david@example.com", total: 150.00, status: "PENDING", date: "2023-10-25" },
-];
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function OrderListPage() {
   const navigate = useNavigate();
@@ -32,12 +24,29 @@ export default function OrderListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('');
-  const finalSearchTerm = useDebounce(searchTerm, 500); 
-  const [orders, setOrders] = useState(mockOrderList);
+  const finalSearchTerm = useDebounce(searchTerm, 500);
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // States cho Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get(API_ENDPOINTS.admin.orders);
+        setOrders(response?.data || response || []);
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách đơn hàng', error);
+        message.error('Không thể tải đơn hàng.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   // =========================================================================
   // LOGIC MODAL: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG
@@ -62,28 +71,26 @@ export default function OrderListPage() {
   // Hàm Lưu (Gọi API)
   const handleSaveStatus = async (e) => {
     e.preventDefault();
-    
-    // TODO: [API_CALL] - PUT /api/v1/admin/orders/{editingOrder.id}/status
-    /*
+    if (!editingOrder) return;
+
     try {
-      const response = await axios.put(`/api/v1/admin/orders/${editingOrder.id}/status`, {
-        status: newStatus
+      const response = await api.put(API_ENDPOINTS.admin.updateOrderStatus(editingOrder.id), {
+        status: newStatus,
       });
-      if (response.data.success) {
-        message.success(response.data.message);
-        // Cập nhật lại list đơn hàng từ response.data.data
-      }
+      const updatedOrder = response?.data || response;
+
+      setOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o.id === editingOrder.id ? { ...o, ...updatedOrder } : o
+        )
+      );
+      message.success(`Đã cập nhật trạng thái đơn hàng thành ${newStatus}!`);
     } catch (error) {
-      message.error("Lỗi cập nhật trạng thái!");
+      console.error('Lỗi cập nhật trạng thái đơn hàng', error);
+      message.error('Lỗi cập nhật trạng thái!');
       return;
     }
-    */
 
-    // MOCK UPDATE UI (Xóa đoạn này khi có API thật):
-    setOrders(prevOrders => 
-      prevOrders.map(o => o.id === editingOrder.id ? { ...o, status: newStatus } : o)
-    );
-    message.success(`Đã cập nhật trạng thái đơn hàng thành ${newStatus}!`);
     handleCloseModal();
   };
 

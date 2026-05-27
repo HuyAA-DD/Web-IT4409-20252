@@ -5,47 +5,33 @@ import {
   FilterOutlined
 } from '@ant-design/icons';
 import { Progress } from 'antd';
-
-// --- [MOCK_DATA] --- Giả lập dữ liệu mảng TopProductResponse
-const mockTopProducts = [
-  { id: "p-01", name: "iPhone 15 Pro Max 256GB", sku: "APL-IP15PM-256", category: "Điện thoại", soldCount: 1250, revenue: 37500000000, stock: 45 },
-  { id: "p-02", name: "MacBook Air M2 8GB/256GB", sku: "APL-MBA-M2", category: "Laptop", soldCount: 850, revenue: 21250000000, stock: 120 },
-  { id: "p-03", name: "Tai nghe Bluetooth AirPods Pro 2", sku: "APL-AIRPRO2", category: "Phụ kiện", soldCount: 2100, revenue: 10500000000, stock: 10 },
-  { id: "p-04", name: "Chuột không dây Logitech MX Master 3S", sku: "LOGI-MX3S", category: "Phụ kiện", soldCount: 1500, revenue: 4125000000, stock: 300 },
-  { id: "p-05", name: "Bàn phím cơ Keychron K8 Pro", sku: "KEYC-K8PRO", category: "Phụ kiện", soldCount: 920, revenue: 2300000000, stock: 85 },
-];
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminTopProductPage() {
-  const [products, setProducts] = useState(mockTopProducts);
+  const [products, setProducts] = useState([]);
   const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
 
-  // =========================================================================
-  // TODO: [API_CALL] - GET /api/v1/admin/top-products?limit={limit}
-  // =========================================================================
-  /*
   useEffect(() => {
     const fetchTopProducts = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`/api/v1/admin/top-products`, { params: { limit } });
-        if (response.data.success) {
-          setProducts(response.data.data);
-        }
+        const response = await api.get(API_ENDPOINTS.admin.topProducts, { params: { limit } });
+        setProducts(response?.data || response);
       } catch (error) {
-        console.error("Lỗi tải danh sách top sản phẩm", error);
+        console.error('Lỗi tải danh sách top sản phẩm', error);
       } finally {
         setIsLoading(false);
       }
     };
     fetchTopProducts();
-  }, [limit]); // Fetch lại khi đổi limit (Top 5, Top 10, Top 50)
-  */
+  }, [limit]);
 
   const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
   // Lấy số lượng bán cao nhất để tính phần trăm thanh Progress Bar
-  const maxSold = Math.max(...products.map(p => p.soldCount));
+  const maxSold = products.length > 0 ? Math.max(...products.map(p => p.soldCount)) : 1;
 
   return (
     <div className="max-w-[1200px] mx-auto animate-fade-in transition-colors duration-500">

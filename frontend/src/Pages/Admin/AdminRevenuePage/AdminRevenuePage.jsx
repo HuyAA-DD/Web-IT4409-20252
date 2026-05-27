@@ -7,44 +7,32 @@ import {
   CalendarOutlined,
   DownloadOutlined
 } from '@ant-design/icons';
-
-// --- [MOCK_DATA] --- Khớp với DTO RevenueResponse
-const mockRevenueData = {
-  totalRevenue: 1250000000, // 1.25 Tỷ
-  averageOrderValue: 850000, 
-  totalRefunds: 45000000,    // 45 Triệu
-  netRevenue: 1205000000     // 1.2 Tỷ
-};
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminRevenuePage() {
-  const [revenue, setRevenue] = useState(mockRevenueData);
+  const [revenue, setRevenue] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // =========================================================================
-  // TODO: [API_CALL] - GET /api/v1/admin/revenue
-  // =========================================================================
-  /*
   useEffect(() => {
     const fetchRevenue = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('/api/v1/admin/revenue');
-        if (response.data.success) {
-          setRevenue(response.data.data);
-        }
+        const response = await api.get(API_ENDPOINTS.admin.revenue);
+        setRevenue(response?.data || response);
       } catch (error) {
-        console.error("Lỗi khi tải doanh thu", error);
+        console.error('Lỗi khi tải doanh thu', error);
       } finally {
         setIsLoading(false);
       }
     };
     fetchRevenue();
   }, []);
-  */
 
   const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
   if (isLoading) return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu doanh thu...</div>;
+  if (!revenue) return <div className="p-10 text-center text-gray-500">Không có dữ liệu doanh thu.</div>;
 
   return (
     <div className="max-w-[1200px] mx-auto animate-fade-in transition-colors duration-500">

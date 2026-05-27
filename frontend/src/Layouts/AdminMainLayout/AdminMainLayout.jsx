@@ -14,12 +14,17 @@ import {
   CloseOutlined,
   TagOutlined,
   DollarCircleOutlined,
-  TrophyOutlined
-
+  TrophyOutlined,
+  LogoutOutlined // Thêm icon đăng xuất
 } from '@ant-design/icons';
-import { Avatar, Badge, Button } from 'antd';
+import { Avatar, Badge, Button, Dropdown } from 'antd'; // Thêm Dropdown từ antd
+
+import { clearAuthUser } from '../../Utils/Auth'; // Hàm xóa thông tin người dùng đã đăng nhập
 
 import ADMIN_ROUTE from '../../Routes/Admin.routes';
+
+// Giả sử bạn đang dùng Zustand, Redux hoặc Context, hãy import hàm clearAuthUser vào đây
+// import { useAuthStore } from '../../store/authStore'; 
 
 // --- COMPONENT: ADMIN SIDEBAR ---
 const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -83,7 +88,7 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
           <Button type="text" icon={<CloseOutlined />} onClick={onCloseMobile} />
         </div>
 
-        {/* Desktop Logo Space (if you want logo in sidebar, else leave empty as topbar has it) */}
+        {/* Desktop Logo Space */}
         <div className="hidden lg:flex items-center px-6 h-16 border-b border-gray-200">
            <span className="text-xl font-black text-orange-600 tracking-tight">MegaMart Admin</span>
         </div>
@@ -103,6 +108,26 @@ export default function AdminMainLayout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+
+
+  // Xử lý logic đăng xuất
+  const handleLogout = () => {
+
+    clearAuthUser(); // Gọi hàm xóa thông tin người dùng đã đăng nhập
+    navigate('/auth/login&register');
+  };
+
+  // Cấu hình các item cho Dropdown của Avatar
+  const userMenu = [
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Đăng xuất',
+      danger: true, // Thuộc tính của Antd giúp bôi đỏ text cho hành động nguy hiểm
+      onClick: handleLogout,
+    },
+  ];
+
   return (
     <div className="bg-gray-50 text-gray-800 font-sans min-h-screen flex overflow-hidden selection:bg-orange-100 selection:text-orange-600">
       
@@ -111,7 +136,6 @@ export default function AdminMainLayout() {
         onCloseMobile={() => setIsMobileMenuOpen(false)} 
       />
 
-      {/* Cột nội dung chính: Căn lề trái 64 (256px) trên màn hình lớn để né Sidebar */}
       <div className="flex-1 flex flex-col h-screen lg:ml-64 w-full transition-all duration-300">
         
         {/* --- ADMIN TOP NAVBAR --- */}
@@ -121,20 +145,29 @@ export default function AdminMainLayout() {
               className="text-xl text-gray-600 cursor-pointer lg:hidden" 
               onClick={() => setIsMobileMenuOpen(true)} 
             />
-            {/* Ẩn logo trên Mobile nếu đã có trong Sidebar Drawer */}
             <span className="font-black text-xl text-orange-600 tracking-tight lg:hidden">MegaMart</span>
           </div>
 
           <div className="flex items-center gap-4">
-            <Badge count={3} size="small" offset={[-4, 4]} onClick = {()=>{navigate('/admin/notification')}}>
+            <Badge count={3} size="small" offset={[-4, 4]} onClick={() => navigate('/admin/notification')}>
               <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                 <BellOutlined className="text-lg" />
               </button>
             </Badge>
-            <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
-              <Avatar icon={<UserOutlined />} className="bg-orange-600" />
-              <span className="text-sm font-bold text-gray-700 hidden md:block">Admin</span>
-            </div>
+
+            {/* Bọc Avatar bằng Dropdown */}
+            <Dropdown 
+              menu={{ items: userMenu }} 
+              placement="bottomRight" 
+              trigger={['hover']} 
+              arrow
+            >
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
+                <Avatar icon={<UserOutlined />} className="bg-orange-600" />
+                <span className="text-sm font-bold text-gray-700 hidden md:block">Admin</span>
+              </div>
+            </Dropdown>
+
           </div>
         </header>
 
