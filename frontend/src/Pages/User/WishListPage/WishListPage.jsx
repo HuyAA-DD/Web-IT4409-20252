@@ -1,285 +1,631 @@
-import React, { useState, useEffect } from 'react';
-import { Checkbox, Button, message } from 'antd';
-import { useOutletContext } from 'react-router-dom';
-import api from '../../../Apis/apiConfig';
-import API_ENDPOINTS from '../../../Apis/apiEndpoints';
-import { getAuthUser } from '../../../Utils/Auth';
-import { 
-  DeleteOutlined, 
-  ShoppingCartOutlined, 
-  CloseOutlined, 
-  StarFilled,
-  HeartOutlined
-} from '@ant-design/icons';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Empty,
+  Image,
+  Popconfirm,
+  Spin,
+  Tag,
+  Typography,
+  message,
+} from "antd";
+import {
+  DeleteOutlined,
+  EyeOutlined,
+  HeartFilled,
+  ReloadOutlined,
+  ShoppingCartOutlined,
+} from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
-// --- [MOCK DATA] --- Xóa mảng này khi có API thực tế
-const MOCK_WISHLIST_ITEMS = [
-  {
-    id: 1,
-    title: "Ultra-Fast Pro Runner X2 - Energy Orange",
-    price: "120.00",
-    originalPrice: "160.00",
-    discount: "-25%",
-    rating: 4.8,
-    sold: "1.2k",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC7xqbLOKkQaKYRk8SNzuJoc7yt1MGfb2GCwe1xLDlKNshh0M3LgIjhYBzmkSiMibwNYdGA1X6oiEe7mDRrm0cFhvvuhltTFkgxAtK7RGltMG7fCP43-L4c6CWg2hn6ZqtEaLX71w59VdgRm7biYnhoRxXQ8FP7jSNESw4e-4t44kFhNR8eqCOZcoKUYVu647xbtXwHfuBX4Th3ZHCI2GFlWQ732NSH07UX5eO9vTtvL7g6YMyOIfaHhrJRj35It4RiAj0LLq-69hOW"
-  },
-  {
-    id: 2,
-    title: "SonicBoom Wireless ANC Headphones",
-    price: "299.00",
-    originalPrice: null,
-    discount: null,
-    rating: 4.9,
-    sold: "850",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCqCWnhm9-GD2W_6Q5HdwCuv7g-jhkyTkEKN87A8Q-0CpV76pXXu0uw4_auE6iliLMfeuDj7TwwEjWX72fSn_CJ0JQAvRlLqthqayPayhgIfZ_5IEywptABgxy6cSAlP44q3qrFGEjko5iznrM-2cEFG_l6xq_cMuZK8Fi8VWLgJYOcrCmiJnf1OKII7InzWQjfKny0LlqUP9XDq2EN-fClTMnUaHQoqaZT3a6nklhiJmJn3zhknOq6V65aG4lPS_H-sBr3eFujhl5l"
-  },
-  {
-    id: 3,
-    title: "Minimalist Series 4 Watch - Tan Leather",
-    price: "85.00",
-    originalPrice: "100.00",
-    discount: "-15%",
-    rating: 4.7,
-    sold: "2.4k",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCOZUI2B2y2VJQ-9FxNSOLGgNJHK83p97eQLx0b-D6p0a4JckKSpeUAjBu1JsgzxDYCnD7hvU6iEttAcF0xAqHL0_K8VSMrMct3QBUQas3bxbl_oDAukpIQQ-B1qkvJlGP_t4yv9TB07Dai2Bi6_x9ErS4RWHZY5bgDdhyXuJ1-m3bVztdolsJoNb1Rux3AKj_d1WDhhJzx9qzrBvcuPKBsQn92FiQrMR9blgW7HcY4JoaILCh7G0sn2PNJyJjvYf4EBHXQZvXPanSu"
-  },
-  {
-    id: 4,
-    title: "RetroSnap Instant Camera - Sunshine Edition",
-    price: "145.00",
-    originalPrice: null,
-    discount: null,
-    rating: 4.6,
-    sold: "500",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCTPDu0Hw4UAWa_4ilPun7jxy9sGzyNbtiDLrpfxz9pWE0kto1PlSGCkMNVSEQWV8sYr_8yWHVqbkTcbGdpSiSAks8Qnn4oE6CPyLPr3Yc7yh428w0Foj70NWuIuqANG60YdPZfOs7rRPW1dpofrdmsVpPyuL346nWFN_hHrgTtOPjKaOzgckly53dsqb_n9XUXqIyWHk0neeziADXgRTV-yah18kfW57f4n0VIUUZrAAx4-4dWR0iREUFT2LDKz4f4prtJZ8v52pF0"
+import api from "../../../Apis/apiConfig";
+import API_ENDPOINTS from "../../../Apis/apiEndpoints";
+import { getAuthUser } from "../../../Utils/Auth";
+
+const { Title, Text, Paragraph } = Typography;
+
+const PLACEHOLDER_IMAGE =
+  "https://via.placeholder.com/500x500?text=MEGAMART+PRODUCT";
+
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(Number(value || 0));
+};
+
+const unwrapApiData = (response) => {
+  if (Array.isArray(response)) return response;
+  if (response?.data !== undefined) return response.data;
+  return response;
+};
+
+const getProductImage = (product) => {
+  const imageUrls = Array.isArray(product?.imageUrls) ? product.imageUrls : [];
+  return imageUrls[0] || PLACEHOLDER_IMAGE;
+};
+
+const getMainVariant = (product) => {
+  const variants = Array.isArray(product?.variants) ? product.variants : [];
+  return (
+    variants[0] || {
+      id: null,
+      price: 0,
+      stock: 0,
+      sku: "",
+      attributes: {},
+    }
+  );
+};
+
+const getVariantLabel = (variant) => {
+  const attributes = variant?.attributes || {};
+  const entries = Object.entries(attributes);
+
+  if (entries.length === 0) {
+    return variant?.sku || "Phiên bản mặc định";
   }
-];
 
-export default function WishListPage() {
-  /* [TODO: API] 
-     - Lấy danh sách wishlist từ API: GET /api/user/wishlist 
-     - set lại state `items` 
-  */
+  return entries.map(([key, value]) => `${key}: ${value}`).join(" / ");
+};
+
+const normalizeWishlistItem = (wishlistItem, productDetail = null) => {
+  return {
+    wishlistId: wishlistItem?.id,
+    userId: wishlistItem?.userId,
+    productId: wishlistItem?.productId,
+    productName:
+      productDetail?.name || wishlistItem?.productName || "Sản phẩm yêu thích",
+    createdAt: wishlistItem?.createdAt,
+    product: productDetail,
+  };
+};
+
+const WishListPage = () => {
+  const navigate = useNavigate();
+
   const authUser = getAuthUser();
   const userId = authUser?.id;
+
+  const wishlistEndpoint = API_ENDPOINTS.wishlists || API_ENDPOINTS.wishlist;
+  const productEndpoint = API_ENDPOINTS.products || API_ENDPOINTS.product;
+
   const [items, setItems] = useState([]);
-  
-  useEffect(() => {
-    if (!userId) return;
-    api.get(API_ENDPOINTS.wishlists.byUser(userId))
-      .then((resp) => {
-        setItems(resp?.data || resp || []);
-      })
-      .catch(() => {
-        setItems([]);
-      });
-  }, [userId]);
-  const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [selectedWishlistIds, setSelectedWishlistIds] = useState([]);
 
-  // Vẫn giữ lại context nếu bạn cần xử lý riêng cho Ant Design ConfigProvider sau này,
-  // nhưng giao diện ở đây sẽ chạy 100% bằng class `dark:` của Tailwind
-  const { isDarkMode } = useOutletContext();
+  const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [addingCartId, setAddingCartId] = useState(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkAddingCart, setBulkAddingCart] = useState(false);
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedItemIds(items.map(item => item.id));
-    } else {
-      setSelectedItemIds([]);
+  const selectedItems = useMemo(() => {
+    return items.filter((item) =>
+      selectedWishlistIds.includes(String(item.wishlistId))
+    );
+  }, [items, selectedWishlistIds]);
+
+  const isAllSelected =
+    items.length > 0 && selectedWishlistIds.length === items.length;
+
+  const fetchWishlistItems = async () => {
+    if (!userId) {
+      setItems([]);
+      setSelectedWishlistIds([]);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const wishlistResponse = await api.get(wishlistEndpoint.byUser(userId));
+      const wishlistData = unwrapApiData(wishlistResponse);
+      const wishlistList = Array.isArray(wishlistData) ? wishlistData : [];
+
+      const mergedItems = await Promise.all(
+        wishlistList.map(async (wishlistItem) => {
+          try {
+            const productResponse = await api.get(
+              productEndpoint.byId(wishlistItem.productId)
+            );
+
+            const productData = unwrapApiData(productResponse);
+            return normalizeWishlistItem(wishlistItem, productData);
+          } catch (error) {
+            console.error(
+              "Không tải được chi tiết sản phẩm trong wishlist:",
+              wishlistItem.productId,
+              error
+            );
+
+            return normalizeWishlistItem(wishlistItem, null);
+          }
+        })
+      );
+
+      setItems(mergedItems);
+      setSelectedWishlistIds([]);
+    } catch (error) {
+      console.error("Lỗi khi tải wishlist:", error);
+      message.error("Không thể tải danh sách yêu thích.");
+      setItems([]);
+      setSelectedWishlistIds([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSelectItem = (id) => {
-    setSelectedItemIds(prev => 
-      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+  useEffect(() => {
+    fetchWishlistItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      setSelectedWishlistIds(items.map((item) => String(item.wishlistId)));
+    } else {
+      setSelectedWishlistIds([]);
+    }
+  };
+
+  const handleSelectItem = (wishlistId) => {
+    const normalizedId = String(wishlistId);
+
+    setSelectedWishlistIds((prevIds) => {
+      if (prevIds.includes(normalizedId)) {
+        return prevIds.filter((id) => id !== normalizedId);
+      }
+
+      return [...prevIds, normalizedId];
+    });
+  };
+
+  const removeItemFromState = (productId) => {
+    setItems((prevItems) =>
+      prevItems.filter((item) => String(item.productId) !== String(productId))
+    );
+
+    setSelectedWishlistIds((prevIds) =>
+      prevIds.filter((id) => {
+        const item = items.find(
+          (wishlistItem) => String(wishlistItem.wishlistId) === String(id)
+        );
+
+        return String(item?.productId) !== String(productId);
+      })
     );
   };
 
-  const handleRemoveItem = (id) => {
-    /* API: DELETE wishlist by user/product */
-    if (!userId) return;
-    api.delete(API_ENDPOINTS.wishlists.deleteByUserProduct(userId, id))
-      .then(() => {
-        setItems(items.filter(item => item.id !== id));
-      })
-      .catch(() => {
-        setItems(items.filter(item => item.id !== id));
-      });
-    setSelectedItemIds(selectedItemIds.filter(itemId => itemId !== id));
-  };
-
-  const handleRemoveSelected = () => {
-    if (!userId) return;
-    // best-effort: remove locally and call API per item
-    Promise.all(selectedItemIds.map(id => api.delete(API_ENDPOINTS.wishlists.delete(id)).catch(() => {})))
-      .finally(() => {
-        setItems(items.filter(item => !selectedItemIds.includes(item.id)));
-        setSelectedItemIds([]);
-      });
-  };
-
-  const handleMoveToCart = () => {
+  const handleRemoveItem = async (item) => {
     if (!userId) {
-      message.warning('Vui lòng đăng nhập');
+      message.warning("Vui lòng đăng nhập để sử dụng danh sách yêu thích.");
       return;
     }
-    Promise.all(selectedItemIds.map(id => api.post(API_ENDPOINTS.cart.items(userId), { productVariantId: id, quantity: 1 }).catch(() => {})))
-      .finally(() => {
-        // remove moved items from UI
-        setItems(items.filter(item => !selectedItemIds.includes(item.id)));
-        setSelectedItemIds([]);
-      });
+
+    if (!item?.productId) {
+      message.warning("Không xác định được sản phẩm cần xóa.");
+      return;
+    }
+
+    setDeletingId(String(item.wishlistId));
+
+    try {
+      await api.delete(
+        wishlistEndpoint.deleteByUserProduct(userId, item.productId)
+      );
+
+      removeItemFromState(item.productId);
+      message.success("Đã xóa sản phẩm khỏi danh sách yêu thích.");
+    } catch (error) {
+      console.error("Lỗi khi xóa wishlist:", error);
+      message.error("Không thể xóa sản phẩm khỏi danh sách yêu thích.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  const isAllSelected = items.length > 0 && selectedItemIds.length === items.length;
-  const hasSelection = selectedItemIds.length > 0;
+  const handleRemoveSelected = async () => {
+    if (!userId) {
+      message.warning("Vui lòng đăng nhập để sử dụng danh sách yêu thích.");
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      message.warning("Vui lòng chọn sản phẩm cần xóa.");
+      return;
+    }
+
+    setBulkDeleting(true);
+
+    try {
+      await Promise.all(
+        selectedItems.map((item) =>
+          api.delete(wishlistEndpoint.deleteByUserProduct(userId, item.productId))
+        )
+      );
+
+      const selectedProductIds = selectedItems.map((item) =>
+        String(item.productId)
+      );
+
+      setItems((prevItems) =>
+        prevItems.filter(
+          (item) => !selectedProductIds.includes(String(item.productId))
+        )
+      );
+
+      setSelectedWishlistIds([]);
+      message.success("Đã xóa các sản phẩm đã chọn khỏi yêu thích.");
+    } catch (error) {
+      console.error("Lỗi khi xóa nhiều wishlist:", error);
+      message.error("Không thể xóa một số sản phẩm đã chọn.");
+      fetchWishlistItems();
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleAddToCart = async (item) => {
+    if (!userId) {
+      message.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.");
+      return;
+    }
+
+    const mainVariant = getMainVariant(item.product);
+
+    if (!mainVariant?.id) {
+      message.warning("Sản phẩm chưa có phiên bản để thêm vào giỏ hàng.");
+      return;
+    }
+
+    if (Number(mainVariant.stock || 0) <= 0) {
+      message.warning("Sản phẩm hiện đã hết hàng.");
+      return;
+    }
+
+    setAddingCartId(String(item.wishlistId));
+
+    try {
+      await api.post(API_ENDPOINTS.cart.items(userId), {
+        productVariantId: mainVariant.id,
+        quantity: 1,
+      });
+
+      message.success("Đã thêm sản phẩm vào giỏ hàng.");
+    } catch (error) {
+      console.error("Lỗi thêm sản phẩm vào giỏ hàng:", error);
+      message.error("Không thể thêm sản phẩm vào giỏ hàng.");
+    } finally {
+      setAddingCartId(null);
+    }
+  };
+
+  const handleAddSelectedToCart = async () => {
+    if (!userId) {
+      message.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.");
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      message.warning("Vui lòng chọn sản phẩm cần thêm vào giỏ.");
+      return;
+    }
+
+    const validItems = selectedItems.filter((item) => {
+      const mainVariant = getMainVariant(item.product);
+      return mainVariant?.id && Number(mainVariant.stock || 0) > 0;
+    });
+
+    if (validItems.length === 0) {
+      message.warning("Không có sản phẩm hợp lệ để thêm vào giỏ hàng.");
+      return;
+    }
+
+    setBulkAddingCart(true);
+
+    try {
+      await Promise.all(
+        validItems.map((item) => {
+          const mainVariant = getMainVariant(item.product);
+
+          return api.post(API_ENDPOINTS.cart.items(userId), {
+            productVariantId: mainVariant.id,
+            quantity: 1,
+          });
+        })
+      );
+
+      message.success(`Đã thêm ${validItems.length} sản phẩm vào giỏ hàng.`);
+    } catch (error) {
+      console.error("Lỗi thêm nhiều sản phẩm vào giỏ:", error);
+      message.error("Không thể thêm một số sản phẩm vào giỏ hàng.");
+    } finally {
+      setBulkAddingCart(false);
+    }
+  };
+
+  const handleGoToProductDetail = (productId) => {
+    if (!productId) return;
+    navigate(`/products/${productId}`);
+  };
+
+  if (!userId) {
+    return (
+      <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+        <div className="mx-auto max-w-6xl rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+          <HeartFilled className="mb-4 text-5xl text-orange-500" />
+
+          <Title level={2}>Bạn chưa đăng nhập</Title>
+
+          <Paragraph className="mx-auto max-w-xl text-gray-500">
+            Vui lòng đăng nhập để xem và quản lý danh sách sản phẩm yêu thích.
+          </Paragraph>
+
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => navigate("/auth/login-register")}
+            className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+          >
+            Đăng nhập ngay
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full pb-10 animate-fade-in">
-      {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-xl mb-8 p-8 md:p-10 bg-gradient-to-br from-orange-700 to-orange-500 text-white shadow-md">
-        <div 
-          className="absolute inset-0 opacity-[0.15]" 
-          style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
-        ></div>
-        <div className="absolute -right-10 -top-10 opacity-20 pointer-events-none">
-          <svg height="200" viewBox="0 0 100 100" width="200">
-            <polygon fill="white" points="50,15 90,85 10,85"></polygon>
-          </svg>
-        </div>
-        <div className="relative z-10">
-          <h1 className="text-3xl md:text-4xl font-black mb-3">Yêu thích của tôi</h1>
-          <p className="text-sm md:text-base opacity-90 max-w-xl">
-            Lưu giữ bộ sưu tập hoàn hảo của bạn. Theo dõi mức giảm giá và dễ dàng chuyển chúng vào giỏ hàng bất cứ khi nào bạn sẵn sàng.
-          </p>
-        </div>
-      </section>
+    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="mb-3 flex items-center gap-3">
+                <HeartFilled className="text-3xl" />
+                <Title level={2} className="!mb-0 !text-white">
+                  Yêu thích của tôi
+                </Title>
+              </div>
 
-      {items.length > 0 ? (
-        <>
-          {/* Wishlist Controls */}
-          <section className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 mb-6 gap-4 transition-colors">
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <Checkbox 
-                checked={isAllSelected} 
-                onChange={handleSelectAll}
-                className="text-gray-700 dark:text-gray-300 font-semibold text-sm"
-              >
-                Chọn tất cả
-              </Checkbox>
-              <span className="text-sm text-gray-500 dark:text-gray-400">({items.length} sản phẩm)</span>
+              <Text className="text-white/90">
+                Lưu lại các sản phẩm bạn quan tâm và dễ dàng thêm vào giỏ hàng
+                khi cần.
+              </Text>
             </div>
-            
-            <div className="flex gap-3 w-full md:w-auto">
-              <Button 
-                danger 
-                icon={<DeleteOutlined />} 
-                className={`flex-1 md:flex-none ${isDarkMode ? 'bg-transparent border-red-800 text-red-500 hover:bg-red-900/30' : ''}`}
-                disabled={!hasSelection}
-                onClick={handleRemoveSelected}
+
+            <div className="flex items-center gap-3">
+              <Tag className="rounded-full px-4 py-1 text-base">
+                {items.length} sản phẩm
+              </Tag>
+
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={fetchWishlistItems}
+                loading={loading}
+                className="!rounded-xl"
               >
-                Xóa mục chọn
-              </Button>
-              <Button 
-                type="primary" 
-                icon={<ShoppingCartOutlined />} 
-                className="flex-1 md:flex-none bg-orange-600 hover:bg-orange-500 shadow-sm border-none disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-slate-700 dark:disabled:text-slate-500"
-                disabled={!hasSelection}
-                onClick={handleMoveToCart}
-              >
-                Thêm vào giỏ
+                Làm mới
               </Button>
             </div>
-          </section>
+          </div>
+        </div>
 
-          {/* Wishlist Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {items.map((item) => (
-              <article key={item.id} className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 group relative flex flex-col">
-                
-                {/* Badges & Checkboxes */}
-                <div className="absolute top-3 left-3 z-10 bg-white/80 dark:bg-slate-800/80 rounded backdrop-blur-sm px-1 shadow-sm">
-                  <Checkbox 
-                    checked={selectedItemIds.includes(item.id)} 
-                    onChange={() => handleSelectItem(item.id)} 
-                  />
-                </div>
-                {item.discount && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">{item.discount}</span>
-                  </div>
-                )}
-                
-                {/* Image */}
-                <div className="aspect-square bg-gray-50 dark:bg-slate-700 relative overflow-hidden">
-                  <img 
-                    src={item.img} 
-                    alt={item.title} 
-                    className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-500" 
-                  />
-                </div>
-                
-                {/* Content */}
-                <div className="p-4 flex flex-col flex-grow">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 pr-2 transition-colors">{item.title}</h3>
-                    <button 
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0 pt-0.5"
+        <Card className="mb-6 rounded-3xl border-0 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={
+                selectedWishlistIds.length > 0 &&
+                selectedWishlistIds.length < items.length
+              }
+              disabled={items.length === 0}
+              onChange={handleSelectAll}
+            >
+              Chọn tất cả ({items.length} sản phẩm)
+            </Checkbox>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Popconfirm
+                title="Xóa các sản phẩm đã chọn?"
+                description="Các sản phẩm này sẽ bị xóa khỏi danh sách yêu thích."
+                okText="Xóa"
+                cancelText="Hủy"
+                onConfirm={handleRemoveSelected}
+                disabled={selectedWishlistIds.length === 0}
+              >
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  disabled={selectedWishlistIds.length === 0}
+                  loading={bulkDeleting}
+                  className="!rounded-xl"
+                >
+                  Xóa mục chọn
+                </Button>
+              </Popconfirm>
+
+              <Button
+                type="primary"
+                icon={<ShoppingCartOutlined />}
+                disabled={selectedWishlistIds.length === 0}
+                loading={bulkAddingCart}
+                onClick={handleAddSelectedToCart}
+                className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+              >
+                Thêm mục chọn vào giỏ
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {loading ? (
+          <div className="flex min-h-[360px] items-center justify-center rounded-3xl bg-white shadow-sm">
+            <Spin size="large" tip="Đang tải danh sách yêu thích..." />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+            <Empty
+              description={
+                <span className="text-gray-500">
+                  Danh sách yêu thích của bạn đang trống.
+                </span>
+              }
+            />
+
+            <Button
+              type="primary"
+              size="large"
+              onClick={() => navigate("/supermarket")}
+              className="mt-5 !rounded-xl !bg-orange-500 hover:!bg-orange-600"
+            >
+              Bắt đầu mua sắm
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {items.map((item) => {
+              const product = item.product;
+              const mainVariant = getMainVariant(product);
+              const isOutOfStock = Number(mainVariant.stock || 0) <= 0;
+              const isSelected = selectedWishlistIds.includes(
+                String(item.wishlistId)
+              );
+
+              return (
+                <Card
+                  key={item.wishlistId || item.productId}
+                  className="overflow-hidden rounded-3xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                  styles={{
+                    body: {
+                      padding: 0,
+                    },
+                  }}
+                >
+                  <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[190px_minmax(0,1fr)]">
+                    <button
+                      type="button"
+                      onClick={() => handleGoToProductDetail(item.productId)}
+                      className="relative overflow-hidden rounded-2xl bg-orange-50"
                     >
-                      <CloseOutlined className="text-[16px]" />
+                      <Image
+                        src={getProductImage(product)}
+                        alt={item.productName}
+                        fallback={PLACEHOLDER_IMAGE}
+                        preview={false}
+                        className="!h-40 !w-full !object-cover sm:!h-48"
+                      />
+
+                      <div className="absolute left-3 top-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => handleSelectItem(item.wishlistId)}
+                        />
+                      </div>
+
+                      <div className="absolute right-3 top-3">
+                        <Tag color={isOutOfStock ? "red" : "green"}>
+                          {isOutOfStock ? "Hết hàng" : "Còn hàng"}
+                        </Tag>
+                      </div>
                     </button>
+
+                    <div className="flex min-w-0 flex-col">
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <Tag color="orange">
+                            {product?.categoryName || "Sản phẩm"}
+                          </Tag>
+
+                          <Title
+                            level={4}
+                            className="!mb-1 !mt-2 !text-lg"
+                            style={{
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {item.productName}
+                          </Title>
+                        </div>
+
+                        <Popconfirm
+                          title="Xóa khỏi yêu thích?"
+                          description="Sản phẩm này sẽ bị xóa khỏi danh sách yêu thích."
+                          okText="Xóa"
+                          cancelText="Hủy"
+                          onConfirm={() => handleRemoveItem(item)}
+                        >
+                          <Button
+                            danger
+                            type="text"
+                            icon={<DeleteOutlined />}
+                            loading={deletingId === String(item.wishlistId)}
+                          />
+                        </Popconfirm>
+                      </div>
+
+                      <Paragraph
+                        className="!mb-3 text-sm text-gray-500"
+                        style={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {product?.description || "Chưa có mô tả sản phẩm."}
+                      </Paragraph>
+
+                      <div className="mb-2 text-sm text-gray-500">
+                        {getVariantLabel(mainVariant)}
+                      </div>
+
+                      <div className="mb-3">
+                        <Text className="text-xl font-bold !text-orange-600">
+                          {formatCurrency(mainVariant.price)}
+                        </Text>
+                      </div>
+
+                      <div className="mb-4 flex flex-wrap gap-3 text-xs text-gray-500">
+                        {mainVariant.sku && <span>SKU: {mainVariant.sku}</span>}
+                        <span>Tồn kho: {mainVariant.stock || 0}</span>
+                      </div>
+
+                      <div className="mt-auto grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <Button
+                          icon={<EyeOutlined />}
+                          onClick={() => handleGoToProductDetail(item.productId)}
+                          className="!rounded-xl"
+                        >
+                          Xem chi tiết
+                        </Button>
+
+                        <Button
+                          type="primary"
+                          icon={<ShoppingCartOutlined />}
+                          disabled={isOutOfStock || !mainVariant?.id}
+                          loading={addingCartId === String(item.wishlistId)}
+                          onClick={() => handleAddToCart(item)}
+                          className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                        >
+                          Thêm vào giỏ
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 mb-3 mt-1">
-                    <span className="text-lg font-bold text-orange-600">${item.price}</span>
-                    {item.originalPrice && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500 line-through">${item.originalPrice}</span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-1 mb-4 text-xs text-gray-500 dark:text-gray-400 mt-auto transition-colors">
-                    <StarFilled className="text-orange-500" />
-                    <span>{item.rating} (Đã bán {item.sold})</span>
-                  </div>
-                  
-                  <Button 
-                    className="w-full border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:text-orange-600 hover:border-orange-600 dark:hover:text-orange-400 dark:hover:border-orange-400 dark:bg-slate-800 transition-colors" 
-                    icon={<ShoppingCartOutlined />}
-                    onClick={() => {
-                      /* [TODO: API] POST /api/cart/add { id: item.id } */
-                      console.log("Add single item to cart:", item.id);
-                    }}
-                  >
-                    Thêm vào giỏ
-                  </Button>
-                </div>
-              </article>
-            ))}
+                </Card>
+              );
+            })}
           </div>
-        </>
-      ) : (
-        /* TRẠNG THÁI EMPTY KHI WISHLIST TRỐNG */
-        <section className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm mt-4 transition-colors">
-          <div className="w-24 h-24 bg-gray-50 dark:bg-slate-700 rounded-full flex items-center justify-center mb-6 transition-colors">
-            <HeartOutlined className="text-gray-300 dark:text-gray-500 text-5xl" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2 transition-colors">Danh sách yêu thích trống</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 transition-colors">Các sản phẩm bạn yêu thích sẽ được lưu tại đây.</p>
-          <Button 
-            type="primary" 
-            size="large" 
-            className="bg-orange-600 hover:bg-orange-500 shadow-md border-none px-8"
-            onClick={() => {
-              /* Chuyển hướng về trang chủ mua sắm */
-              // navigate('/');
-              console.log("Go to shopping");
-            }}
-          >
-            Bắt đầu mua sắm
-          </Button>
-        </section>
-      )}
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default WishListPage;

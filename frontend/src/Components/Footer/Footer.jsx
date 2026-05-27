@@ -36,7 +36,7 @@ const Footer = ({ isDarkMode }) => (
             <spotLight position={[0, 7, 3]} angle={0.5} penumbra={0.8} intensity={3000} distance={25} decay={1.5} color="#ffaa00" />
             <pointLight position={[0, -5, 2]} intensity={200} color="#334155" />
             
-            <RotatingPlanet path="assets/sun.glb" scale={0.8} rotationSpeed={0.005} floatSpeed={2} floatIntensity={1} />
+            <RotatingPlanet path="/assets/sun.glb" scale={0.8} rotationSpeed={0.005} floatSpeed={2} floatIntensity={1} />
           </Suspense>
         </Canvas>
       </div>
