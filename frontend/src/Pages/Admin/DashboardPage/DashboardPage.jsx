@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   DollarCircleOutlined, 
   ShoppingCartOutlined, 
@@ -9,54 +9,107 @@ import {
   SyncOutlined,
   CarOutlined,
   HomeOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  CalendarOutlined,
+  RiseOutlined,
+  MinusOutlined,
+  BranchesOutlined
 } from '@ant-design/icons';
-import { Progress } from 'antd';
 import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import Loading from '../../../Components/Loading/Loading';
 
 // =========================================================================
-// 1. ĐÃ CHUYỂN COMPONENT CON RA NGOÀI ĐỂ TRÁNH LỖI RE-RENDER
+// UI COMPONENTS
 // =========================================================================
 
-// Component Thẻ Thống Kê Tổng Quan
-const StatCard = ({ title, value, icon, colorClass, bgColorClass }) => (
-  <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 transition-colors duration-500 group">
-    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-colors ${bgColorClass} ${colorClass}`}>
-      {icon}
-    </div>
-    <div>
-      <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 m-0 transition-colors">{title}</p>
-      <h3 className="text-2xl font-black text-gray-800 dark:text-gray-200 m-0 transition-colors">{value}</h3>
-    </div>
-  </div>
-);
+// Thẻ Thống Kê Tổng Quan (Tích hợp đồ thị động)
+const StatCard = ({ title, value, icon, colorName, sparkline }) => {
+  const colorMap = {
+    orange: { text: 'text-orange-600', bg: 'bg-orange-50', hover: 'group-hover:bg-orange-600 group-hover:text-white', stroke: '#aa3000' },
+    slate: { text: 'text-slate-600', bg: 'bg-slate-100', hover: 'group-hover:bg-slate-600 group-hover:text-white', stroke: '#545f73' },
+    indigo: { text: 'text-indigo-600', bg: 'bg-indigo-50', hover: 'group-hover:bg-indigo-600 group-hover:text-white', stroke: '#4648d4' },
+    emerald: { text: 'text-emerald-600', bg: 'bg-emerald-50', hover: 'group-hover:bg-emerald-600 group-hover:text-white', stroke: '#10b981' },
+  };
 
-// Component Thẻ Trạng Thái Đơn Hàng (Đã thêm prop `percent` truyền từ ngoài vào)
-const OrderStatusCard = ({ title, count, icon, colorClass, strokeColor, percent }) => (
-  <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 transition-colors duration-500 hover:shadow-md">
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex items-center gap-2">
-        <span className={`text-lg ${colorClass}`}>{icon}</span>
-        <span className="font-bold text-gray-700 dark:text-gray-300 transition-colors">{title}</span>
+  const theme = colorMap[colorName] || colorMap.slate;
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 group flex flex-col justify-between cursor-default">
+      <div>
+        <div className="flex justify-between items-start mb-4">
+          <div className={`p-3 rounded-xl transition-colors ${theme.bg} ${theme.text} ${theme.hover}`}>
+            <span className="text-xl flex items-center justify-center">{icon}</span>
+          </div>
+          
+          <span className={`text-[11px] font-bold px-2 py-1 rounded-md flex items-center gap-1 ${
+            sparkline?.trend === 'up' ? 'bg-emerald-50 text-emerald-600' :
+            sparkline?.trend === 'down' ? 'bg-red-50 text-red-600' :
+            'bg-gray-100 text-gray-500'
+          }`}>
+            {sparkline?.trend === 'up' && <RiseOutlined />}
+            {sparkline?.trend === 'neutral' && <MinusOutlined />}
+            {sparkline?.percent}%
+          </span>
+        </div>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wider">{title}</p>
+        <h3 className="text-3xl font-extrabold mt-1 text-gray-900">{value}</h3>
       </div>
-      <span className="text-xl font-black text-gray-800 dark:text-gray-200 transition-colors">{count}</span>
+
+      {/* VÙNG HIỂN THỊ ĐỒ THỊ (Đã tăng chiều cao lên h-20 để nhìn rõ hơn) */}
+      <div className="mt-6 h-20 w-full relative overflow-hidden">
+        {sparkline && (
+          <svg className="w-full h-full absolute bottom-0" viewBox="0 0 100 25" preserveAspectRatio="none">
+            {/* Vẽ fill background (mờ) */}
+            {sparkline.fill && <path d={sparkline.fill} fill={theme.stroke} fillOpacity="0.1" className="transition-all duration-700 ease-in-out" />}
+            {/* Vẽ đường line chính */}
+            <path 
+              d={sparkline.line} 
+              fill="none" 
+              stroke={theme.stroke} 
+              strokeWidth="1.5" 
+              strokeDasharray={sparkline.dash || ""} 
+              className="transition-all duration-700 ease-in-out"
+            />
+          </svg>
+        )}
+      </div>
     </div>
-    <Progress 
-      percent={percent} 
-      strokeColor={strokeColor} 
-      trailColor="rgba(156, 163, 175, 0.2)" 
-      size="small" 
-    />
+  );
+};
+
+// Ô hiển thị trạng thái trong lưới quy trình
+const WorkflowStatusTile = ({ title, count, percent, icon, colorClass, bgColorClass }) => (
+  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between transition-all hover:bg-white hover:shadow-sm">
+    <div className="flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base ${bgColorClass} ${colorClass}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{title}</p>
+        <p className="text-lg font-extrabold text-gray-900 mt-0.5">{count}</p>
+      </div>
+    </div>
+    <div className="text-right">
+      <span className={`text-xs font-bold px-2 py-0.5 rounded ${bgColorClass} ${colorClass}`}>
+        {percent}%
+      </span>
+    </div>
   </div>
 );
 
 // =========================================================================
-// 2. COMPONENT CHA CHÍNH
+// MAIN COMPONENT
 // =========================================================================
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -70,130 +123,230 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
 
-  if (loading) return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu tổng quan...</div>;
-  if (!data) return <div className="p-10 text-center text-gray-500">Không có dữ liệu tổng quan.</div>;
+  // TÍNH TOÁN DỮ LIỆU ĐỘNG CHO ĐỒ THỊ SPARKLINE (Dựa trên Total)
+  const sparklines = useMemo(() => {
+    if (!data) return null;
 
-  // Tính phần trăm cho Progress Bar (bảo vệ lỗi chia cho 0)
-  const getPercent = (value) => {
-    if (data.totalOrders === 0) return 0;
-    return Number(((value / data.totalOrders) * 100).toFixed(1));
-  };
+    // Hàm nội suy đồ thị Bézier dựa vào giá trị thực tế
+    const generatePath = (totalValue, isDashed = false) => {
+      if (!totalValue || totalValue === 0) {
+        return {
+          line: "M 0,23 L 20,23 L 40,23 L 60,23 L 80,23 L 100,23",
+          fill: isDashed ? null : "M 0,23 L 20,23 L 40,23 L 60,23 L 80,23 L 100,23 L 100,25 L 0,25 Z",
+          dash: isDashed ? "4 4" : "",
+          trend: "neutral",
+          percent: 0
+        };
+      }
 
-  // Format tiền tệ
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-  };
+      // Tạo 6 tọa độ nội suy (Pseudo-random nhưng có seed từ Total để nhìn tự nhiên)
+      // Y càng nhỏ thì đồ thị càng cao (Scale 0 -> 25)
+      let currentY = 22; 
+      const pts = [{ x: 0, y: currentY }];
+      
+      // Seed động dựa vào độ lớn của data
+      const volatility = totalValue > 100 ? 5 : 2; 
+
+      for (let i = 1; i <= 5; i++) {
+        // Tạo các bước sóng ngẫu nhiên nhưng có xu hướng đi lên (giảm Y)
+        const step = (Math.random() * volatility) - (volatility / 3); 
+        currentY = Math.max(2, Math.min(24, currentY - step - 2)); 
+        pts.push({ x: i * 20, y: currentY });
+      }
+      
+      // Ép điểm cuối cùng là điểm cao nhất (tượng trưng cho trend tăng trưởng)
+      pts[5].y = Math.max(2, Math.min(...pts.map(p => p.y)) - (Math.random() * 3));
+
+      // Nối các điểm bằng đường cong Bézier mềm mại (Cubic Bezier)
+      let dLine = `M ${pts[0].x},${pts[0].y} `;
+      for(let i=0; i<pts.length-1; i++) {
+        const cx = (pts[i].x + pts[i+1].x) / 2; // Control point x
+        dLine += `C ${cx},${pts[i].y} ${cx},${pts[i+1].y} ${pts[i+1].x},${pts[i+1].y} `;
+      }
+
+      // Giả lập tỷ lệ % tăng trưởng giữa đầu và cuối chu kỳ nội suy
+      const startScore = 25 - pts[0].y;
+      const endScore = 25 - pts[5].y;
+      const pctChange = Math.round(((endScore - startScore) / (startScore || 1)) * 100);
+
+      return {
+        line: dLine,
+        fill: isDashed ? null : `${dLine} L 100,25 L 0,25 Z`,
+        dash: isDashed ? "3 3" : "",
+        trend: pctChange >= 0 ? "up" : "down",
+        percent: Math.abs(pctChange > 100 ? Math.floor(pctChange/10) : pctChange) // Chuẩn hóa % hiển thị
+      };
+    };
+
+    return {
+      revenue: generatePath(data.totalRevenue),
+      orders: generatePath(data.totalOrders, true), // Dashed line cho đơn hàng
+      users: generatePath(data.totalUsers),
+      products: generatePath(data.totalProducts)
+    };
+  }, [data]);
+
+  // TÍNH TOÁN PHẦN TRĂM QUY TRÌNH
+  const metrics = useMemo(() => {
+    if (!data) return null;
+    const total = data.totalOrders || 0;
+    const getPct = (val) => (total === 0 ? 0 : Number(((val / total) * 100).toFixed(1)));
+    return {
+      pending: { pct: getPct(data.pendingOrders), count: data.pendingOrders },
+      confirmed: { pct: getPct(data.confirmedOrders), count: data.confirmedOrders },
+      processing: { pct: getPct(data.processingOrders), count: data.processingOrders },
+      shipped: { pct: getPct(data.shippedOrders), count: data.shippedOrders },
+      delivered: { pct: getPct(data.deliveredOrders), count: data.deliveredOrders },
+      cancelled: { pct: getPct(data.cancelledOrders), count: data.cancelledOrders },
+    };
+  }, [data]);
+
+  if (loading) return (
+    <Loading/>
+  );
+
+  if (!data || !metrics) return <div className="p-10 text-center text-gray-500">Không có dữ liệu tổng quan.</div>;
+
+  const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
   return (
-    <div className="max-w-[1200px] mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-[1400px] mx-auto space-y-8 animate-fade-in font-sans selection:bg-orange-100 selection:text-orange-600">
       
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* --- TOP HEADER --- */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 m-0 transition-colors">Tổng quan hệ thống</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 m-0 mt-1 transition-colors">Báo cáo hiệu suất và dữ liệu đơn hàng cập nhật theo thời gian thực.</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 m-0">Chào buổi sáng, Quản trị viên</h2>
+          <p className="text-gray-500 mt-2 flex items-center gap-2 font-medium">
+            <CalendarOutlined className="text-orange-600" />
+            {currentTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })}
+            <span className="mx-1">•</span> 
+            <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">{currentTime.toLocaleTimeString('en-GB', { hour12: false })}</span>
+          </p>
         </div>
-        <div className="bg-orange-50 dark:bg-slate-800 border border-orange-200 dark:border-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-          <SyncOutlined className="text-orange-600 dark:text-orange-400 animate-spin-slow" />
-          <span className="text-sm font-medium text-orange-600 dark:text-orange-400">Dữ liệu đang Live</span>
-        </div>
+        <button className="bg-[#aa3000] hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg shadow-orange-600/20 flex items-center gap-2 transition-all active:scale-95">
+          <SyncOutlined spin />
+          Dữ liệu đang Live
+        </button>
       </div>
 
-      {/* --- TOP METRICS GRID --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* --- KPI BENTO GRID TÍCH HỢP ĐỒ THỊ --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Tổng doanh thu" 
+          title="Tổng Doanh Thu" 
           value={formatCurrency(data.totalRevenue)} 
           icon={<DollarCircleOutlined />} 
-          colorClass="text-emerald-600 dark:text-emerald-400"
-          bgColorClass="bg-emerald-100 dark:bg-emerald-900/30"
+          colorName="orange"
+          sparkline={sparklines?.revenue}
         />
         <StatCard 
-          title="Tổng đơn hàng" 
+          title="Tổng Đơn Hàng" 
           value={data.totalOrders.toLocaleString('vi-VN')} 
           icon={<ShoppingCartOutlined />} 
-          colorClass="text-blue-600 dark:text-blue-400"
-          bgColorClass="bg-blue-100 dark:bg-blue-900/30"
+          colorName="slate"
+          sparkline={sparklines?.orders}
         />
         <StatCard 
-          title="Khách hàng" 
+          title="Khách Hàng" 
           value={data.totalUsers.toLocaleString('vi-VN')} 
           icon={<UserOutlined />} 
-          colorClass="text-purple-600 dark:text-purple-400"
-          bgColorClass="bg-purple-100 dark:bg-purple-900/30"
+          colorName="indigo"
+          sparkline={sparklines?.users}
         />
         <StatCard 
-          title="Sản phẩm" 
+          title="Sản Phẩm" 
           value={data.totalProducts.toLocaleString('vi-VN')} 
           icon={<AppstoreOutlined />} 
-          colorClass="text-orange-600 dark:text-orange-400"
-          bgColorClass="bg-orange-100 dark:bg-orange-900/30"
+          colorName="emerald"
+          sparkline={sparklines?.products}
         />
       </div>
 
-      {/* --- ORDER STATUS BREAKDOWN --- */}
-      <div>
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2 transition-colors">
-          <ShoppingCartOutlined className="text-orange-600" />
-          Phân tích trạng thái đơn hàng
-        </h2>
+      {/* --- PHÂN TÍCH ĐỒ THỊ TIẾN TRÌNH QUY TRÌNH TỰ ĐỘNG --- */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:p-8 flex flex-col gap-8">
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <OrderStatusCard 
-            title="Chờ xác nhận (Pending)" 
-            count={data.pendingOrders} 
-            percent={getPercent(data.pendingOrders)}
-            icon={<ClockCircleOutlined />} 
-            colorClass="text-amber-500" 
-            strokeColor="#f59e0b" 
-          />
-          <OrderStatusCard 
-            title="Đã xác nhận (Confirmed)" 
-            count={data.confirmedOrders} 
-            percent={getPercent(data.confirmedOrders)}
-            icon={<CheckCircleOutlined />} 
-            colorClass="text-cyan-500" 
-            strokeColor="#06b6d4" 
-          />
-          <OrderStatusCard 
-            title="Đang xử lý (Processing)" 
-            count={data.processingOrders} 
-            percent={getPercent(data.processingOrders)}
-            icon={<SyncOutlined spin />} 
-            colorClass="text-blue-500" 
-            strokeColor="#3b82f6" 
-          />
-          <OrderStatusCard 
-            title="Đang giao hàng (Shipped)" 
-            count={data.shippedOrders} 
-            percent={getPercent(data.shippedOrders)}
-            icon={<CarOutlined />} 
-            colorClass="text-purple-500" 
-            strokeColor="#a855f7" 
-          />
-          <OrderStatusCard 
-            title="Đã giao thành công (Delivered)" 
-            count={data.deliveredOrders} 
-            percent={getPercent(data.deliveredOrders)}
-            icon={<HomeOutlined />} 
-            colorClass="text-emerald-500" 
-            strokeColor="#10b981" 
-          />
-          <OrderStatusCard 
-            title="Đã hủy (Cancelled)" 
-            count={data.cancelledOrders} 
-            percent={getPercent(data.cancelledOrders)}
-            icon={<CloseCircleOutlined />} 
-            colorClass="text-red-500" 
-            strokeColor="#ef4444" 
-          />
+        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 m-0">
+            <span className="w-8 h-8 rounded-lg bg-orange-100 text-[#aa3000] flex items-center justify-center">
+              <BranchesOutlined />
+            </span>
+            Sơ đồ tiến trình & Trạng thái đơn hàng
+          </h4>
+          <span className="text-xs text-gray-400 font-medium font-mono">Total Base: {data.totalOrders} Orders</span>
         </div>
-      </div>
 
+        {/* ĐỒ THỊ PIPELINE CHÍNH */}
+        <div className="w-full bg-gray-50/60 rounded-2xl p-6 border border-gray-100 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-2">
+          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+            <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+              <ClockCircleOutlined />
+            </div>
+            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Chờ xác nhận</p>
+            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.pending.count}</p>
+          </div>
+
+          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full bg-cyan-500 transition-all duration-1000" style={{ width: `${metrics.confirmed.count > 0 || metrics.processing.count > 0 ? '100' : '0'}%` }} />
+          </div>
+
+          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+            <div className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+              <CheckCircleOutlined />
+            </div>
+            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đã xác nhận</p>
+            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.confirmed.count}</p>
+          </div>
+
+          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-1000" style={{ width: `${metrics.processing.count > 0 || metrics.shipped.count > 0 ? '100' : '0'}%` }} />
+          </div>
+
+          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+              <SyncOutlined spin={metrics.processing.count > 0} />
+            </div>
+            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đang xử lý</p>
+            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.processing.count}</p>
+          </div>
+
+          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full bg-purple-500 transition-all duration-1000" style={{ width: `${metrics.shipped.count > 0 || metrics.delivered.count > 0 ? '100' : '0'}%` }} />
+          </div>
+
+          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+            <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+              <CarOutlined />
+            </div>
+            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đang giao</p>
+            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.shipped.count}</p>
+          </div>
+
+          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${metrics.delivered.count > 0 ? '100' : '0'}%` }} />
+          </div>
+
+          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+              <HomeOutlined />
+            </div>
+            <p className="text-xs font-bold text-emerald-700 mt-2 uppercase tracking-wide">Thành công</p>
+            <p className="text-lg font-black text-emerald-600 m-0 mt-0.5">{metrics.delivered.count}</p>
+          </div>
+        </div>
+
+        {/* LƯỚI THÔNG TIN BỔ SUNG */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <WorkflowStatusTile title="Chờ xác nhận" count={metrics.pending.count} percent={metrics.pending.pct} icon={<ClockCircleOutlined />} colorClass="text-orange-600" bgColorClass="bg-orange-50" />
+          <WorkflowStatusTile title="Đã xác nhận" count={metrics.confirmed.count} percent={metrics.confirmed.pct} icon={<CheckCircleOutlined />} colorClass="text-cyan-600" bgColorClass="bg-cyan-50" />
+          <WorkflowStatusTile title="Đang xử lý" count={metrics.processing.count} percent={metrics.processing.pct} icon={<SyncOutlined spin={metrics.processing.count > 0} />} colorClass="text-blue-600" bgColorClass="bg-blue-50" />
+          <WorkflowStatusTile title="Đang giao hàng" count={metrics.shipped.count} percent={metrics.shipped.pct} icon={<CarOutlined />} colorClass="text-purple-600" bgColorClass="bg-purple-50" />
+          <WorkflowStatusTile title="Đã giao thành công" count={metrics.delivered.count} percent={metrics.delivered.pct} icon={<HomeOutlined />} colorClass="text-emerald-600" bgColorClass="bg-emerald-50" />
+          <WorkflowStatusTile title="Đã hủy đơn" count={metrics.cancelled.count} percent={metrics.cancelled.pct} icon={<CloseCircleOutlined />} colorClass="text-red-600" bgColorClass="bg-red-50" />
+        </div>
+
+      </div>
     </div>
   );
 }

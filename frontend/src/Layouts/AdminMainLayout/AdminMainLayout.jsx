@@ -1,30 +1,47 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Canvas, useThree } from '@react-three/fiber'; // Thêm useThree
+import { Environment } from '@react-three/drei';
 import { 
   DashboardOutlined, 
   ShoppingCartOutlined, 
   InboxOutlined, 
-  TeamOutlined, 
-  LineChartOutlined, 
   SettingOutlined,
   BellOutlined,
-  QuestionCircleOutlined,
   UserOutlined,
   MenuOutlined,
   CloseOutlined,
   TagOutlined,
   DollarCircleOutlined,
   TrophyOutlined,
-  LogoutOutlined // Thêm icon đăng xuất
+  LogoutOutlined
 } from '@ant-design/icons';
-import { Avatar, Badge, Button, Dropdown } from 'antd'; // Thêm Dropdown từ antd
+import { Avatar, Badge, Button, Dropdown } from 'antd'; 
+import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
-import { clearAuthUser } from '../../Utils/Auth'; // Hàm xóa thông tin người dùng đã đăng nhập
-
+import { clearAuthUser } from '../../Utils/Auth'; 
 import ADMIN_ROUTE from '../../Routes/Admin.routes';
 
-// Giả sử bạn đang dùng Zustand, Redux hoặc Context, hãy import hàm clearAuthUser vào đây
-// import { useAuthStore } from '../../store/authStore'; 
+// --- COMPONENT: RESPONSIVE 3D MODEL ---
+// Xử lý scale và position tự động dựa trên kích thước Canvas
+const ResponsiveModel = () => {
+  const { viewport } = useThree();
+
+  // Tính toán scale tương đối theo viewport.width, giới hạn max là 6
+  const responsiveScale = Math.min(viewport.width * 0.8, 6); 
+  // Đẩy model lên cao một chút nếu màn hình quá nhỏ
+  const responsivePositionY = viewport.width < 3 ? -0.5 : -1;
+
+
+  return (
+    <Global3DModel 
+      path="/assets/psx_retro_computer.glb" 
+      position={[0, responsivePositionY, 0]} 
+      rotation={[0, Math.PI / 4, 0]} 
+      scale={responsiveScale} 
+    />
+  );
+};
 
 // --- COMPONENT: ADMIN SIDEBAR ---
 const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -73,22 +90,18 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
   return (
     <>
-      {/* Mobile Overlay */}
       <div 
         className={`fixed inset-0 bg-black/60 z-[100] lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
         onClick={onCloseMobile} 
       />
 
-      {/* Sidebar Container */}
       <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-[101] flex flex-col transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         
-        {/* Mobile Header in Sidebar */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-gray-200 lg:hidden">
           <span className="text-xl font-black text-orange-600 tracking-tight">MegaMart Admin</span>
           <Button type="text" icon={<CloseOutlined />} onClick={onCloseMobile} />
         </div>
 
-        {/* Desktop Logo Space */}
         <div className="hidden lg:flex items-center px-6 h-16 border-b border-gray-200">
            <span className="text-xl font-black text-orange-600 tracking-tight">MegaMart Admin</span>
         </div>
@@ -97,6 +110,18 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
         <div className="p-4 mt-auto mb-4 border-t border-gray-200 mx-4">
           <div className="text-gray-500 text-xs font-mono">Management<br/>v2.4.0</div>
+        </div>
+
+        {/* Cập nhật Canvas ở đây */}
+        <div className="w-full h-64 absolute -bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-none">
+          <Canvas className="w-full h-full" camera={{ position: [0, 0, 7], fov: 70 }}>
+            <Environment preset="city" />
+            <ambientLight intensity={0.5} />
+            
+            {/* Sử dụng Component Responsive đã tạo */}
+            <ResponsiveModel />
+            
+          </Canvas>
         </div>
       </aside>
     </>
@@ -108,22 +133,17 @@ export default function AdminMainLayout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-
-
-  // Xử lý logic đăng xuất
   const handleLogout = () => {
-
-    clearAuthUser(); // Gọi hàm xóa thông tin người dùng đã đăng nhập
+    clearAuthUser(); 
     navigate('/auth/login&register');
   };
 
-  // Cấu hình các item cho Dropdown của Avatar
   const userMenu = [
     {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Đăng xuất',
-      danger: true, // Thuộc tính của Antd giúp bôi đỏ text cho hành động nguy hiểm
+      danger: true,
       onClick: handleLogout,
     },
   ];
@@ -137,8 +157,6 @@ export default function AdminMainLayout() {
       />
 
       <div className="flex-1 flex flex-col h-screen lg:ml-64 w-full transition-all duration-300">
-        
-        {/* --- ADMIN TOP NAVBAR --- */}
         <header className="bg-white w-full h-16 border-b border-gray-200 shadow-sm sticky top-0 z-50 flex items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-4">
             <MenuOutlined 
@@ -155,7 +173,6 @@ export default function AdminMainLayout() {
               </button>
             </Badge>
 
-            {/* Bọc Avatar bằng Dropdown */}
             <Dropdown 
               menu={{ items: userMenu }} 
               placement="bottomRight" 
@@ -167,15 +184,12 @@ export default function AdminMainLayout() {
                 <span className="text-sm font-bold text-gray-700 hidden md:block">Admin</span>
               </div>
             </Dropdown>
-
           </div>
         </header>
 
-        {/* --- NỘI DUNG RENDER TỪ ROUTER --- */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50">
           <Outlet />
         </main>
-
       </div>
     </div>
   );
