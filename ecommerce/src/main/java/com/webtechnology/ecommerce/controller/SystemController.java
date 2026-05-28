@@ -50,4 +50,18 @@ public class SystemController {
                 .data(status)
                 .build());
     }
+
+    /**
+     * Public endpoint to check if the AI API Key is loaded.
+     */
+    @GetMapping("/health/ai")
+    public ResponseEntity<ApiResponse<String>> checkAiStatus(
+            @org.springframework.beans.factory.annotation.Value("${spring.ai.google.genai.api-key:}") String apiKey) {
+        boolean isLoaded = apiKey != null && !apiKey.isBlank();
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(isLoaded)
+                .message(isLoaded ? "AI API Key is successfully loaded" : "AI API Key is MISSING!")
+                .data(isLoaded ? "Ready" : "Not Configured")
+                .build());
+    }
 }

@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,9 +49,13 @@ public class SellerController {
     }
 
     @GetMapping("/dashboard")
-    public ResponseEntity<ApiResponse<DashboardResponse>> getSellerDashboard(Authentication authentication) {
+    public ResponseEntity<ApiResponse<DashboardResponse>> getSellerDashboard(
+            Authentication authentication,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter) {
         UUID sellerId = UUID.fromString(authentication.getName());
-        DashboardResponse response = sellerService.getSellerDashboard(sellerId);
+        DashboardResponse response = sellerService.getSellerDashboard(sellerId, year, month, quarter);
         return ResponseEntity.ok(ApiResponse.<DashboardResponse>builder()
                 .success(true)
                 .message("Seller dashboard data retrieved successfully")

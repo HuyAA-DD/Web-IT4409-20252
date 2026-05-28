@@ -23,4 +23,13 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
 
     @Query("SELECT oi FROM OrderItem oi WHERE oi.product.seller.id = :sellerId")
     List<OrderItem> findByProductSellerId(@Param("sellerId") UUID sellerId);
+
+    @Query("SELECT oi FROM OrderItem oi " +
+           "JOIN oi.order o " +
+           "WHERE oi.product.seller.id = :sellerId " +
+           "AND o.createdAt BETWEEN :startDate AND :endDate")
+    List<OrderItem> findByProductSellerIdAndOrderCreatedAtBetween(
+            @Param("sellerId") UUID sellerId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate);
 }

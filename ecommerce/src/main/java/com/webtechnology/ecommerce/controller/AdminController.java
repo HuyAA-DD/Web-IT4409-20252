@@ -32,8 +32,11 @@ public class AdminController {
     private final OrderService orderService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard() {
-        DashboardResponse response = adminService.getDashboard();
+    public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter) {
+        DashboardResponse response = adminService.getDashboard(year, month, quarter);
         return ResponseEntity.ok(ApiResponse.<DashboardResponse>builder()
                 .success(true)
                 .message("Dashboard data retrieved successfully")
@@ -42,8 +45,11 @@ public class AdminController {
     }
 
     @GetMapping("/revenue")
-    public ResponseEntity<ApiResponse<RevenueResponse>> getRevenue() {
-        RevenueResponse response = adminService.getRevenue();
+    public ResponseEntity<ApiResponse<RevenueResponse>> getRevenue(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter) {
+        RevenueResponse response = adminService.getRevenue(year, month, quarter);
         return ResponseEntity.ok(ApiResponse.<RevenueResponse>builder()
                 .success(true)
                 .message("Revenue data retrieved successfully")
@@ -53,8 +59,11 @@ public class AdminController {
 
     @GetMapping("/top-products")
     public ResponseEntity<ApiResponse<List<TopProductResponse>>> getTopProducts(
-            @RequestParam(defaultValue = "10") int limit) {
-        List<TopProductResponse> response = adminService.getTopProducts(limit);
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter) {
+        List<TopProductResponse> response = adminService.getTopProducts(limit, year, month, quarter);
         return ResponseEntity.ok(ApiResponse.<List<TopProductResponse>>builder()
                 .success(true)
                 .message("Top products retrieved successfully")
