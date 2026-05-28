@@ -29,11 +29,10 @@ import NotificationPage from './Pages/User/NotificationPage/NotificationPage';
 import AdminProductPage from "./Pages/Admin/AdminProductPage/AdminProductPage";
 import ProductListPage from './Pages/User/ProductListPage/ProductListPage';
 import SellerMainLayout from './Layouts/SellerMainLayout/SellerMainLayout';
-import SellerPage from './Pages/Seller/SellerPage';
-import SellerRevenuePage from './Pages/Seller/SellerRevenuePage/SellerRevenuePage';
 import SellerProductPage from './Pages/Seller/SellerProductPage/SellerProductPage';
-import SellerSettingPage from './Pages/Seller/SellerSettingPage';
-import SellerNotificationPage from './Pages/Seller/SellerNotificationPage';
+import SellerDashboardPage from './Pages/Seller/SellerDashboardPage/SellerDashboardPage';
+import SellerProfilePage from './Pages/Seller/SellerProfilePage/SellerProfilePage';
+import SellerNotificationPage from './Pages/Seller/SellerNotificationPage/SellerNotificationPage';
 import UserProfilePage from './Pages/User/UserProfilePage/UserProfilePage';
 import PaymentPage from './Pages/User/PaymentPage/PaymentPage';
 
@@ -148,23 +147,23 @@ const router = createBrowserRouter([
     children:[
       {
         index: true,
-        element: <RequireAuth requiredRole={"SELLER"}><SellerPage/></RequireAuth>
-      },
-      {
-        path : SELLER_ROUTE.Revenue,
-        element: <SellerRevenuePage/>
+        element: <div/>
       },
       {
         path: SELLER_ROUTE.Product,
         element: <SellerProductPage/>
       },
       {
-        path: SELLER_ROUTE.Setting,
-        element: <SellerSettingPage/>
+        path: SELLER_ROUTE.Profile,
+        element: <SellerProfilePage/>
       },
       {
         path: SELLER_ROUTE.Notification,
         element: <SellerNotificationPage/>
+      },
+      {
+        path: SELLER_ROUTE.Dashboard,
+        element: <SellerDashboardPage/>
       }
     ]
   },

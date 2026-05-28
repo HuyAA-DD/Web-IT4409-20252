@@ -1,9 +1,9 @@
 const SELLER_ROUTE = {
     "Home": "/seller",
-    "Revenue": "/seller/revenue",
     "Product": "/seller/products",
-    "Setting": "/seller/settings",
-    "Notification" : "/seller/notification"
+    "Profile": "/seller/profile",
+    "Notification" : "/seller/notification",
+    "Dashboard": "/seller/dashboard",
 }
 
 export default SELLER_ROUTE;

@@ -155,9 +155,9 @@ export default function AdminAuditLogPage() {
               className="w-full bg-transparent px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-sm text-gray-800 dark:text-gray-200 transition-all appearance-none cursor-pointer"
             >
               <option value="" className="dark:bg-slate-800">Tất cả hành động</option>
-              <option value="CREATE" className="dark:bg-slate-800">Thêm mới (CREATE)</option>
-              <option value="UPDATE" className="dark:bg-slate-800">Cập nhật (UPDATE)</option>
-              <option value="DELETE" className="dark:bg-slate-800">Xóa (DELETE)</option>
+              <option value="CREATE_PRODUCT" className="dark:bg-slate-800">Thêm mới (CREATE)</option>
+              <option value="UPDATE_PRODUCT" className="dark:bg-slate-800">Cập nhật (UPDATE)</option>
+              <option value="DELETE_PRODUCT" className="dark:bg-slate-800">Xóa (DELETE)</option>
             </select>
           </div>
           

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Button, Dropdown, Typography, message } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
-import api from '../../Apis/apiConfig';
-import API_ENDPOINTS from '../../Apis/apiEndpoints';
-import { getAuthUser } from '../../Utils/Auth';
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import { getAuthUser } from '../../../Utils/Auth';
 
 export default function SellerNotificationPage() {
   const [notifications, setNotifications] = useState([]);

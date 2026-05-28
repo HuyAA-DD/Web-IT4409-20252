@@ -1,6 +1,6 @@
 import React from 'react'
 
-const SellerRevenuePage = () => {
+const SellerProfilePage = () => {
   return (
     <div>
       
@@ -8,4 +8,4 @@ const SellerRevenuePage = () => {
   )
 }
 
-export default SellerRevenuePage
+export default SellerProfilePage
