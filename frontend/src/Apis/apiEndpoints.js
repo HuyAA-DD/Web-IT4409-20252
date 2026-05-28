@@ -11,6 +11,7 @@ import REVIEW_ENDPOINTS from "./reviewEndpoints"
 import WISHLIST_ENDPOINTS from "./wishlistEndpoints"
 import NOTIFICATION_ENDPOINTS from "./notificationEndpoints"
 import ADMIN_ENDPOINTS from "./adminEndpoints"
+import SELLER_ENDPOINTS from "./sellerEndpoints"
 import AUDIT_LOG_ENDPOINTS from "./auditLogEndpoints"
 import WEBHOOK_ENDPOINTS from "./webhookEndpoints"
 import UPLOAD_ENDPOINTS from "./uploadEndpoints"
@@ -29,6 +30,7 @@ const API_ENDPOINTS = {
   wishlists: WISHLIST_ENDPOINTS,
   notifications: NOTIFICATION_ENDPOINTS,
   admin: ADMIN_ENDPOINTS,
+  seller: SELLER_ENDPOINTS,
   auditLogs: AUDIT_LOG_ENDPOINTS,
   webhooks: WEBHOOK_ENDPOINTS,
   upload: UPLOAD_ENDPOINTS

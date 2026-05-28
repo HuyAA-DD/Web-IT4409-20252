@@ -95,7 +95,7 @@ const AdminProductPage = () => {
       setIsLoading(true);
       try {
         const [productsResponse, categoriesResponse] = await Promise.all([
-          api.get(API_ENDPOINTS.products.list),
+          api.get(API_ENDPOINTS.admin.products.list),
           api.get(API_ENDPOINTS.categories.list),
         ]);
 
@@ -246,7 +246,7 @@ const AdminProductPage = () => {
 
       if (editingProduct) {
         const updatedProduct = await api.put(
-          API_ENDPOINTS.products.update(editingProduct.id),
+          API_ENDPOINTS.admin.products.update(editingProduct.id),
           productPayload
         );
         const normalizedProduct = updatedProduct?.data || updatedProduct;
@@ -261,7 +261,7 @@ const AdminProductPage = () => {
         message.success('Cập nhật sản phẩm thành công.');
       } else {
         const createdProduct = await api.post(
-          API_ENDPOINTS.products.create,
+          API_ENDPOINTS.admin.products.create,
           productPayload
         );
         const normalizedProduct = createdProduct?.data || createdProduct;
@@ -282,7 +282,7 @@ const AdminProductPage = () => {
 
   const handleDeleteProduct = async (id) => {
     try {
-      await api.delete(API_ENDPOINTS.products.delete(id));
+      await api.delete(API_ENDPOINTS.admin.products.delete(id));
       setProducts((prev) => prev.filter((product) => product.id !== id));
       message.success('Đã xóa sản phẩm.');
     } catch (error) {

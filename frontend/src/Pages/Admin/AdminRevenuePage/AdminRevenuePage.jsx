@@ -113,14 +113,22 @@ function NetRevenueCard({ value }) {
 }
 
 export default function AdminRevenuePage() {
+  const currentYear = new Date().getFullYear();
   const [revenue, setRevenue]   = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [filterYear, setFilterYear] = useState(currentYear);
+  const [filterMonth, setFilterMonth] = useState(null);
+  const [filterQuarter, setFilterQuarter] = useState(null);
 
   useEffect(() => {
     const fetchRevenue = async () => {
       setIsLoading(true);
       try {
-        const response = await api.get(API_ENDPOINTS.admin.revenue);
+        const params = { year: filterYear };
+        if (filterMonth) params.month = filterMonth;
+        if (filterQuarter) params.quarter = filterQuarter;
+
+        const response = await api.get(API_ENDPOINTS.admin.revenue, params);
         setRevenue(response?.data || response);
       } catch (error) {
         console.error('Lỗi khi tải doanh thu', error);
@@ -129,7 +137,7 @@ export default function AdminRevenuePage() {
       }
     };
     fetchRevenue();
-  }, []);
+  }, [filterYear, filterMonth, filterQuarter]);
 
   /* ── Derived display values ── */
   const grossRev  = revenue ? fmt(revenue.totalRevenue)       : '1,248.5 M';
@@ -169,7 +177,58 @@ export default function AdminRevenuePage() {
             </div>
             <p className="text-sm text-[#5c4037]">Thống kê dòng tiền, giá trị đơn hàng và đối soát hoàn trả trong kỳ.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+              <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">Lọc:</span>
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(Number(e.target.value))}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-800 outline-none"
+              >
+                {Array.from({ length: 5 }, (_, i) => currentYear - 2 + i).map((year) => (
+                  <option key={year} value={year}>Năm {year}</option>
+                ))}
+              </select>
+              <select
+                value={filterQuarter || ''}
+                onChange={(e) => {
+                  const value = e.target.value ? Number(e.target.value) : null;
+                  setFilterQuarter(value);
+                  if (value) setFilterMonth(null);
+                }}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-800 outline-none"
+              >
+                <option value="">Chọn Quý</option>
+                {[1, 2, 3, 4].map((q) => (
+                  <option key={q} value={q}>Quý {q}</option>
+                ))}
+              </select>
+              <select
+                value={filterMonth || ''}
+                onChange={(e) => {
+                  const value = e.target.value ? Number(e.target.value) : null;
+                  setFilterMonth(value);
+                  if (value) setFilterQuarter(null);
+                }}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-800 outline-none"
+              >
+                <option value="">Chọn Tháng</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                  <option key={month} value={month}>Tháng {month}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterYear(currentYear);
+                  setFilterMonth(null);
+                  setFilterQuarter(null);
+                }}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                Xóa
+              </button>
+            </div>
             <button
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-white transition-transform hover:scale-[0.98] active:scale-95"
               style={{ background: '#aa3000', boxShadow: '0 10px 15px -3px rgba(170,48,0,0.2)' }}

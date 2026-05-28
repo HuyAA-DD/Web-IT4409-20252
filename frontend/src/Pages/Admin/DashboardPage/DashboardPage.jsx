@@ -13,17 +13,21 @@ import {
   CalendarOutlined,
   RiseOutlined,
   MinusOutlined,
-  BranchesOutlined
+  BranchesOutlined,
+  FilterOutlined // Thêm icon phễu lọc
 } from '@ant-design/icons';
+import { Select } from 'antd'; // Thêm Select từ antd
 import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 import Loading from '../../../Components/Loading/Loading';
+
+const { Option } = Select;
 
 // =========================================================================
 // UI COMPONENTS
 // =========================================================================
 
-// Thẻ Thống Kê Tổng Quan (Tích hợp đồ thị động)
+// Thẻ Thống Kê Tổng Quan (Giữ nguyên như cũ)
 const StatCard = ({ title, value, icon, colorName, sparkline }) => {
   const colorMap = {
     orange: { text: 'text-orange-600', bg: 'bg-orange-50', hover: 'group-hover:bg-orange-600 group-hover:text-white', stroke: '#aa3000' },
@@ -56,13 +60,10 @@ const StatCard = ({ title, value, icon, colorName, sparkline }) => {
         <h3 className="text-3xl font-extrabold mt-1 text-gray-900">{value}</h3>
       </div>
 
-      {/* VÙNG HIỂN THỊ ĐỒ THỊ (Đã tăng chiều cao lên h-20 để nhìn rõ hơn) */}
       <div className="mt-6 h-20 w-full relative overflow-hidden">
         {sparkline && (
           <svg className="w-full h-full absolute bottom-0" viewBox="0 0 100 25" preserveAspectRatio="none">
-            {/* Vẽ fill background (mờ) */}
             {sparkline.fill && <path d={sparkline.fill} fill={theme.stroke} fillOpacity="0.1" className="transition-all duration-700 ease-in-out" />}
-            {/* Vẽ đường line chính */}
             <path 
               d={sparkline.line} 
               fill="none" 
@@ -78,7 +79,7 @@ const StatCard = ({ title, value, icon, colorName, sparkline }) => {
   );
 };
 
-// Ô hiển thị trạng thái trong lưới quy trình
+// Ô hiển thị trạng thái trong lưới quy trình (Giữ nguyên)
 const WorkflowStatusTile = ({ title, count, percent, icon, colorClass, bgColorClass }) => (
   <div className="p-4 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between transition-all hover:bg-white hover:shadow-sm">
     <div className="flex items-center gap-3">
@@ -106,16 +107,28 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // --- STATE BỘ LỌC THỜI GIAN ---
+  const currentYear = new Date().getFullYear();
+  const [filterYear, setFilterYear] = useState(currentYear);
+  const [filterMonth, setFilterMonth] = useState(null);
+  const [filterQuarter, setFilterQuarter] = useState(null);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // --- GỌI API VỚI PARAMS ---
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const response = await api.get(API_ENDPOINTS.admin.dashboard);
+        // Thiết lập params dựa trên các state bộ lọc
+        const params = { year: filterYear };
+        if (filterMonth) params.month = filterMonth;
+        if (filterQuarter) params.quarter = filterQuarter;
+
+        const response = await api.get(API_ENDPOINTS.admin.dashboard, params);
         setData(response?.data || response);
       } catch (error) {
         console.error('Lỗi tải dữ liệu dashboard', error);
@@ -124,13 +137,11 @@ export default function DashboardPage() {
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [filterYear, filterMonth, filterQuarter]); // Gọi lại API mỗi khi bộ lọc thay đổi
 
-  // TÍNH TOÁN DỮ LIỆU ĐỘNG CHO ĐỒ THỊ SPARKLINE (Dựa trên Total)
+  // TÍNH TOÁN DỮ LIỆU ĐỘNG CHO ĐỒ THỊ SPARKLINE (Giữ nguyên)
   const sparklines = useMemo(() => {
     if (!data) return null;
-
-    // Hàm nội suy đồ thị Bézier dựa vào giá trị thực tế
     const generatePath = (totalValue, isDashed = false) => {
       if (!totalValue || totalValue === 0) {
         return {
@@ -141,33 +152,22 @@ export default function DashboardPage() {
           percent: 0
         };
       }
-
-      // Tạo 6 tọa độ nội suy (Pseudo-random nhưng có seed từ Total để nhìn tự nhiên)
-      // Y càng nhỏ thì đồ thị càng cao (Scale 0 -> 25)
       let currentY = 22; 
       const pts = [{ x: 0, y: currentY }];
-      
-      // Seed động dựa vào độ lớn của data
       const volatility = totalValue > 100 ? 5 : 2; 
 
       for (let i = 1; i <= 5; i++) {
-        // Tạo các bước sóng ngẫu nhiên nhưng có xu hướng đi lên (giảm Y)
         const step = (Math.random() * volatility) - (volatility / 3); 
         currentY = Math.max(2, Math.min(24, currentY - step - 2)); 
         pts.push({ x: i * 20, y: currentY });
       }
-      
-      // Ép điểm cuối cùng là điểm cao nhất (tượng trưng cho trend tăng trưởng)
       pts[5].y = Math.max(2, Math.min(...pts.map(p => p.y)) - (Math.random() * 3));
 
-      // Nối các điểm bằng đường cong Bézier mềm mại (Cubic Bezier)
       let dLine = `M ${pts[0].x},${pts[0].y} `;
       for(let i=0; i<pts.length-1; i++) {
-        const cx = (pts[i].x + pts[i+1].x) / 2; // Control point x
+        const cx = (pts[i].x + pts[i+1].x) / 2;
         dLine += `C ${cx},${pts[i].y} ${cx},${pts[i+1].y} ${pts[i+1].x},${pts[i+1].y} `;
       }
-
-      // Giả lập tỷ lệ % tăng trưởng giữa đầu và cuối chu kỳ nội suy
       const startScore = 25 - pts[0].y;
       const endScore = 25 - pts[5].y;
       const pctChange = Math.round(((endScore - startScore) / (startScore || 1)) * 100);
@@ -177,19 +177,19 @@ export default function DashboardPage() {
         fill: isDashed ? null : `${dLine} L 100,25 L 0,25 Z`,
         dash: isDashed ? "3 3" : "",
         trend: pctChange >= 0 ? "up" : "down",
-        percent: Math.abs(pctChange > 100 ? Math.floor(pctChange/10) : pctChange) // Chuẩn hóa % hiển thị
+        percent: Math.abs(pctChange > 100 ? Math.floor(pctChange/10) : pctChange)
       };
     };
 
     return {
       revenue: generatePath(data.totalRevenue),
-      orders: generatePath(data.totalOrders, true), // Dashed line cho đơn hàng
+      orders: generatePath(data.totalOrders, true),
       users: generatePath(data.totalUsers),
       products: generatePath(data.totalProducts)
     };
   }, [data]);
 
-  // TÍNH TOÁN PHẦN TRĂM QUY TRÌNH
+  // TÍNH TOÁN PHẦN TRĂM QUY TRÌNH (Giữ nguyên)
   const metrics = useMemo(() => {
     if (!data) return null;
     const total = data.totalOrders || 0;
@@ -204,19 +204,18 @@ export default function DashboardPage() {
     };
   }, [data]);
 
-  if (loading) return (
-    <Loading/>
-  );
+  // Tạo danh sách năm cho Dropdown (Từ 2023 đến năm hiện tại + 1)
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
-  if (!data || !metrics) return <div className="p-10 text-center text-gray-500">Không có dữ liệu tổng quan.</div>;
+  if (loading && !data) return <Loading/>; // Chỉ hiển thị Loading toàn màn hình lần đầu
 
-  const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-8 animate-fade-in font-sans selection:bg-orange-100 selection:text-orange-600">
       
-      {/* --- TOP HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      {/* --- TOP HEADER & FILTERS --- */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 m-0">Chào buổi sáng, Quản trị viên</h2>
           <p className="text-gray-500 mt-2 flex items-center gap-2 font-medium">
@@ -226,127 +225,163 @@ export default function DashboardPage() {
             <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">{currentTime.toLocaleTimeString('en-GB', { hour12: false })}</span>
           </p>
         </div>
-        <button className="bg-[#aa3000] hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg shadow-orange-600/20 flex items-center gap-2 transition-all active:scale-95">
-          <SyncOutlined spin />
-          Dữ liệu đang Live
-        </button>
+
+        {/* BỘ LỌC THỜI GIAN */}
+        <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+          <div className="px-3 text-gray-400">
+            <FilterOutlined className="text-lg" />
+          </div>
+          
+          <Select 
+            value={filterYear} 
+            onChange={(value) => setFilterYear(value)}
+            className="w-28 font-medium"
+            options={yearOptions.map(y => ({ value: y, label: `Năm ${y}` }))}
+          />
+
+          <Select 
+            value={filterQuarter} 
+            onChange={(value) => {
+              setFilterQuarter(value);
+              if (value) setFilterMonth(null); // Clear tháng nếu chọn Quý
+            }}
+            placeholder="Chọn Quý"
+            className="w-32 font-medium"
+            allowClear
+            options={[
+              { value: 1, label: 'Quý 1' },
+              { value: 2, label: 'Quý 2' },
+              { value: 3, label: 'Quý 3' },
+              { value: 4, label: 'Quý 4' },
+            ]}
+          />
+
+          <Select 
+            value={filterMonth} 
+            onChange={(value) => {
+              setFilterMonth(value);
+              if (value) setFilterQuarter(null); // Clear quý nếu chọn Tháng
+            }}
+            placeholder="Chọn Tháng"
+            className="w-36 font-medium"
+            allowClear
+            options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }))}
+          />
+          
+          <button 
+            onClick={() => {
+               // Force refresh lại data bằng tay nếu cần
+               setFilterYear(currentYear);
+               setFilterMonth(null);
+               setFilterQuarter(null);
+            }} 
+            className="bg-[#aa3000] hover:bg-orange-700 text-white px-4 py-1.5 rounded-lg font-semibold shadow-md shadow-orange-600/20 flex items-center gap-2 transition-all active:scale-95 ml-2"
+          >
+            <SyncOutlined spin={loading} />
+            {loading ? 'Đang tải...' : 'Live'}
+          </button>
+        </div>
       </div>
 
-      {/* --- KPI BENTO GRID TÍCH HỢP ĐỒ THỊ --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Tổng Doanh Thu" 
-          value={formatCurrency(data.totalRevenue)} 
-          icon={<DollarCircleOutlined />} 
-          colorName="orange"
-          sparkline={sparklines?.revenue}
-        />
-        <StatCard 
-          title="Tổng Đơn Hàng" 
-          value={data.totalOrders.toLocaleString('vi-VN')} 
-          icon={<ShoppingCartOutlined />} 
-          colorName="slate"
-          sparkline={sparklines?.orders}
-        />
-        <StatCard 
-          title="Khách Hàng" 
-          value={data.totalUsers.toLocaleString('vi-VN')} 
-          icon={<UserOutlined />} 
-          colorName="indigo"
-          sparkline={sparklines?.users}
-        />
-        <StatCard 
-          title="Sản Phẩm" 
-          value={data.totalProducts.toLocaleString('vi-VN')} 
-          icon={<AppstoreOutlined />} 
-          colorName="emerald"
-          sparkline={sparklines?.products}
-        />
-      </div>
+      {/* HIỂN THỊ TRẠNG THÁI NẾU KHÔNG CÓ DATA */}
+      {!data ? (
+         <div className="p-10 text-center text-gray-500 bg-white rounded-2xl border border-gray-200">
+            Không có dữ liệu cho khoảng thời gian này.
+         </div>
+      ) : (
+        <>
+          {/* --- KPI BENTO GRID --- */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard title="Tổng Doanh Thu" value={formatCurrency(data.totalRevenue)} icon={<DollarCircleOutlined />} colorName="orange" sparkline={sparklines?.revenue} />
+            <StatCard title="Tổng Đơn Hàng" value={data.totalOrders?.toLocaleString('vi-VN')} icon={<ShoppingCartOutlined />} colorName="slate" sparkline={sparklines?.orders} />
+            <StatCard title="Khách Hàng" value={data.totalUsers?.toLocaleString('vi-VN')} icon={<UserOutlined />} colorName="indigo" sparkline={sparklines?.users} />
+            <StatCard title="Sản Phẩm" value={data.totalProducts?.toLocaleString('vi-VN')} icon={<AppstoreOutlined />} colorName="emerald" sparkline={sparklines?.products} />
+          </div>
 
-      {/* --- PHÂN TÍCH ĐỒ THỊ TIẾN TRÌNH QUY TRÌNH TỰ ĐỘNG --- */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:p-8 flex flex-col gap-8">
-        
-        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-          <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 m-0">
-            <span className="w-8 h-8 rounded-lg bg-orange-100 text-[#aa3000] flex items-center justify-center">
-              <BranchesOutlined />
-            </span>
-            Sơ đồ tiến trình & Trạng thái đơn hàng
-          </h4>
-          <span className="text-xs text-gray-400 font-medium font-mono">Total Base: {data.totalOrders} Orders</span>
-        </div>
-
-        {/* ĐỒ THỊ PIPELINE CHÍNH */}
-        <div className="w-full bg-gray-50/60 rounded-2xl p-6 border border-gray-100 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-2">
-          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
-            <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
-              <ClockCircleOutlined />
+          {/* --- PHÂN TÍCH ĐỒ THỊ TIẾN TRÌNH QUY TRÌNH TỰ ĐỘNG --- */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:p-8 flex flex-col gap-8">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 m-0">
+                <span className="w-8 h-8 rounded-lg bg-orange-100 text-[#aa3000] flex items-center justify-center">
+                  <BranchesOutlined />
+                </span>
+                Sơ đồ tiến trình & Trạng thái đơn hàng
+              </h4>
+              <span className="text-xs text-gray-400 font-medium font-mono">Total Base: {data.totalOrders} Orders</span>
             </div>
-            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Chờ xác nhận</p>
-            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.pending.count}</p>
-          </div>
 
-          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
-            <div className="absolute top-0 left-0 h-full bg-cyan-500 transition-all duration-1000" style={{ width: `${metrics.confirmed.count > 0 || metrics.processing.count > 0 ? '100' : '0'}%` }} />
-          </div>
+            {/* ĐỒ THỊ PIPELINE CHÍNH */}
+            <div className="w-full bg-gray-50/60 rounded-2xl p-6 border border-gray-100 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-2">
+              <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+                <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+                  <ClockCircleOutlined />
+                </div>
+                <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Chờ xác nhận</p>
+                <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.pending.count}</p>
+              </div>
 
-          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
-            <div className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
-              <CheckCircleOutlined />
+              <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full bg-cyan-500 transition-all duration-1000" style={{ width: `${metrics.confirmed.count > 0 || metrics.processing.count > 0 ? '100' : '0'}%` }} />
+              </div>
+
+              <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+                <div className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+                  <CheckCircleOutlined />
+                </div>
+                <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đã xác nhận</p>
+                <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.confirmed.count}</p>
+              </div>
+
+              <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-1000" style={{ width: `${metrics.processing.count > 0 || metrics.shipped.count > 0 ? '100' : '0'}%` }} />
+              </div>
+
+              <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+                  <SyncOutlined spin={metrics.processing.count > 0} />
+                </div>
+                <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đang xử lý</p>
+                <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.processing.count}</p>
+              </div>
+
+              <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full bg-purple-500 transition-all duration-1000" style={{ width: `${metrics.shipped.count > 0 || metrics.delivered.count > 0 ? '100' : '0'}%` }} />
+              </div>
+
+              <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+                  <CarOutlined />
+                </div>
+                <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đang giao</p>
+                <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.shipped.count}</p>
+              </div>
+
+              <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${metrics.delivered.count > 0 ? '100' : '0'}%` }} />
+              </div>
+
+              <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
+                  <HomeOutlined />
+                </div>
+                <p className="text-xs font-bold text-emerald-700 mt-2 uppercase tracking-wide">Thành công</p>
+                <p className="text-lg font-black text-emerald-600 m-0 mt-0.5">{metrics.delivered.count}</p>
+              </div>
             </div>
-            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đã xác nhận</p>
-            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.confirmed.count}</p>
-          </div>
 
-          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
-            <div className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-1000" style={{ width: `${metrics.processing.count > 0 || metrics.shipped.count > 0 ? '100' : '0'}%` }} />
-          </div>
-
-          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
-            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
-              <SyncOutlined spin={metrics.processing.count > 0} />
+            {/* LƯỚI THÔNG TIN BỔ SUNG */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <WorkflowStatusTile title="Chờ xác nhận" count={metrics.pending.count} percent={metrics.pending.pct} icon={<ClockCircleOutlined />} colorClass="text-orange-600" bgColorClass="bg-orange-50" />
+              <WorkflowStatusTile title="Đã xác nhận" count={metrics.confirmed.count} percent={metrics.confirmed.pct} icon={<CheckCircleOutlined />} colorClass="text-cyan-600" bgColorClass="bg-cyan-50" />
+              <WorkflowStatusTile title="Đang xử lý" count={metrics.processing.count} percent={metrics.processing.pct} icon={<SyncOutlined spin={metrics.processing.count > 0} />} colorClass="text-blue-600" bgColorClass="bg-blue-50" />
+              <WorkflowStatusTile title="Đang giao hàng" count={metrics.shipped.count} percent={metrics.shipped.pct} icon={<CarOutlined />} colorClass="text-purple-600" bgColorClass="bg-purple-50" />
+              <WorkflowStatusTile title="Đã giao thành công" count={metrics.delivered.count} percent={metrics.delivered.pct} icon={<HomeOutlined />} colorClass="text-emerald-600" bgColorClass="bg-emerald-50" />
+              <WorkflowStatusTile title="Đã hủy đơn" count={metrics.cancelled.count} percent={metrics.cancelled.pct} icon={<CloseCircleOutlined />} colorClass="text-red-600" bgColorClass="bg-red-50" />
             </div>
-            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đang xử lý</p>
-            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.processing.count}</p>
+
           </div>
-
-          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
-            <div className="absolute top-0 left-0 h-full bg-purple-500 transition-all duration-1000" style={{ width: `${metrics.shipped.count > 0 || metrics.delivered.count > 0 ? '100' : '0'}%` }} />
-          </div>
-
-          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
-            <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
-              <CarOutlined />
-            </div>
-            <p className="text-xs font-bold text-gray-700 mt-2 uppercase tracking-wide">Đang giao</p>
-            <p className="text-lg font-black text-gray-900 m-0 mt-0.5">{metrics.shipped.count}</p>
-          </div>
-
-          <div className="h-8 lg:h-1 w-1 lg:w-full bg-gray-200 relative rounded-full overflow-hidden">
-            <div className="absolute top-0 left-0 h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${metrics.delivered.count > 0 ? '100' : '0'}%` }} />
-          </div>
-
-          <div className="flex flex-col items-center text-center w-full lg:w-1/5 relative">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 font-extrabold flex items-center justify-center border-4 border-white shadow-sm z-10">
-              <HomeOutlined />
-            </div>
-            <p className="text-xs font-bold text-emerald-700 mt-2 uppercase tracking-wide">Thành công</p>
-            <p className="text-lg font-black text-emerald-600 m-0 mt-0.5">{metrics.delivered.count}</p>
-          </div>
-        </div>
-
-        {/* LƯỚI THÔNG TIN BỔ SUNG */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <WorkflowStatusTile title="Chờ xác nhận" count={metrics.pending.count} percent={metrics.pending.pct} icon={<ClockCircleOutlined />} colorClass="text-orange-600" bgColorClass="bg-orange-50" />
-          <WorkflowStatusTile title="Đã xác nhận" count={metrics.confirmed.count} percent={metrics.confirmed.pct} icon={<CheckCircleOutlined />} colorClass="text-cyan-600" bgColorClass="bg-cyan-50" />
-          <WorkflowStatusTile title="Đang xử lý" count={metrics.processing.count} percent={metrics.processing.pct} icon={<SyncOutlined spin={metrics.processing.count > 0} />} colorClass="text-blue-600" bgColorClass="bg-blue-50" />
-          <WorkflowStatusTile title="Đang giao hàng" count={metrics.shipped.count} percent={metrics.shipped.pct} icon={<CarOutlined />} colorClass="text-purple-600" bgColorClass="bg-purple-50" />
-          <WorkflowStatusTile title="Đã giao thành công" count={metrics.delivered.count} percent={metrics.delivered.pct} icon={<HomeOutlined />} colorClass="text-emerald-600" bgColorClass="bg-emerald-50" />
-          <WorkflowStatusTile title="Đã hủy đơn" count={metrics.cancelled.count} percent={metrics.cancelled.pct} icon={<CloseCircleOutlined />} colorClass="text-red-600" bgColorClass="bg-red-50" />
-        </div>
-
-      </div>
+        </>
+      )}
     </div>
   );
 }

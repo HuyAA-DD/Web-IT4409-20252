@@ -9,15 +9,23 @@ import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminTopProductPage() {
+  const currentYear = new Date().getFullYear();
   const [products, setProducts] = useState([]);
   const [limit, setLimit] = useState(10);
+  const [filterYear, setFilterYear] = useState(currentYear);
+  const [filterMonth, setFilterMonth] = useState(null);
+  const [filterQuarter, setFilterQuarter] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchTopProducts = async () => {
       setIsLoading(true);
       try {
-        const response = await api.get(API_ENDPOINTS.admin.topProducts, { params: { limit } });
+        const params = { limit, year: filterYear };
+        if (filterMonth) params.month = filterMonth;
+        if (filterQuarter) params.quarter = filterQuarter;
+
+        const response = await api.get(API_ENDPOINTS.admin.topProducts, params);
         setProducts(response?.data || response);
       } catch (error) {
         console.error('Lỗi tải danh sách top sản phẩm', error);
@@ -26,7 +34,7 @@ export default function AdminTopProductPage() {
       }
     };
     fetchTopProducts();
-  }, [limit]);
+  }, [limit, filterYear, filterMonth, filterQuarter]);
 
   const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
@@ -44,8 +52,58 @@ export default function AdminTopProductPage() {
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">Danh sách các sản phẩm bán chạy nhất mang lại doanh thu cao.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
           <FilterOutlined className="text-gray-400" />
+          <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Lọc:</span>
+          <select
+            value={filterYear}
+            onChange={(e) => setFilterYear(Number(e.target.value))}
+            className="bg-transparent text-sm font-bold text-orange-600 dark:text-orange-400 outline-none cursor-pointer"
+          >
+            {Array.from({ length: 5 }, (_, i) => currentYear - 2 + i).map((year) => (
+              <option key={year} value={year}>Năm {year}</option>
+            ))}
+          </select>
+          <select
+            value={filterQuarter || ''}
+            onChange={(e) => {
+              const value = e.target.value ? Number(e.target.value) : null;
+              setFilterQuarter(value);
+              if (value) setFilterMonth(null);
+            }}
+            className="bg-transparent text-sm font-bold text-orange-600 dark:text-orange-400 outline-none cursor-pointer"
+          >
+            <option value="">Chọn Quý</option>
+            {[1, 2, 3, 4].map((q) => (
+              <option key={q} value={q}>Quý {q}</option>
+            ))}
+          </select>
+          <select
+            value={filterMonth || ''}
+            onChange={(e) => {
+              const value = e.target.value ? Number(e.target.value) : null;
+              setFilterMonth(value);
+              if (value) setFilterQuarter(null);
+            }}
+            className="bg-transparent text-sm font-bold text-orange-600 dark:text-orange-400 outline-none cursor-pointer"
+          >
+            <option value="">Chọn Tháng</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+              <option key={month} value={month}>Tháng {month}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterYear(currentYear);
+              setFilterMonth(null);
+              setFilterQuarter(null);
+            }}
+            className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+          >
+            Xóa
+          </button>
+          <span className="h-6 w-px bg-gray-200 dark:bg-slate-700 mx-2" />
           <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Hiển thị:</span>
           <select 
             value={limit} 

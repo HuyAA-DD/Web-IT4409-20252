@@ -16,6 +16,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     boolean existsBySku(String sku);
 
     @Modifying
-    @Query("UPDATE ProductVariant v SET v.deleted = true, v.sku = CONCAT(v.sku, '_del_', v.id) WHERE v.product.id = :productId")
+    @Query(value = "UPDATE product_variants SET deleted = true, sku = CONCAT(LEFT(sku, 55), '_del_', UUID()) WHERE product_id = :productId", nativeQuery = true)  // Hàm dưới tự dộng thành câu query dưới CSDL
     void deleteByProductId(@Param("productId") UUID productId);
 }
