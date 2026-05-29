@@ -57,8 +57,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             @SuppressWarnings("unchecked")
             Map<String, Object> uploadParams = ObjectUtils.asMap(
                     "folder", folder,
-                    "resource_type", resourceType,
-                    "format", "jpg"
+                    "resource_type", resourceType
             );
 
             @SuppressWarnings("unchecked")

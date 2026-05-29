@@ -102,7 +102,7 @@ const WorkflowStatusTile = ({ title, count, percent, icon, colorClass, bgColorCl
 // =========================================================================
 // MAIN COMPONENT
 // =========================================================================
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, Button, Dropdown, Typography, message } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import api from '../../../Apis/apiConfig';
@@ -10,33 +10,52 @@ export default function SellerNotificationPage() {
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
-  useEffect(() => {
+  const fetchSellerNotifs = useCallback(async () => {
     if (!userId) return;
-    const fetchSellerNotifs = async () => {
-      try {
-        const resp = await api.get(API_ENDPOINTS.notifications.byUser(userId));
-        setNotifications(resp?.data || resp || []);
-      } catch (err) {
-        console.error('Cannot load seller notifications', err);
-      }
-    };
-    fetchSellerNotifs();
+
+    try {
+      const resp = await api.get(API_ENDPOINTS.notifications.byUser(userId));
+      setNotifications(resp?.data || resp || []);
+    } catch (err) {
+      console.error('Cannot load seller notifications', err);
+      message.error('Không thể tải thông báo. Vui lòng thử lại.');
+    }
   }, [userId]);
+
+  fetchSellerNotifs();
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      const resp = await api.put(API_ENDPOINTS.notifications.markAsRead(id));
+      const updated = resp?.data || resp || {};
+      setNotifications((prev) => prev.map((item) => item.id === id ? { ...item, ...updated, isRead: true } : item));
+      message.success('Đã đánh dấu là đã đọc');
+    } catch (err) {
+      console.error('Cannot mark notification as read', err);
+      message.error('Đánh dấu thông báo thất bại. Vui lòng thử lại.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(API_ENDPOINTS.notifications.delete(id));
+      setNotifications((prev) => prev.filter((item) => item.id !== id));
+      message.success('Đã xóa thông báo');
+    } catch (err) {
+      console.error('Cannot delete notification', err);
+      message.error('Xóa thông báo thất bại. Vui lòng thử lại.');
+    }
+  };
+
+  const handleRefreshNotifications = () => {
+    fetchSellerNotifs();
+  };
 
   const displayedNotifications = useMemo(() => {
     return [...notifications].sort((a, b) => (a.isRead === b.isRead ? 0 : a.isRead ? 1 : -1));
   }, [notifications]);
 
-  const handleMarkAsRead = (id) => {
-    setNotifications((prev) => prev.map((item) => item.id === id ? { ...item, isRead: true } : item));
-    message.success('Đã đánh dấu là đã đọc');
-  };
-
-  const handleDelete = (id) => {
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
-    message.success('Đã xóa thông báo');
-  };
-
+  
   return (
     <div className="min-h-[70vh]">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -46,7 +65,7 @@ export default function SellerNotificationPage() {
               <Typography.Title level={3} className="m-0">Thông báo Seller</Typography.Title>
               <Typography.Paragraph className="text-gray-500 m-0">Cập nhật trạng thái đơn, tồn kho và tin khuyến mãi dành cho gian hàng của bạn.</Typography.Paragraph>
             </div>
-            <Button type="primary" icon={<BellOutlined />} onClick={() => message.info('Tải lại thông báo...')}>
+            <Button type="primary" icon={<BellOutlined />} onClick={handleRefreshNotifications}>
               Làm mới
             </Button>
           </div>

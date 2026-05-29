@@ -20,7 +20,7 @@ import AdminMainLayout from './Layouts/AdminMainLayout/AdminMainLayout';
 import OrderListPage from './Pages/Admin/OrderListPage/OrderListPage';
 import OrderDetailPage from './Pages/Admin/OrderDetailPage/OrderDetailPage';
 import AuditLogPage from './Pages/Admin/AuditLogPage/AuditLogPage';
-import DashboardPage from './Pages/Admin/DashboardPage/DashboardPage';
+import AdminDashboardPage from './Pages/Admin/AdminDashboardPage/AdminDashboardPage';
 import CouponPage from './Pages/Admin/CouponPage/CouponPage';
 import AdminRevenuePage from './Pages/Admin/AdminRevenuePage/AdminRevenuePage';
 import AdminTopProductPage from './Pages/Admin/AdminTopProductPage/AdminTopProductPage';
@@ -100,7 +100,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE.Dashboard,
-        element: <DashboardPage/>
+        element: <AdminDashboardPage/>
       },
       {
         path: ADMIN_ROUTE.Orderlist,
