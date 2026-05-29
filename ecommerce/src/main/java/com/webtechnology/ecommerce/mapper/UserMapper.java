@@ -20,7 +20,6 @@ public interface UserMapper {
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "avatarUrl", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
     User toEntity(UserRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -28,7 +27,6 @@ public interface UserMapper {
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "avatarUrl", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
     User toEntity(UserCreateRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -37,6 +35,5 @@ public interface UserMapper {
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "avatarUrl", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
     void updateEntityFromRequest(UserRequest request, @MappingTarget User user);
 }
