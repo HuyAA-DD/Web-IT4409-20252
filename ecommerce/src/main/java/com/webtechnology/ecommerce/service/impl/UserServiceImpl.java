@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.webtechnology.ecommerce.dto.ChangePasswordRequest;
+import com.webtechnology.ecommerce.dto.UserCreateRequest;
 import com.webtechnology.ecommerce.dto.UserRequest;
 import com.webtechnology.ecommerce.dto.UserResponse;
 import com.webtechnology.ecommerce.entity.Role;
@@ -33,7 +35,7 @@ public class UserServiceImpl implements UserService {
     private final FileUploadService fileUploadService;
 
     @Override
-    public UserResponse createUser(UserRequest request) {
+    public UserResponse createUser(UserCreateRequest request) {
         validateEmailUniqueness(request.getEmail());
 
         User user = userMapper.toEntity(request);
@@ -68,10 +70,6 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateEntityFromRequest(request, existingUser);
         
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-
         return userMapper.toResponse(userRepository.save(existingUser));
     }
 
@@ -108,6 +106,20 @@ public class UserServiceImpl implements UserService {
         // Update user avatar URL
         user.setAvatarUrl(fileUploadResponse.getUrl());
         return userMapper.toResponse(userRepository.save(user));
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID userId = UUID.fromString(principal);
+        User user = findUserById(userId);
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password does not match");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     private User findUserById(UUID id) {

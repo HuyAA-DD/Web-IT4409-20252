@@ -27,7 +27,7 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SQLDelete(sql = "UPDATE product_variants SET deleted = true, sku = CONCAT(sku, '_del_', id) WHERE id = ?")
+@SQLDelete(sql = "UPDATE product_variants SET deleted = true, sku = CONCAT(sku, '_del_', UUID()) WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class ProductVariant {
 

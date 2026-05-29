@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.webtechnology.ecommerce.dto.ApiResponse;
+import com.webtechnology.ecommerce.dto.ChangePasswordRequest;
 import com.webtechnology.ecommerce.dto.UserRequest;
 import com.webtechnology.ecommerce.dto.UserResponse;
 import com.webtechnology.ecommerce.service.UserService;
@@ -62,6 +63,19 @@ public class UserController {
                 .success(true)
                 .message("Avatar updated successfully")
                 .data(userService.updateCurrentUserAvatar(file))
+                .build());
+    }
+
+    @PutMapping("/me/password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        userService.changePassword(request);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Password changed successfully")
+                .data(null)
                 .build());
     }
 
