@@ -119,11 +119,18 @@
             <version>1.39.0</version>
         </dependency>
 
-        <!-- Vertex AI Gemini Starter (Supports API Key and Vertex AI) -->
+        <!-- Dotvn config .env file-->
         <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
+        <!-- Vertex AI Gemini Starter (Supports API Key and Vertex AI) -->
+        <!-- <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-vertex-ai-gemini-spring-boot-starter</artifactId>
-        </dependency>
+        </dependency> -->
     </dependencies>
 
     <build>

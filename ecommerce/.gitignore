@@ -35,4 +35,4 @@ build/
 .m2repo
 .test
 target/
-**/application-local.properties
+.env

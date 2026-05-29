@@ -1,0 +1,50 @@
+/* AuthDecorations.css */
+
+/* Khối 1: Trôi nhẹ sang phải, lên trên và xoay */
+@keyframes float-rotate-1 {
+  0% { transform: translate(0, 0) rotate(12deg); }
+  33% { transform: translate(30px, -40px) rotate(25deg); }
+  66% { transform: translate(-20px, 20px) rotate(5deg); }
+  100% { transform: translate(0, 0) rotate(12deg); }
+}
+
+/* Khối 2: Trôi sang trái, xuống dưới và xoay ngược */
+@keyframes float-rotate-2 {
+  0% { transform: translate(0, 0) rotate(-45deg); }
+  33% { transform: translate(-35px, 25px) rotate(-30deg); }
+  66% { transform: translate(20px, -20px) rotate(-60deg); }
+  100% { transform: translate(0, 0) rotate(-45deg); }
+}
+
+/* Khối 3: Trôi nổi ở góc trên phải */
+@keyframes float-rotate-3 {
+  0% { transform: translate(0, 0) rotate(60deg); }
+  33% { transform: translate(40px, 20px) rotate(75deg); }
+  66% { transform: translate(-15px, -30px) rotate(45deg); }
+  100% { transform: translate(0, 0) rotate(60deg); }
+}
+
+/* Khối 4: Trôi nổi ở góc dưới trái */
+@keyframes float-rotate-4 {
+  0% { transform: translate(0, 0) rotate(-12deg); }
+  33% { transform: translate(-25px, -30px) rotate(5deg); }
+  66% { transform: translate(30px, 15px) rotate(-25deg); }
+  100% { transform: translate(0, 0) rotate(-12deg); }
+}
+
+/* Áp dụng animation với timing cực chậm, ease-in-out để mượt ở các điểm neo */
+#decor-triangle-1 {
+  animation: float-rotate-1 10s ease-in-out infinite;
+}
+
+#decor-triangle-2 {
+  animation: float-rotate-2 10s ease-in-out infinite;
+}
+
+#decor-triangle-3 {
+  animation: float-rotate-3 10s ease-in-out infinite;
+}
+
+#decor-triangle-4 {
+  animation: float-rotate-4 10s ease-in-out infinite;
+}
