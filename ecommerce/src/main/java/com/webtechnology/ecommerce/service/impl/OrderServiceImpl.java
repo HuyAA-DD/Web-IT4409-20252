@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.webtechnology.ecommerce.mapper.AddressMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -44,14 +45,20 @@ public class OrderServiceImpl implements OrderService {
     private final CouponService couponService;
     private final AuditLogService auditLogService;
     private final OrderMapper orderMapper;
+    private final AddressMapper addressMapper;
 
     @Override
     public OrderResponse createOrder(UUID userId, OrderRequest request) {
         User user = findUserById(userId);
+
         Address address = findAddressById(request.getAddressId());
 
         if (!address.getUser().getId().equals(userId)) {
             throw new BadRequestException("Address does not belong to the user");
+        }
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BadRequestException("Order items cannot be empty");
         }
 
         Order order = Order.builder()
@@ -59,17 +66,26 @@ public class OrderServiceImpl implements OrderService {
                 .address(address)
                 .paymentMethod(request.getPaymentMethod())
                 .status(OrderStatus.PENDING)
+                .subTotal(BigDecimal.ZERO)
+                .discountAmount(BigDecimal.ZERO)
+                .totalAmount(BigDecimal.ZERO)
                 .build();
 
         order = orderRepository.save(order);
+
         BigDecimal subTotal = BigDecimal.ZERO;
 
         for (var itemRequest : request.getItems()) {
             ProductVariant variant = findProductVariantById(itemRequest.getProductVariantId());
 
             if (itemRequest.getQuantity() > variant.getStock()) {
-                throw new BadRequestException("Insufficient stock for product variant: " + variant.getId());
+                throw new BadRequestException(
+                        "Insufficient stock for product variant: " + variant.getId()
+                );
             }
+
+            BigDecimal lineTotal = variant.getPrice()
+                    .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
 
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
@@ -82,22 +98,27 @@ public class OrderServiceImpl implements OrderService {
                     .build();
 
             orderItemRepository.save(orderItem);
-            subTotal = subTotal.add(variant.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity())));
+
+            subTotal = subTotal.add(lineTotal);
 
             variant.setStock(variant.getStock() - itemRequest.getQuantity());
             productVariantRepository.save(variant);
         }
 
-        BigDecimal totalAmount = subTotal;
         BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal totalAmount = subTotal;
 
         if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
-            CouponCalculationResponse couponResult = couponService.calculateDiscount(request.getCouponCode(), subTotal);
+            CouponCalculationResponse couponResult =
+                    couponService.calculateDiscount(request.getCouponCode(), subTotal);
+
             if (couponResult.getIsValid()) {
                 discountAmount = couponResult.getDiscountAmount();
                 totalAmount = couponResult.getFinalAmount();
+
                 order.setCouponCode(request.getCouponCode());
                 order.setDiscountAmount(discountAmount);
+
                 couponService.recordUsage(request.getCouponCode(), userId, order.getId());
             } else {
                 throw new BadRequestException("Invalid coupon: " + couponResult.getMessage());
@@ -105,7 +126,9 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setSubTotal(subTotal);
+        order.setDiscountAmount(discountAmount);
         order.setTotalAmount(totalAmount);
+
         order = orderRepository.save(order);
 
         return buildOrderResponse(order);
@@ -228,9 +251,13 @@ public class OrderServiceImpl implements OrderService {
 
         OrderResponse response = orderMapper.toOrderResponse(order);
         response.setItems(itemResponses);
+
+        if (order.getAddress() != null) {
+            response.setAddress(addressMapper.toResponse(order.getAddress()));
+        }
+
         return response;
     }
-
     private User findUserById(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));

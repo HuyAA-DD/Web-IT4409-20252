@@ -11,15 +11,17 @@ import WishListPage from "./Pages/User/WishListPage/WishListPage";
 import TopProductsPage from "./Pages/User/TopProductsPage/TopProductsPage";
 import NotFoundPage from "./Pages/NotFoundPage/NotFoundPage";
 import CartPage from "./Pages/User/CartPage/CartPage";
+import CheckoutPage from "./Pages/User/CheckoutPage/CheckoutPage";
 import ProductDetailPage from "./Pages/User/ProductDetailPage/ProductDetailPage";
 import ProductListPage from "./Pages/User/ProductListPage/ProductListPage";
 import NotificationPage from "./Pages/User/NotificationPage/NotificationPage";
 import UserProfilePage from "./Pages/User/UserProfilePage/UserProfilePage";
 import PaymentPage from "./Pages/User/PaymentPage/PaymentPage";
-import CheckoutPage from "./Pages/User/CheckoutPage/CheckoutPage";
+import UserOrderListPage from "./Pages/User/UserOrderListPage/UserOrderListPage";
+import UserOrderDetailPage from "./Pages/User/UserOrderDetailPage/UserOrderDetailPage";
 
-import OrderListPage from "./Pages/Admin/OrderListPage/OrderListPage";
-import OrderDetailPage from "./Pages/Admin/OrderDetailPage/OrderDetailPage";
+import AdminOrderListPage from "./Pages/Admin/OrderListPage/OrderListPage";
+import AdminOrderDetailPage from "./Pages/Admin/OrderDetailPage/OrderDetailPage";
 import AuditLogPage from "./Pages/Admin/AuditLogPage/AuditLogPage";
 import DashboardPage from "./Pages/Admin/DashboardPage/DashboardPage";
 import CouponPage from "./Pages/Admin/CouponPage/CouponPage";
@@ -37,7 +39,6 @@ import SellerNotificationPage from "./Pages/Seller/SellerNotificationPage";
 import USER_ROUTE from "./Routes/User.routes";
 import ADMIN_ROUTE from "./Routes/Admin.routes";
 import SELLER_ROUTE from "./Routes/Seller.routes";
-
 import RequireAuth from "./Components/RequireAuth";
 
 const router = createBrowserRouter([
@@ -78,6 +79,22 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: USER_ROUTE.Orders,
+        element: (
+          <RequireAuth>
+            <UserOrderListPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: USER_ROUTE.OrderDetail,
+        element: (
+          <RequireAuth>
+            <UserOrderDetailPage />
+          </RequireAuth>
+        ),
+      },
+      {
         path: USER_ROUTE.Seapay,
         element: (
           <RequireAuth>
@@ -111,7 +128,6 @@ const router = createBrowserRouter([
       },
     ],
   },
-
   {
     path: ADMIN_ROUTE.Home,
     element: (
@@ -130,7 +146,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE.Orderlist,
-        element: <OrderListPage />,
+        element: <AdminOrderListPage />,
       },
       {
         path: ADMIN_ROUTE.Product,
@@ -158,16 +174,14 @@ const router = createBrowserRouter([
       },
     ],
   },
-
   {
     path: ADMIN_ROUTE.Order,
     element: (
       <RequireAuth>
-        <OrderDetailPage />
+        <AdminOrderDetailPage />
       </RequireAuth>
     ),
   },
-
   {
     path: SELLER_ROUTE.Home,
     element: (
@@ -198,17 +212,14 @@ const router = createBrowserRouter([
       },
     ],
   },
-
   {
     path: "/auth/login-register",
     element: <AuthPage />,
   },
-
   {
     path: "/404NotFound",
     element: <NotFoundPage />,
   },
-
   {
     path: "*",
     element: <NotFoundPage />,

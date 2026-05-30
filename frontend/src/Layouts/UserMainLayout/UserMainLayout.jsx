@@ -20,6 +20,7 @@ import {
   MenuOutlined, 
   HeartOutlined,
   CloseOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 
 import api from "../../Apis/apiConfig";
@@ -280,6 +281,7 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
     { icon: <RiseOutlined />, label: 'Top Sản phẩm', path: USER_ROUTE.TopProduct },
     { icon: <WalletOutlined />, label: 'Ví thanh toán', path: USER_ROUTE.Seapay },
     { icon: <HeartOutlined />, label: 'Yêu thích', path: USER_ROUTE.WishList },
+    { icon: <FileTextOutlined />, label: 'Đơn hàng', path: USER_ROUTE.Orders },
   ];
 
   const renderNavLinks = (isDesktopCollapsed) => (
