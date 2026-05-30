@@ -74,6 +74,7 @@ const CheckoutPage = () => {
 
   const addressEndpoint = API_ENDPOINTS.addresses || API_ENDPOINTS.address;
   const orderEndpoint = API_ENDPOINTS.orders || API_ENDPOINTS.order;
+  const cartEndpoint = API_ENDPOINTS.cart;
 
   const [checkoutDraft, setCheckoutDraft] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -129,7 +130,6 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     const draft = readCheckoutDraft(location.state);
-
     setCheckoutDraft(draft);
 
     if (userId) {
@@ -194,6 +194,29 @@ const CheckoutPage = () => {
     }
   };
 
+  const cleanupOrderedCartItems = async () => {
+    if (!userId || !cartEndpoint?.item) return;
+
+    const selectedItemIds = Array.isArray(checkoutDraft?.selectedItemIds)
+      ? checkoutDraft.selectedItemIds
+      : selectedItems.map((item) => item.id).filter(Boolean);
+
+    if (selectedItemIds.length === 0) return;
+
+    try {
+      await Promise.all(
+        selectedItemIds.map((itemId) =>
+          api.delete(cartEndpoint.item(userId, itemId))
+        )
+      );
+    } catch (error) {
+      console.error("Tạo đơn thành công nhưng lỗi khi xóa item khỏi cart:", error);
+      message.warning(
+        "Đơn hàng đã được tạo, nhưng một số sản phẩm có thể vẫn còn trong giỏ hàng."
+      );
+    }
+  };
+
   const handleCreateOrder = async () => {
     if (!userId) {
       message.warning("Vui lòng đăng nhập để đặt hàng.");
@@ -232,8 +255,12 @@ const CheckoutPage = () => {
         couponCode: checkoutDraft.couponCode || null,
       };
 
+      console.log("Create order payload:", payload);
+
       const response = await api.post(orderEndpoint.create, payload);
       const createdOrder = unwrapApiData(response);
+
+      await cleanupOrderedCartItems();
 
       sessionStorage.removeItem("checkoutDraft");
 
@@ -244,7 +271,13 @@ const CheckoutPage = () => {
             <p>Đơn hàng đã được tạo thành công.</p>
             <p>
               Tổng thanh toán:{" "}
-              <strong>{formatCurrency(createdOrder?.totalAmount || finalAmount)}</strong>
+              <strong>
+                {formatCurrency(createdOrder?.totalAmount || finalAmount)}
+              </strong>
+            </p>
+            <p>
+              Phương thức thanh toán:{" "}
+              <strong>{createdOrder?.paymentMethod || paymentMethod}</strong>
             </p>
             <p>
               Trạng thái thanh toán:{" "}
@@ -253,9 +286,7 @@ const CheckoutPage = () => {
           </div>
         ),
         okText:
-          paymentMethod === "SEPAY"
-            ? "Đi tới thanh toán"
-            : "Quay lại giỏ hàng",
+          paymentMethod === "SEPAY" ? "Đi tới thanh toán" : "Xem đơn hàng",
         onOk: () => {
           if (paymentMethod === "SEPAY") {
             navigate("/seapay", {
@@ -266,12 +297,34 @@ const CheckoutPage = () => {
             return;
           }
 
-          navigate("/cart");
+          navigate(`/orders/${createdOrder.id}`, {
+            state: {
+              order: createdOrder,
+            },
+          });
         },
       });
     } catch (error) {
-      console.error("Lỗi tạo đơn hàng:", error);
-      message.error("Không thể tạo đơn hàng.");
+      const status = error?.response?.status;
+      const responseData = error?.response?.data;
+
+      const backendMessage =
+        responseData?.message ||
+        responseData?.error ||
+        responseData?.detail ||
+        responseData?.data?.message ||
+        error?.message ||
+        "Không rõ nguyên nhân";
+
+      console.error("Lỗi tạo đơn hàng chi tiết:", {
+        status,
+        responseData,
+        error,
+      });
+
+      message.error(
+        `Không thể tạo đơn hàng${status ? ` (${status})` : ""}: ${backendMessage}`
+      );
     } finally {
       setCreatingOrder(false);
     }
@@ -331,7 +384,7 @@ const CheckoutPage = () => {
                 Xác nhận thanh toán
               </Title>
 
-              <Text className="text-white/90">
+              <Text className="!text-white/90">
                 Chọn địa chỉ nhận hàng, phương thức thanh toán và tạo đơn hàng.
               </Text>
             </div>
@@ -582,7 +635,9 @@ const CheckoutPage = () => {
             <Form.Item
               name="recipientName"
               label="Tên người nhận"
-              rules={[{ required: true, message: "Vui lòng nhập tên người nhận" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập tên người nhận" },
+              ]}
             >
               <Input placeholder="Nguyễn Văn A" />
             </Form.Item>
@@ -601,7 +656,9 @@ const CheckoutPage = () => {
           <Form.Item
             name="street"
             label="Địa chỉ cụ thể"
-            rules={[{ required: true, message: "Vui lòng nhập địa chỉ cụ thể" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập địa chỉ cụ thể" },
+            ]}
           >
             <Input placeholder="Số nhà, tên đường..." />
           </Form.Item>
