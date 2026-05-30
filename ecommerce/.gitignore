@@ -36,3 +36,5 @@ build/
 .test
 target/
 .env
+
+**/application-local.properties
