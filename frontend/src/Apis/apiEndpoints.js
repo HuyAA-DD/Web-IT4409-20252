@@ -30,15 +30,26 @@ const API_ENDPOINTS = {
   cart: CART_ENDPOINTS,
 
   order: ORDER_ENDPOINTS,
+  orders: ORDER_ENDPOINTS,
+
   coupon: COUPON_ENDPOINTS,
+  coupons: COUPON_ENDPOINTS,
+
   payment: PAYMENT_ENDPOINTS,
+  payments: PAYMENT_ENDPOINTS,
 
   wishlist: WISHLIST_ENDPOINTS,
   wishlists: WISHLIST_ENDPOINTS,
 
   notification: NOTIFICATION_ENDPOINTS,
+  notifications: NOTIFICATION_ENDPOINTS,
+
   review: REVIEW_ENDPOINTS,
+  reviews: REVIEW_ENDPOINTS,
+
   address: ADDRESS_ENDPOINTS,
+  addresses: ADDRESS_ENDPOINTS,
+
   admin: ADMIN_ENDPOINTS,
   auditLog: AUDIT_LOG_ENDPOINTS,
   upload: UPLOAD_ENDPOINTS,

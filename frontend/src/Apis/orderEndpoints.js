@@ -1,8 +1,15 @@
 const ORDER_ENDPOINTS = {
-  list: "/api/v1/orders",
-  byId: (id) => `/api/v1/orders/${id}`,
-  cancel: (id) => `/api/v1/orders/${id}/cancel`,
-  tracking: (id) => `/api/v1/orders/${id}/tracking`
-}
+  list: "/orders",
+
+  create: "/orders",
+
+  byId: (id) => `/orders/${id}`,
+
+  cancel: (id) => `/orders/${id}/cancel`,
+
+  tracking: (id) => `/orders/${id}/tracking`,
+
+  invoice: (id) => `/orders/${id}/invoice`,
+};
 
 export default ORDER_ENDPOINTS;

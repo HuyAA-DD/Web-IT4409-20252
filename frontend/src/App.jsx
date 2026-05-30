@@ -16,6 +16,7 @@ import ProductListPage from "./Pages/User/ProductListPage/ProductListPage";
 import NotificationPage from "./Pages/User/NotificationPage/NotificationPage";
 import UserProfilePage from "./Pages/User/UserProfilePage/UserProfilePage";
 import PaymentPage from "./Pages/User/PaymentPage/PaymentPage";
+import CheckoutPage from "./Pages/User/CheckoutPage/CheckoutPage";
 
 import OrderListPage from "./Pages/Admin/OrderListPage/OrderListPage";
 import OrderDetailPage from "./Pages/Admin/OrderDetailPage/OrderDetailPage";
@@ -65,6 +66,14 @@ const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <CartPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: USER_ROUTE.Checkout,
+        element: (
+          <RequireAuth>
+            <CheckoutPage />
           </RequireAuth>
         ),
       },

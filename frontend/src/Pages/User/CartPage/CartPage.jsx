@@ -547,14 +547,32 @@ const CartPage = () => {
     const checkoutDraft = {
       cartId: cart?.id,
       selectedItemIds: selectedItems.map((item) => item.id),
+
+      selectedItems: selectedItems.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productVariantId: item.productVariantId,
+        sku: item.sku,
+        price: Number(item.price || 0),
+        quantity: Number(item.quantity || 1),
+        lineTotal: getItemLineTotal(item),
+        attributes: item.attributes || {},
+      })),
+
       subtotal,
       couponCode: appliedCoupon?.code || null,
       discountAmount,
       finalAmount: finalTotal,
     };
 
-    console.log("Checkout draft:", checkoutDraft);
-    message.info("Bước tiếp theo sẽ nối Checkout/Order.");
+    sessionStorage.setItem("checkoutDraft", JSON.stringify(checkoutDraft));
+
+    navigate("/checkout", {
+      state: {
+        checkoutDraft,
+      },
+    });
   };
 
   const handleGoToProductDetail = (productId) => {

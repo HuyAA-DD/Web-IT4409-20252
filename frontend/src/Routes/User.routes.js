@@ -10,6 +10,12 @@ const USER_ROUTE = {
   DetailProduct: "/products/:id",
   ProductDetailBase: "/products",
 
+  Checkout: "/checkout",
+
+  Orders: "/orders",
+  OrderDetail: "/orders/:id",
+  OrderDetailBase: "/orders",
+
   Seapay: "/seapay",
   Notification: "/notification",
   Profile: "/profile",

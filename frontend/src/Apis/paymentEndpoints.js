@@ -1,7 +1,10 @@
 const PAYMENT_ENDPOINTS = {
-  sepayCheckout: "/api/v1/payments/sepay/checkout",
-  orderStatus: (orderId) => `/api/v1/payments/orders/${orderId}/status`,
-  transactionStatus: (orderId) => `/api/v1/payments/orders/${orderId}/transaction-status`
-}
+  sepayCheckout: "/payments/sepay/checkout",
+
+  orderStatus: (orderId) => `/payments/orders/${orderId}/status`,
+
+  transactionStatus: (orderId) =>
+    `/payments/orders/${orderId}/transaction-status`,
+};
 
 export default PAYMENT_ENDPOINTS;
