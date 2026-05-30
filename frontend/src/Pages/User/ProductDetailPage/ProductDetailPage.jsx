@@ -6,6 +6,7 @@ import {
   Image,
   Input,
   InputNumber,
+  Modal,
   Rate,
   Spin,
   Tag,
@@ -15,7 +16,11 @@ import {
 import {
   CarOutlined,
   CheckCircleFilled,
+  CloseOutlined,
+  DeleteOutlined,
+  EditOutlined,
   MessageOutlined,
+  SaveOutlined,
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
@@ -25,6 +30,34 @@ import { HeartFilled, HeartOutlined } from "@ant-design/icons";
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
+
+const unwrapApiData = (response) => {
+  if (response?.data !== undefined) return response.data;
+  return response;
+};
+
+const getApiErrorMessage = (error, fallback = "Có lỗi xảy ra.") => {
+  const responseData = error?.response?.data;
+
+  return (
+    responseData?.message ||
+    responseData?.error ||
+    responseData?.detail ||
+    responseData?.data?.message ||
+    error?.message ||
+    fallback
+  );
+};
+
+const calculateAverageRating = (reviews = []) => {
+  if (!Array.isArray(reviews) || reviews.length === 0) return 0;
+
+  const total = reviews.reduce((sum, review) => {
+    return sum + Number(review.rating || 0);
+  }, 0);
+
+  return total / reviews.length;
+};
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -37,11 +70,6 @@ const formatCurrency = (value) => {
     style: "currency",
     currency: "VND",
   }).format(Number(value || 0));
-};
-
-const unwrapApiData = (response) => {
-  if (response?.data !== undefined) return response.data;
-  return response;
 };
 
 const getProductImages = (product) => {
@@ -95,9 +123,14 @@ const ProductDetailPage = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
-
+  
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState("");
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editRating, setEditRating] = useState(5);
+  const [editComment, setEditComment] = useState("");
+  const [updatingReview, setUpdatingReview] = useState(false);
+  const [deletingReviewId, setDeletingReviewId] = useState(null);
 
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -237,6 +270,18 @@ const ProductDetailPage = () => {
     }
   };
 
+  const getReviewOwnerId = (review) => {
+    return review?.userId || review?.user?.id || review?.user?.userId || null;
+  };
+
+  const canManageReview = (review) => {
+    const reviewOwnerId = getReviewOwnerId(review);
+
+    if (!userId || !reviewOwnerId) return false;
+
+    return String(reviewOwnerId) === String(userId);
+  };
+
   const handleSubmitReview = async (event) => {
     event.preventDefault();
 
@@ -245,8 +290,18 @@ const ProductDetailPage = () => {
       return;
     }
 
+    if (!product?.id) {
+      message.warning("Không xác định được sản phẩm cần đánh giá.");
+      return;
+    }
+
     if (!newComment.trim()) {
       message.warning("Vui lòng nhập nội dung đánh giá.");
+      return;
+    }
+
+    if (newComment.trim().length > 2000) {
+      message.warning("Nội dung đánh giá không được vượt quá 2000 ký tự.");
       return;
     }
 
@@ -261,7 +316,7 @@ const ProductDetailPage = () => {
       const payload = {
         userId,
         productId: product.id,
-        rating: newRating,
+        rating: Number(newRating),
         comment: newComment.trim(),
       };
 
@@ -275,10 +330,150 @@ const ProductDetailPage = () => {
       message.success("Đã gửi đánh giá sản phẩm.");
     } catch (error) {
       console.error("Lỗi khi gửi đánh giá:", error);
-      message.error("Không thể gửi đánh giá.");
+
+      const backendMessage = getApiErrorMessage(
+        error,
+        "Không thể gửi đánh giá. Vui lòng thử lại."
+      );
+
+      message.error(backendMessage);
     } finally {
       setSubmittingReview(false);
     }
+  };
+
+  const handleStartEditReview = (review) => {
+    setEditingReviewId(review.id);
+    setEditRating(Number(review.rating || 5));
+    setEditComment(review.comment || "");
+  };
+
+  const handleCancelEditReview = () => {
+    setEditingReviewId(null);
+    setEditRating(5);
+    setEditComment("");
+  };
+
+  const handleUpdateReview = async (review) => {
+    if (!userId) {
+      message.warning("Vui lòng đăng nhập để sửa đánh giá.");
+      return;
+    }
+
+    if (!review?.id) {
+      message.warning("Không xác định được đánh giá cần sửa.");
+      return;
+    }
+
+    if (!editComment.trim()) {
+      message.warning("Vui lòng nhập nội dung đánh giá.");
+      return;
+    }
+
+    if (editComment.trim().length > 2000) {
+      message.warning("Nội dung đánh giá không được vượt quá 2000 ký tự.");
+      return;
+    }
+
+    if (!reviewEndpoint?.update) {
+      message.error("Chưa cấu hình endpoint cập nhật đánh giá.");
+      return;
+    }
+
+    setUpdatingReview(true);
+
+    try {
+      const payload = {
+        userId,
+        productId: product.id,
+        rating: Number(editRating),
+        comment: editComment.trim(),
+      };
+
+      const response = await api.put(reviewEndpoint.update(review.id), payload);
+      const updatedReview = unwrapApiData(response);
+
+      setReviews((prevReviews) =>
+        prevReviews.map((item) => {
+          if (String(item.id) !== String(review.id)) {
+            return item;
+          }
+
+          return updatedReview?.id
+            ? updatedReview
+            : {
+                ...item,
+                rating: Number(editRating),
+                comment: editComment.trim(),
+              };
+        })
+      );
+
+      handleCancelEditReview();
+      message.success("Đã cập nhật đánh giá.");
+    } catch (error) {
+      console.error("Lỗi khi cập nhật đánh giá:", error);
+
+      const backendMessage = getApiErrorMessage(
+        error,
+        "Không thể cập nhật đánh giá."
+      );
+
+      message.error(backendMessage);
+    } finally {
+      setUpdatingReview(false);
+    }
+  };
+
+  const handleDeleteReview = (review) => {
+    if (!userId) {
+      message.warning("Vui lòng đăng nhập để xóa đánh giá.");
+      return;
+    }
+
+    if (!review?.id) {
+      message.warning("Không xác định được đánh giá cần xóa.");
+      return;
+    }
+
+    if (!reviewEndpoint?.delete) {
+      message.error("Chưa cấu hình endpoint xóa đánh giá.");
+      return;
+    }
+
+    Modal.confirm({
+      title: "Xóa đánh giá",
+      content: "Bạn có chắc chắn muốn xóa đánh giá này không?",
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: {
+        danger: true,
+      },
+      onOk: async () => {
+        setDeletingReviewId(review.id);
+
+        try {
+          await api.delete(reviewEndpoint.delete(review.id));
+
+          setReviews((prevReviews) =>
+            prevReviews.filter((item) => String(item.id) !== String(review.id))
+          );
+
+          message.success("Đã xóa đánh giá.");
+        } catch (error) {
+          console.error("Lỗi khi xóa đánh giá:", error);
+
+          const backendMessage = getApiErrorMessage(
+            error,
+            "Không thể xóa đánh giá."
+          );
+
+          message.error(backendMessage);
+        } finally {
+          setDeletingReviewId(null);
+        }
+      },
+    });
   };
 
   const handleToggleWishlist = async () => {
@@ -631,26 +826,108 @@ const ProductDetailPage = () => {
               <Empty description="Chưa có đánh giá nào." />
             ) : (
               <div className="space-y-4">
-                {reviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <Text strong>{review.userName || "Người dùng"}</Text>
+                {reviews.map((review) => {
+                  const isEditing = String(editingReviewId) === String(review.id);
+                  const isOwner = canManageReview(review);
 
-                      <Text type="secondary" className="text-xs">
-                        {getReviewDate(review.createdAt)}
-                      </Text>
+                  return (
+                    <div
+                      key={review.id}
+                      className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div>
+                          <Text strong>{review.userName || "Người dùng"}</Text>
+
+                          <div className="mt-1">
+                            <Text type="secondary" className="text-xs">
+                              {getReviewDate(review.createdAt)}
+                            </Text>
+
+                            {review.updatedAt && (
+                              <Text type="secondary" className="ml-2 text-xs">
+                                Đã chỉnh sửa
+                              </Text>
+                            )}
+                          </div>
+                        </div>
+
+                        {isOwner && !isEditing && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="small"
+                              icon={<EditOutlined />}
+                              onClick={() => handleStartEditReview(review)}
+                              className="!rounded-lg"
+                            >
+                              Sửa
+                            </Button>
+
+                            <Button
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined />}
+                              loading={String(deletingReviewId) === String(review.id)}
+                              onClick={() => handleDeleteReview(review)}
+                              className="!rounded-lg"
+                            >
+                              Xóa
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {isEditing ? (
+                        <div className="mt-3 rounded-2xl bg-white p-4">
+                          <div className="mb-3">
+                            <Text strong>Chỉnh sửa đánh giá</Text>
+
+                            <div className="mt-2">
+                              <Rate value={editRating} onChange={setEditRating} />
+                            </div>
+                          </div>
+
+                          <TextArea
+                            rows={4}
+                            value={editComment}
+                            onChange={(event) => setEditComment(event.target.value)}
+                            maxLength={2000}
+                            showCount
+                            placeholder="Cập nhật nội dung đánh giá..."
+                          />
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              type="primary"
+                              icon={<SaveOutlined />}
+                              loading={updatingReview}
+                              onClick={() => handleUpdateReview(review)}
+                              className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                            >
+                              Lưu thay đổi
+                            </Button>
+
+                            <Button
+                              icon={<CloseOutlined />}
+                              onClick={handleCancelEditReview}
+                              className="!rounded-xl"
+                            >
+                              Hủy
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <Rate disabled value={Number(review.rating || 0)} />
+
+                          <Paragraph className="!mt-2 !mb-0 text-gray-600">
+                            {review.comment || "Không có nội dung đánh giá."}
+                          </Paragraph>
+                        </>
+                      )}
                     </div>
-
-                    <Rate disabled value={Number(review.rating || 0)} />
-
-                    <Paragraph className="!mt-2 !mb-0 text-gray-600">
-                      {review.comment || "Không có nội dung đánh giá."}
-                    </Paragraph>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
