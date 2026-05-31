@@ -14,12 +14,13 @@ import {
   TagOutlined,
   DollarCircleOutlined,
   TrophyOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  KeyOutlined
 } from '@ant-design/icons';
 import { Avatar, Badge, Button, Dropdown } from 'antd'; 
 import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
-import { clearAuthUser } from '../../Utils/Auth'; 
+import { clearAuthUser, getAuthUser } from '../../Utils/Auth'; 
 import ADMIN_ROUTE from '../../Routes/Admin.routes';
 
 // --- COMPONENT: RESPONSIVE 3D MODEL ---
@@ -133,12 +134,40 @@ export default function AdminMainLayout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const user = getAuthUser();
+
+  const [avatarUpdate, setAvatarUpdate] = useState(null);
+  const [adminNameUpdate, setAdminNameUpdate] = useState(null);
+
+  const handleAvatarUpdate = (newAvatarUrl) => {
+    setAvatarUpdate(newAvatarUrl);
+  };
+
+  const handleAdminNameUpdate = (newName) => {
+    setAdminNameUpdate(newName);
+  };
+
   const handleLogout = () => {
     clearAuthUser(); 
     navigate('/auth/login&register');
   };
 
   const userMenu = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Trang cá nhân',
+      onClick: () => navigate(ADMIN_ROUTE.Profile),
+    },
+    {
+      key: 'changePassword',
+      icon: <KeyOutlined />,
+      label: 'Đổi mật khẩu',
+      onClick: () => navigate(ADMIN_ROUTE.ChangePassword),
+    },
+    {
+      type: 'divider',
+    },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -180,15 +209,19 @@ export default function AdminMainLayout() {
               arrow
             >
               <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
-                <Avatar icon={<UserOutlined />} className="bg-orange-600" />
-                <span className="text-sm font-bold text-gray-700 hidden md:block">Admin</span>
+                <Avatar 
+                  src={avatarUpdate || user?.avatarUrl} 
+                  icon={!avatarUpdate && !user?.avatarUrl ? <UserOutlined /> : null} 
+                  className="bg-orange-600" 
+                />
+                <span className="text-sm font-bold text-gray-700 hidden md:block">{adminNameUpdate || user?.fullName || 'Admin'}</span>
               </div>
             </Dropdown>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50">
-          <Outlet />
+          <Outlet context={{ handleAvatarUpdate, handleAdminNameUpdate }} />
         </main>
       </div>
     </div>

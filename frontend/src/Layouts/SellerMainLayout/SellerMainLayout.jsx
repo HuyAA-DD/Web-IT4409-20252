@@ -9,9 +9,10 @@ import {
   CloseOutlined,
   DashboardOutlined,
   ShopOutlined,
-  LogoutOutlined // Import thêm icon đăng xuất
+  LogoutOutlined,
+  KeyOutlined // Đã import thêm icon chìa khóa
 } from '@ant-design/icons';
-import { Avatar, Badge, Button, Dropdown } from 'antd'; // Import thêm Dropdown
+import { Avatar, Badge, Button, Dropdown } from 'antd';
 import SELLER_ROUTE from '../../Routes/Seller.routes';
 import USER_ROUTE from '../../Routes/User.routes';
 
@@ -103,14 +104,15 @@ export default function SellerMainLayout() {
   const user = getAuthUser();
 
   const [avatarUpdate, setAvatarUpdate] = useState(null);
+  const [sellerNameUpdate, setSellerNameUpdate] = useState(null);
 
   const handleAvatarUpdate = (newAvatarUrl) => {
     setAvatarUpdate(newAvatarUrl);
   } 
 
-
-
-
+  const handleSellerNameUpdate = (newSellerName) => {
+    setSellerNameUpdate(newSellerName);
+  }
 
   // Logic khi bấm Đăng xuất
   const handleLogout = () => {
@@ -125,6 +127,14 @@ export default function SellerMainLayout() {
       label: 'Trang cá nhân',
       icon: <UserOutlined />,
       onClick: () => navigate(SELLER_ROUTE.Profile),
+    },
+    // Đã thêm mục Đổi mật khẩu
+    {
+      key: 'changePassword',
+      label: 'Đổi mật khẩu',
+      icon: <KeyOutlined />,
+      // Lưu ý: Cập nhật biến route này nếu bạn đã định nghĩa trong SELLER_ROUTE
+      onClick: () => navigate('/seller/change-password'), 
     },
     {
       type: 'divider', // Đường kẻ ngang phân cách
@@ -177,7 +187,7 @@ export default function SellerMainLayout() {
               menu={{ items: userMenuItems }} 
               placement="bottomRight" 
               arrow
-              trigger={['hover']} // Mặc định là hover, có thể đổi thành ['click'] nếu muốn
+              trigger={['hover']} 
             >
               <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
                 <Avatar 
@@ -186,7 +196,9 @@ export default function SellerMainLayout() {
                   className="bg-blue-600"  
                 />
                 <div className="hidden md:flex flex-col">
-                  <span className="text-sm font-bold text-gray-700 leading-tight">{user?.fullName || 'Người bán hàng'}</span>
+                  <span className="text-sm font-bold text-gray-700 leading-tight">
+                    {sellerNameUpdate || user?.fullName || 'Người bán hàng'}
+                  </span>
                 </div>
               </div>
             </Dropdown>
@@ -195,10 +207,10 @@ export default function SellerMainLayout() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50">
-          <Outlet context={handleAvatarUpdate} />
+          <Outlet context={{ handleAvatarUpdate, handleSellerNameUpdate }} />
         </main>
 
       </div>
     </div>
   );
- }
+}

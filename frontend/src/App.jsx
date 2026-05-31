@@ -25,6 +25,8 @@ import CouponPage from './Pages/Admin/CouponPage/CouponPage';
 import AdminRevenuePage from './Pages/Admin/AdminRevenuePage/AdminRevenuePage';
 import AdminTopProductPage from './Pages/Admin/AdminTopProductPage/AdminTopProductPage';
 import AdminNotificationPage from './Pages/Admin/AdminNotificationPage/AdminNotificationPage';
+import AdminProfilePage from './Pages/Admin/AdminProfilePage/AdminProfilePage';
+import AdminChangePasswordPage from './Pages/Admin/AdminChangePasswordPage/AdminChangePasswordPage';
 import NotificationPage from './Pages/User/NotificationPage/NotificationPage';
 import AdminProductPage from "./Pages/Admin/AdminProductPage/AdminProductPage";
 import ProductListPage from './Pages/User/ProductListPage/ProductListPage';
@@ -35,10 +37,12 @@ import SellerProfilePage from './Pages/Seller/SellerProfilePage/SellerProfilePag
 import SellerNotificationPage from './Pages/Seller/SellerNotificationPage/SellerNotificationPage';
 import UserProfilePage from './Pages/User/UserProfilePage/UserProfilePage';
 import PaymentPage from './Pages/User/PaymentPage/PaymentPage';
+import SellerChangePasswordPage from './Pages/Seller/SellerChangePasswordPage/SellerChangePasswordPage';
 
 import RequireAuth from './Components/RequireAuth';
 
 // Thiết lập router
+
 const router = createBrowserRouter([
   {
     // USER ROUTE
@@ -129,6 +133,14 @@ const router = createBrowserRouter([
       {
         path : ADMIN_ROUTE.Notification,
         element : <AdminNotificationPage/>
+      },
+      {
+        path: ADMIN_ROUTE.Profile,
+        element: <AdminProfilePage/>
+      },
+      {
+        path: ADMIN_ROUTE.ChangePassword,
+        element: <AdminChangePasswordPage/>
       }
     ]
   },
@@ -164,6 +176,10 @@ const router = createBrowserRouter([
       {
         path: SELLER_ROUTE.Dashboard,
         element: <SellerDashboardPage/>
+      },
+      {
+        path : SELLER_ROUTE.ChangePassword,
+        element : <SellerChangePasswordPage/>
       }
     ]
   },

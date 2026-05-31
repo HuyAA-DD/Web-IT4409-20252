@@ -4,6 +4,7 @@ const SELLER_ROUTE = {
     "Profile": "/seller/profile",
     "Notification" : "/seller/notification",
     "Dashboard": "/seller/dashboard",
+    "ChangePassword": "/seller/change-password",
 }
 
 export default SELLER_ROUTE;

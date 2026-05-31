@@ -8,7 +8,9 @@ const ADMIN_ROUTE = {
     "Setting" : '/admin/setting',
     "Revenue" : "/admin/revenue",
     "Topproduct" : "/admin/top-product",
-    "Notification" : "/admin/notification"
+    "Notification" : "/admin/notification",
+    "Profile": "/admin/profile",
+    "ChangePassword": "/admin/change-password"
 }
 
 export default ADMIN_ROUTE;
