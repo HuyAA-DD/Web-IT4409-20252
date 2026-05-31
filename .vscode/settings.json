@@ -1,4 +1,8 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
+<<<<<<< HEAD
     "java.compile.nullAnalysis.mode": "automatic"
+=======
+    "java.debug.settings.onBuildFailureProceed": true
+>>>>>>> 2283e15a8a073d951d259904ee25be5418b603fb
 }

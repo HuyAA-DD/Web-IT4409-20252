@@ -7,11 +7,16 @@ import {
   UserOutlined,
   MenuOutlined,
   CloseOutlined,
-  DollarCircleOutlined,
-  ShopOutlined
+  DashboardOutlined,
+  ShopOutlined,
+  LogoutOutlined,
+  KeyOutlined // Đã import thêm icon chìa khóa
 } from '@ant-design/icons';
-import { Avatar, Badge, Button } from 'antd';
+import { Avatar, Badge, Button, Dropdown } from 'antd';
 import SELLER_ROUTE from '../../Routes/Seller.routes';
+import USER_ROUTE from '../../Routes/User.routes';
+
+import { clearAuthUser, getAuthUser } from '../../Utils/auth';
 
 // --- COMPONENT: SELLER SIDEBAR ---
 const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -19,9 +24,9 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
   const location = useLocation();
 
   const menuItems = [
-    { icon: <DollarCircleOutlined/> , label: 'Báo cáo Doanh thu', path: SELLER_ROUTE.Revenue},
+    { icon: <DashboardOutlined />, label: 'Báo cáo Doanh thu', path: SELLER_ROUTE.Dashboard },
     { icon: <InboxOutlined />, label: 'Quản lý Sản phẩm', path: SELLER_ROUTE.Product },
-    { icon: <SettingOutlined />, label: 'Thiết lập Gian hàng', path: SELLER_ROUTE.Setting},
+    { icon: <SettingOutlined />, label: 'Thông tin cá nhân', path: SELLER_ROUTE.Profile },
   ];
 
   const renderLinks = () => (
@@ -29,10 +34,11 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
       <ul className="space-y-1 px-2">
         {menuItems.map((item, idx) => {
           const isActive = location.pathname.includes(item.path);
+          
           return (
             <li key={idx}>
               <a
-                href="#"
+                href={item.path}
                 onClick={(e) => {
                   e.preventDefault();
                   navigate(item.path);
@@ -56,16 +62,13 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
   return (
     <>
-      {/* Mobile Overlay */}
       <div 
         className={`fixed inset-0 bg-black/60 z-100 lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
         onClick={onCloseMobile} 
       />
 
-      {/* Sidebar Container */}
       <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-101 flex flex-col transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         
-        {/* Mobile Header in Sidebar */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-gray-200 lg:hidden">
           <div className="flex items-center gap-2 text-blue-600">
             <ShopOutlined className="text-xl" />
@@ -74,7 +77,6 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
           <Button type="text" icon={<CloseOutlined />} onClick={onCloseMobile} />
         </div>
 
-        {/* Desktop Logo Space */}
         <div className="hidden lg:flex items-center gap-2 px-6 h-16 border-b border-gray-200 text-blue-600">
           <ShopOutlined className="text-2xl" />
           <span className="text-xl font-black tracking-tight">Seller Center</span>
@@ -84,11 +86,7 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
         <div className="p-4 mt-auto mb-4 border-t border-gray-200 mx-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center font-bold text-gray-500 border border-gray-200">
-              P
-            </div>
             <div>
-              <p className="text-sm font-bold text-gray-700 m-0">ProTech Store</p>
               <p className="text-xs text-green-500 font-medium m-0">Đang hoạt động</p>
             </div>
           </div>
@@ -103,6 +101,53 @@ export default function SellerMainLayout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const user = getAuthUser();
+
+  const [avatarUpdate, setAvatarUpdate] = useState(null);
+  const [sellerNameUpdate, setSellerNameUpdate] = useState(null);
+
+  const handleAvatarUpdate = (newAvatarUrl) => {
+    setAvatarUpdate(newAvatarUrl);
+  } 
+
+  const handleSellerNameUpdate = (newSellerName) => {
+    setSellerNameUpdate(newSellerName);
+  }
+
+  // Logic khi bấm Đăng xuất
+  const handleLogout = () => {
+    clearAuthUser();
+    navigate('/auth/login&register');
+  };
+
+  // Cấu hình các item cho Dropdown menu
+  const userMenuItems = [
+    {
+      key: 'profile',
+      label: 'Trang cá nhân',
+      icon: <UserOutlined />,
+      onClick: () => navigate(SELLER_ROUTE.Profile),
+    },
+    // Đã thêm mục Đổi mật khẩu
+    {
+      key: 'changePassword',
+      label: 'Đổi mật khẩu',
+      icon: <KeyOutlined />,
+      // Lưu ý: Cập nhật biến route này nếu bạn đã định nghĩa trong SELLER_ROUTE
+      onClick: () => navigate('/seller/change-password'), 
+    },
+    {
+      type: 'divider', // Đường kẻ ngang phân cách
+    },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      danger: true, // Thuộc tính của antd giúp chữ tự động chuyển sang màu đỏ
+      onClick: handleLogout,
+    },
+  ];
+
   return (
     <div className="bg-gray-50 text-gray-800 font-sans min-h-screen flex overflow-hidden selection:bg-blue-100 selection:text-blue-600">
       
@@ -111,17 +156,14 @@ export default function SellerMainLayout() {
         onCloseMobile={() => setIsMobileMenuOpen(false)} 
       />
 
-      {/* Cột nội dung chính */}
       <div className="flex-1 flex flex-col h-screen lg:ml-64 w-full transition-all duration-300">
         
-        {/* --- SELLER TOP NAVBAR --- */}
         <header className="bg-white w-full h-16 border-b border-gray-200 shadow-sm sticky top-0 z-50 flex items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-4">
             <MenuOutlined 
               className="text-xl text-gray-600 cursor-pointer lg:hidden" 
               onClick={() => setIsMobileMenuOpen(true)} 
             />
-            {/* Logo thu gọn trên Mobile */}
             <div className="flex items-center gap-2 text-blue-600 lg:hidden">
               <ShopOutlined className="text-xl" />
               <span className="font-black text-xl tracking-tight">Seller</span>
@@ -129,7 +171,7 @@ export default function SellerMainLayout() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="text-sm font-medium text-gray-500 hover:text-blue-600 hidden md:block transition-colors">
+            <button className="text-sm font-medium text-gray-500 hover:text-blue-600 hidden md:block transition-colors" onClick={() => navigate(USER_ROUTE.Home)}>
               Đến trang mua sắm
             </button>
             <div className="h-4 w-px bg-gray-300 hidden md:block"></div>
@@ -139,18 +181,33 @@ export default function SellerMainLayout() {
                 <BellOutlined className="text-lg" />
               </button>
             </Badge>
-            <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
-              <Avatar icon={<UserOutlined />} className="bg-blue-600" />
-              <div className="hidden md:flex flex-col">
-                <span className="text-sm font-bold text-gray-700 leading-tight">ProTech Store</span>
+
+            {/* Bọc khu vực Avatar bằng Dropdown */}
+            <Dropdown 
+              menu={{ items: userMenuItems }} 
+              placement="bottomRight" 
+              arrow
+              trigger={['hover']} 
+            >
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg transition-colors border border-transparent hover:border-gray-200">
+                <Avatar 
+                  src={avatarUpdate || user?.avatarUrl} 
+                  icon={!avatarUpdate && !user?.avatarUrl ? <UserOutlined /> : null} 
+                  className="bg-blue-600"  
+                />
+                <div className="hidden md:flex flex-col">
+                  <span className="text-sm font-bold text-gray-700 leading-tight">
+                    {sellerNameUpdate || user?.fullName || 'Người bán hàng'}
+                  </span>
+                </div>
               </div>
-            </div>
+            </Dropdown>
+
           </div>
         </header>
 
-        {/* --- NỘI DUNG RENDER TỪ ROUTER --- */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50">
-          <Outlet />
+          <Outlet context={{ handleAvatarUpdate, handleSellerNameUpdate }} />
         </main>
 
       </div>

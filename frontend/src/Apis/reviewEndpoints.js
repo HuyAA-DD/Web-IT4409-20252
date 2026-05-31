@@ -1,17 +1,11 @@
 const REVIEW_ENDPOINTS = {
-  list: "/reviews",
-
-  byId: (id) => `/reviews/${id}`,
-
-  byProduct: (productId) => `/reviews/by-product/${productId}`,
-
-  byUser: (userId) => `/reviews/by-user/${userId}`,
-
-  create: "/reviews",
-
-  update: (id) => `/reviews/${id}`,
-
-  delete: (id) => `/reviews/${id}`,
-};
+  list: "/api/v1/reviews",
+  byId: (id) => `/api/v1/reviews/${id}`,
+  byProduct: (productId) => `/api/v1/reviews/by-product/${productId}`,
+  byUser: (userId) => `/api/v1/reviews/by-user/${userId}`,
+  create: "/api/v1/reviews",
+  update: (id) => `/api/v1/reviews/${id}`,
+  delete: (id) => `/api/v1/reviews/${id}`
+}
 
 export default REVIEW_ENDPOINTS;

@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface SellerService {
+
     List<OrderResponse> getSellerOrders(UUID sellerId);
+
     OrderResponse getSellerOrderById(UUID sellerId, UUID orderId);
-    DashboardResponse getSellerDashboard(UUID sellerId);
+
+    DashboardResponse getSellerDashboard(UUID sellerId, Integer year, Integer month, Integer quarter);
 }

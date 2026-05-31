@@ -2,16 +2,15 @@ package com.webtechnology.ecommerce.service.impl;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.webtechnology.ecommerce.dto.PaymentResponse;
 import com.webtechnology.ecommerce.dto.SepayCheckoutRequest;
-import com.webtechnology.ecommerce.dto.SepayPaymentResponse;
 import com.webtechnology.ecommerce.dto.SepayTransactionStatusResponse;
 import com.webtechnology.ecommerce.entity.Order;
 import com.webtechnology.ecommerce.entity.Payment;
-import com.webtechnology.ecommerce.enums.OrderStatus;
 import com.webtechnology.ecommerce.enums.PaymentMethod;
 import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.exception.BadRequestException;
@@ -32,6 +31,22 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final SepayService sepayService;
 
+    @Value("${sepay.bank-account-number:}")
+    private String bankAccountNumber;
+
+    @Value("${sepay.bank-name:}")
+    private String bankName;
+
+    @Value("${sepay.bank-id:}")
+    private String bankId;
+
+    /**
+     * Tạo thông tin thanh toán SePay (chuyển khoản ngân hàng).
+     *
+     * SePay hoạt động theo mô hình bank transfer — không có redirect URL.
+     * Trả về thông tin tài khoản + nội dung chuyển khoản để frontend hiển thị cho khách.
+     * Nội dung chuyển khoản = orderId (SePay sẽ trích ra làm field "code" trong webhook).
+     */
     @Override
     public PaymentResponse createSepayCheckout(UUID userId, SepayCheckoutRequest request) {
         Order order = orderRepository.findById(request.getOrderId())
@@ -49,36 +64,24 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BadRequestException("Payment has already been completed for this order");
         }
 
-        SepayPaymentResponse sepayResponse = sepayService.initiatePayment(
-                order.getId().toString(),
-                order.getTotalAmount(),
-                null,
-                request.getReturnUrl(),
-                "Payment for order " + order.getId()
-        );
+        // Nội dung chuyển khoản = orderCode (ví dụ: DH12345678)
+        // Cấu hình tại my.sepay.vn → Cấu hình mã thanh toán:
+        //   Tiền tố: DH | Hậu tố: 6-10 ký tự | Loại: Số nguyên
+        String transferContent = order.getOrderCode();
 
-        Payment payment = Payment.builder()
-                .order(order)
-                .method(order.getPaymentMethod())
-                .transactionId(sepayResponse.getTransactionId())
-                .amount(order.getTotalAmount())
-                .status(sepayResponse.getStatus())
-                .build();
-        paymentRepository.save(payment);
-
-        if (PaymentStatus.PAID.equals(sepayResponse.getStatus())) {
-            order.setPaymentStatus(PaymentStatus.PAID);
-            order.setStatus(OrderStatus.CONFIRMED);
-            orderRepository.save(order);
-        }
+        // Sinh QR SePay — khi khách quét sẽ tự điền sẵn tất cả thông tin
+        // Khách chỉ cần bấm xác nhận, không cần gõ nội dung thủ công
+        String qrCodeUrl = buildSepayQrUrl(order.getTotalAmount(), transferContent);
 
         return PaymentResponse.builder()
                 .orderId(order.getId())
-                .transactionId(sepayResponse.getTransactionId())
-                .amount(sepayResponse.getAmount())
-                .paymentStatus(sepayResponse.getStatus())
+                .amount(order.getTotalAmount())
+                .paymentStatus(order.getPaymentStatus())
                 .paymentMethod(order.getPaymentMethod())
-                .paymentUrl(sepayResponse.getPaymentUrl())
+                .transferContent(transferContent)
+                .bankAccountNumber(bankAccountNumber)
+                .bankName(bankName)
+                .qrCodeUrl(qrCodeUrl)
                 .build();
     }
 
@@ -92,16 +95,14 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BadRequestException("You are not authorized to view payment status for this order");
         }
 
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order id: " + orderId));
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
 
         return PaymentResponse.builder()
                 .orderId(orderId)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount())
-                .paymentStatus(payment.getStatus())
-                .paymentMethod(payment.getMethod())
-                .paymentUrl(null)
+                .transactionId(payment != null ? payment.getTransactionId() : null)
+                .amount(order.getTotalAmount())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(order.getPaymentMethod())
                 .build();
     }
 
@@ -118,6 +119,33 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order id: " + orderId));
 
-        return sepayService.getTransactionStatus(payment.getTransactionId(), orderId.toString());
+        // Query SePay API bằng sepayTransactionId đã lưu
+        return sepayService.getTransactionStatus(payment.getTransactionId());
+    }
+
+    /**
+     * Sinh URL ảnh QR của SePay.
+     * Khi khách quét bằng app ngân hàng, toàn bộ thông tin được điền sẵn tự động.
+     * Lấy thông tin tài khoản tại: my.sepay.vn → Tài khoản ngân hàng → QR Code
+     *
+     * Format: https://qr.sepay.vn/img?acc={account}&bank={bankId}&amount={amount}&des={content}
+     */
+    private String buildSepayQrUrl(java.math.BigDecimal amount, String transferContent) {
+        if (bankId == null || bankId.isBlank()
+                || bankAccountNumber == null || bankAccountNumber.isBlank()) {
+            return null;
+        }
+        try {
+            String encodedContent = java.net.URLEncoder.encode(transferContent, "UTF-8");
+            return String.format(
+                    "https://qr.sepay.vn/img?acc=%s&bank=%s&amount=%s&des=%s&template=compact",
+                    bankAccountNumber,
+                    bankId,
+                    amount.toBigInteger(),
+                    encodedContent
+            );
+        } catch (java.io.UnsupportedEncodingException e) {
+            return null;
+        }
     }
 }

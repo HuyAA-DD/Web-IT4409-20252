@@ -168,7 +168,7 @@ const CartPage = () => {
 
   const cartEndpoint = API_ENDPOINTS.cart;
   const productEndpoint = API_ENDPOINTS.products || API_ENDPOINTS.product;
-  const couponEndpoint = API_ENDPOINTS.coupon;
+  const couponEndpoint = API_ENDPOINTS.coupons;
 
   const [cart, setCart] = useState(null);
   const [productMap, setProductMap] = useState({});

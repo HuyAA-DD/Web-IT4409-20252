@@ -12,25 +12,12 @@ import {
   CloseOutlined
 } from '@ant-design/icons';
 import { Progress, message } from 'antd';
-
-// =========================================================================
-// [MOCK_DATA] - 10 bản ghi đa dạng trạng thái để test UI
-// =========================================================================
-const initialMockCoupons = [
-  { id: "c-001", code: "SUMMER2026", discountType: "PERCENT", discountValue: 15, minOrderValue: 500000, maxDiscount: 100000, startDate: "2026-05-01T00:00", endDate: "2026-06-30T23:59", usageLimit: 1000, currentUsage: 850, isActive: true, createdAt: "2026-04-15T10:00:00" },
-  { id: "c-002", code: "FREESHIP50", discountType: "FIXED", discountValue: 50000, minOrderValue: 200000, maxDiscount: 50000, startDate: "2026-05-15T00:00", endDate: "2026-05-31T23:59", usageLimit: 500, currentUsage: 500, isActive: false, createdAt: "2026-05-10T14:30:00" },
-  { id: "c-003", code: "NEWBIE", discountType: "PERCENT", discountValue: 10, minOrderValue: 0, maxDiscount: 50000, startDate: "2026-01-01T00:00", endDate: "2026-12-31T23:59", usageLimit: 5000, currentUsage: 1240, isActive: true, createdAt: "2026-01-01T08:00:00" },
-  { id: "c-004", code: "FLASH1111", discountType: "FIXED", discountValue: 100000, minOrderValue: 1000000, maxDiscount: 100000, startDate: "2026-11-11T00:00", endDate: "2026-11-11T23:59", usageLimit: 100, currentUsage: 0, isActive: true, createdAt: "2026-05-16T15:20:00" },
-  { id: "c-005", code: "BROKENCODE", discountType: "PERCENT", discountValue: 50, minOrderValue: 0, maxDiscount: 500000, startDate: "2026-05-01T00:00", endDate: "2026-05-30T23:59", usageLimit: 10, currentUsage: 2, isActive: false, createdAt: "2026-05-02T10:00:00" },
-  { id: "c-006", code: "TETNGUYENDAN", discountType: "PERCENT", discountValue: 20, minOrderValue: 1000000, maxDiscount: 200000, startDate: "2026-01-15T00:00", endDate: "2026-02-15T23:59", usageLimit: 2000, currentUsage: 2000, isActive: true, createdAt: "2026-01-05T09:00:00" }, // Đã hết lượt
-  { id: "c-007", code: "OLDYEAR25", discountType: "FIXED", discountValue: 30000, minOrderValue: 150000, maxDiscount: 30000, startDate: "2025-12-01T00:00", endDate: "2025-12-31T23:59", usageLimit: 300, currentUsage: 150, isActive: true, createdAt: "2025-11-20T10:00:00" }, // Đã hết hạn
-  { id: "c-008", code: "SUPERPRO26", discountType: "FIXED", discountValue: 500000, minOrderValue: 5000000, maxDiscount: 500000, startDate: "2026-06-01T00:00", endDate: "2026-06-05T23:59", usageLimit: 50, currentUsage: 0, isActive: true, createdAt: "2026-05-10T11:00:00" }, // Chưa bắt đầu (Sắp diễn ra)
-  { id: "c-009", code: "VIPMEMBER", discountType: "PERCENT", discountValue: 5, minOrderValue: 0, maxDiscount: 9999999, startDate: "2026-01-01T00:00", endDate: "2026-12-31T23:59", usageLimit: 9999, currentUsage: 345, isActive: true, createdAt: "2026-01-01T00:00:00" },
-  { id: "c-010", code: "TESTCODE", discountType: "FIXED", discountValue: 1000, minOrderValue: 1000, maxDiscount: 1000, startDate: "2026-05-17T00:00", endDate: "2026-05-18T23:59", usageLimit: 5, currentUsage: 1, isActive: false, createdAt: "2026-05-17T08:00:00" }, // Đã khóa
-];
+import api from '../../../Apis/apiConfig';
+import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminCouponPage() {
-  const [coupons, setCoupons] = useState(initialMockCoupons);
+  const [coupons, setCoupons] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // --- STATES BỘ LỌC ---
   const [searchCode, setSearchCode] = useState('');
@@ -41,37 +28,48 @@ export default function AdminCouponPage() {
   // --- STATES PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+  const [totalElements, setTotalElements] = useState(0);
 
-  // =========================================================================
-  // [API_CALL] - GET DANH SÁCH COUPON (Dùng cho sau này)
-  // =========================================================================
-  /*
   useEffect(() => {
     const fetchCoupons = async () => {
+      setIsLoading(true);
       try {
-        // Gửi các filter lên BE qua query params
-        const response = await axios.get('/api/v1/admin/coupons', {
-          params: {
-            code: appliedFilters.searchCode || undefined,
-            type: appliedFilters.typeFilter || undefined,
-            isActive: appliedFilters.statusFilter === 'ACTIVE' ? true : 
-                      appliedFilters.statusFilter === 'INACTIVE' ? false : undefined,
-            page: currentPage - 1, // BE Spring Boot thường phân trang từ số 0
-            size: pageSize
-          }
-        });
-        
-        // setCoupons(response.data.content);
-        // setTotalElements(response.data.totalElements); // Cần tạo thêm state này nếu BE trả về Page<CouponResponse>
+        // ĐÃ SỬA: Cập nhật lại logic truyền tham số isActive cho API
+        const isActiveParam = 
+          ['ACTIVE', 'UPCOMING', 'EXPIRED'].includes(appliedFilters.statusFilter) ? true :
+          appliedFilters.statusFilter === 'LOCKED' ? false : undefined;
+
+        const params = {
+          code: appliedFilters.searchCode || undefined,
+          type: appliedFilters.typeFilter || undefined,
+          isActive: isActiveParam,
+          page: currentPage - 1,
+          size: pageSize,
+        };
+
+        const response = await api.get(API_ENDPOINTS.coupons.list, params);
+        const data = response?.data || response;
+
+        if (Array.isArray(data?.content)) {
+          setCoupons(data.content);
+          setTotalElements(data.totalElements || data.content.length);
+        } else if (Array.isArray(data)) {
+          setCoupons(data);
+          setTotalElements(data.length);
+        } else {
+          setCoupons([]);
+          setTotalElements(0);
+        }
       } catch (error) {
-        console.error("Lỗi khi tải danh sách Coupon", error);
-        message.error("Không thể tải danh sách khuyến mãi!");
+        console.error('Lỗi khi tải danh sách Coupon', error);
+        message.error('Không thể tải danh sách khuyến mãi!');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchCoupons();
-  }, [appliedFilters, currentPage]); 
-  */
+  }, [appliedFilters, currentPage]);
 
   // =========================================================================
   // LOGIC QUẢN LÝ MODAL (THÊM / SỬA)
@@ -81,7 +79,7 @@ export default function AdminCouponPage() {
   const [editingId, setEditingId] = useState(null);
 
   const initialFormState = {
-    code: '', discountType: 'PERCENT', discountValue: '', minOrderValue: '',
+    code: '', discountType: 'PERCENT', discountValue: '5', minOrderValue: '',
     maxDiscount: '', startDate: '', endDate: '', usageLimit: '', isActive: true
   };
   const [formData, setFormData] = useState(initialFormState);
@@ -109,49 +107,117 @@ export default function AdminCouponPage() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(prev => {
+      const updatedData = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      
+      if (name === 'discountType') {
+        updatedData.discountValue = value === 'PERCENT' ? '5' : ''; 
+        if (value === 'FIXED') {
+          updatedData.maxDiscount = ''; 
+        }
+      }
+      return updatedData;
+    });
   };
 
-  // LƯU DỮ LIỆU (POST / PUT)
-  const handleSaveCoupon = (e) => {
+  const handleSaveCoupon = async (e) => {
     e.preventDefault();
-    if (modalMode === 'create') {
-      // TODO: [API_CALL] - POST /api/v1/admin/coupons
-      const newCoupon = { ...formData, id: `c-new-${Date.now()}`, currentUsage: 0, createdAt: new Date().toISOString() };
-      setCoupons([newCoupon, ...coupons]);
-      message.success("Tạo mã giảm giá thành công!");
-    } else {
-      // TODO: [API_CALL] - PUT /api/v1/admin/coupons/{editingId}
-      setCoupons(coupons.map(c => c.id === editingId ? { ...c, ...formData } : c));
-      message.success("Cập nhật mã giảm giá thành công!");
+
+    const payload = {
+      code: formData.code,
+      discountType: formData.discountType,
+      discountValue: Number(formData.discountValue),
+      minOrderValue: Number(formData.minOrderValue),
+      maxDiscount: formData.discountType === 'FIXED' ? Number(formData.discountValue) : Number(formData.maxDiscount),
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      usageLimit: Number(formData.usageLimit),
+      isActive: formData.isActive,
+    };
+
+    try {
+      if (modalMode === 'create') {
+        const newCoupon = await api.post(API_ENDPOINTS.coupons.create, payload);
+        const final_newCoupon =  newCoupon?.data || newCoupon;
+        setCoupons((prev) => [final_newCoupon, ...prev]);
+        console.log('Mã giảm giá mới:', newCoupon);
+        message.success('Tạo mã giảm giá thành công!');
+      } else {
+        const updatedCoupon = await api.put(API_ENDPOINTS.coupons.update(editingId), payload);
+        const final_updatedCoupon = updatedCoupon?.data || updatedCoupon;
+        setCoupons((prev) =>
+          prev.map((coupon) => (coupon.id === editingId ? { ...coupon, ...final_updatedCoupon } : coupon))
+        );
+        message.success('Cập nhật mã giảm giá thành công!');
+      }
+      handleCloseModal();
+    } catch (error) {
+      console.error('Lỗi lưu mã khuyến mãi', error);
+      message.error('Không thể lưu mã giảm giá.');
     }
-    handleCloseModal();
   };
 
-  // XÓA DỮ LIỆU (DELETE)
-  const handleDeleteCoupon = (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa mã giảm giá này không? Hành động này không thể hoàn tác.")) {
-      // TODO: [API_CALL] - DELETE /api/v1/admin/coupons/{id}
-      setCoupons(coupons.filter(c => c.id !== id));
-      message.success("Đã xóa mã giảm giá!");
+  const handleDeleteCoupon = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá này không? Hành động này không thể hoàn tác.')) {
+      return;
+    }
+
+    try {
+      await api.delete(API_ENDPOINTS.coupons.delete(id));
+      setCoupons((prev) => prev.filter((c) => c.id !== id));
+      message.success('Đã xóa mã giảm giá!');
+    } catch (error) {
+      console.error('Lỗi xóa mã giảm giá', error);
+      message.error('Không thể xóa mã giảm giá.');
     }
   };
 
   // =========================================================================
-  // LỌC VÀ PHÂN TRANG FRONTEND (TẠM THỜI CHẠY VỚI MOCK DATA)
+  // LỌC VÀ PHÂN TRANG FRONTEND
   // =========================================================================
   const handleApplyFilter = () => {
     setAppliedFilters({ searchCode, typeFilter, statusFilter });
     setCurrentPage(1); 
   };
 
+  // ĐÃ SỬA LẠI HOÀN TOÀN LOGIC LỌC
   const filteredCoupons = useMemo(() => {
     return coupons.filter(c => {
+      if (!c) return false;
+
+      // Lọc theo mã và loại
       if (appliedFilters.searchCode && !c.code.toLowerCase().includes(appliedFilters.searchCode.toLowerCase())) return false;
       if (appliedFilters.typeFilter && c.discountType !== appliedFilters.typeFilter) return false;
+      
+      // Lọc chi tiết theo trạng thái (kết hợp isActive, lượt dùng và thời gian)
       if (appliedFilters.statusFilter) {
-        const isStatusActive = appliedFilters.statusFilter === 'ACTIVE';
-        if (c.isActive !== isStatusActive) return false;
+        const now = new Date();
+        const startDate = new Date(c.startDate);
+        const endDate = new Date(c.endDate);
+        const currentUsage = c.currentUsage || 0;
+        const usageLimit = c.usageLimit || 1;
+
+        const isLocked = !c.isActive;
+        const isExpired = endDate < now;
+        const isUpcoming = startDate > now;
+        const isFullyUsed = currentUsage >= usageLimit;
+
+        switch (appliedFilters.statusFilter) {
+          case 'LOCKED':
+            if (!isLocked) return false; // Chỉ lấy mã bị khóa
+            break;
+          case 'UPCOMING':
+            if (isLocked || !isUpcoming) return false; // Chỉ lấy mã chưa đến hạn (và đang bật)
+            break;
+          case 'EXPIRED':
+            if (isLocked || (!isExpired && !isFullyUsed)) return false; // Chỉ lấy mã hết hạn hoặc hết lượt
+            break;
+          case 'ACTIVE':
+            if (isLocked || isExpired || isFullyUsed || isUpcoming) return false; // Chỉ lấy mã đang chạy ngon lành
+            break;
+          default:
+            break;
+        }
       }
       return true;
     });
@@ -205,10 +271,13 @@ export default function AdminCouponPage() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trạng thái</label>
+            {/* ĐÃ SỬA: Cập nhật lại Select option cho filter trạng thái */}
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full bg-transparent px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 focus:border-orange-500 focus:ring-1 outline-none text-sm text-gray-800 dark:text-gray-200 appearance-none cursor-pointer">
               <option value="" className="dark:bg-slate-800">Tất cả trạng thái</option>
               <option value="ACTIVE" className="dark:bg-slate-800">Đang hoạt động</option>
-              <option value="INACTIVE" className="dark:bg-slate-800">Đã khóa / Hết hạn</option>
+              <option value="UPCOMING" className="dark:bg-slate-800">Sắp diễn ra</option>
+              <option value="EXPIRED" className="dark:bg-slate-800">Hết hạn / Hết lượt</option>
+              <option value="LOCKED" className="dark:bg-slate-800">Đã khóa</option>
             </select>
           </div>
           <div className="flex flex-col gap-1 justify-end">
@@ -234,14 +303,18 @@ export default function AdminCouponPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {paginatedCoupons.map(coupon => {
-                const percentUsed = (coupon.currentUsage / coupon.usageLimit) * 100;
+                if (!coupon) return null;
+                const currentUsage = coupon.currentUsage || 0;
+                const usageLimit = coupon.usageLimit || 1; 
+                const percentUsed = Math.min((currentUsage / usageLimit) * 100, 100);
+
                 const now = new Date();
                 const startDate = new Date(coupon.startDate);
                 const endDate = new Date(coupon.endDate);
                 
                 const isExpired = endDate < now;
                 const isUpcoming = startDate > now;
-                const isFullyUsed = coupon.currentUsage >= coupon.usageLimit;
+                const isFullyUsed = currentUsage >= usageLimit;
 
                 return (
                   <tr key={coupon.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -250,11 +323,16 @@ export default function AdminCouponPage() {
                       <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200">
                         {coupon.discountType === 'PERCENT' ? <><PercentageOutlined className="text-blue-500" /> {coupon.discountValue}%</> : <><DollarOutlined className="text-emerald-500" /> {formatCurrency(coupon.discountValue)}</>}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tối đa: {formatCurrency(coupon.maxDiscount)}</div>
+                      {coupon.discountType === 'PERCENT' && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tối đa: {formatCurrency(coupon.maxDiscount)}</div>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-300">Đơn tối thiểu:<br/><span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(coupon.minOrderValue)}</span></td>
                     <td className="py-4 px-4">
-                      <div className="flex justify-between text-xs mb-1"><span className="font-bold text-gray-700 dark:text-gray-300">{coupon.currentUsage}</span><span className="text-gray-500 dark:text-gray-400">/ {coupon.usageLimit}</span></div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-bold text-gray-700 dark:text-gray-300">{currentUsage}</span>
+                        <span className="text-gray-500 dark:text-gray-400">/ {coupon.usageLimit}</span>
+                      </div>
                       <Progress percent={percentUsed} showInfo={false} size="small" strokeColor={percentUsed >= 100 ? '#ef4444' : '#f97316'} />
                     </td>
                     <td className="py-4 px-4 text-xs text-gray-500 dark:text-gray-400 font-mono">
@@ -326,15 +404,29 @@ export default function AdminCouponPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className={`grid grid-cols-1 gap-4 ${formData.discountType === 'PERCENT' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Mức giảm *</label>
-                  <input required name="discountValue" value={formData.discountValue} onChange={handleInputChange} type="number" min="1" placeholder="VD: 15 hoặc 50000" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500" />
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    {formData.discountType === 'PERCENT' ? 'Mức giảm (%) *' : 'Mức giảm (VND) *'}
+                  </label>
+                  {formData.discountType === 'PERCENT' ? (
+                    <select required name="discountValue" value={formData.discountValue} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500">
+                      {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map(val => (
+                        <option key={val} value={val}>{val}%</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input required name="discountValue" value={formData.discountValue} onChange={handleInputChange} type="number" min="1" placeholder="VD: 50000" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500" />
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Giảm tối đa (VND) *</label>
-                  <input required name="maxDiscount" value={formData.maxDiscount} onChange={handleInputChange} type="number" min="0" placeholder="VD: 100000" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500" />
-                </div>
+
+                {formData.discountType === 'PERCENT' && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Giảm tối đa (VND) *</label>
+                    <input required name="maxDiscount" value={formData.maxDiscount} onChange={handleInputChange} type="number" min="0" placeholder="VD: 100000" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500" />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Đơn tối thiểu (VND) *</label>
                   <input required name="minOrderValue" value={formData.minOrderValue} onChange={handleInputChange} type="number" min="0" placeholder="VD: 200000" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500" />

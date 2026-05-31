@@ -27,7 +27,7 @@ public interface ProductService {
 
     ProductResponse updateProduct(UUID id, ProductRequest request, UUID sellerId);
 
-    void deleteProduct(UUID id);
+    void deleteProduct(UUID id, UUID callerId, boolean isAdmin);
 
     FileUploadResponse uploadProductImage(UUID productId, MultipartFile file);
 

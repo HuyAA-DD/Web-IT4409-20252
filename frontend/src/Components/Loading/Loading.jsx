@@ -4,7 +4,7 @@ const Loading = () => {
   return (
     <div className = "w-full h-screen  flex flex-col justify-center items-center  ">
         <h2 className = "text-xl font-semibold">Đang tải dữ liệu ...</h2>
-        <section id = "loading-container" className = "w-1/4 md:w-1/10">
+        <section id = "loading-container" className = "w-full md:w-1/10 lg:w-[100px]">
             <div></div>
             <div></div>
             <div></div>

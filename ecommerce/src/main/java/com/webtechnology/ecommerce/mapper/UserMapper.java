@@ -1,5 +1,6 @@
 package com.webtechnology.ecommerce.mapper;
 
+import com.webtechnology.ecommerce.dto.UserCreateRequest;
 import com.webtechnology.ecommerce.dto.UserRequest;
 import com.webtechnology.ecommerce.dto.UserResponse;
 import com.webtechnology.ecommerce.entity.User;
@@ -20,6 +21,13 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "avatarUrl", ignore = true)
     User toEntity(UserRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "avatarUrl", ignore = true)
+    User toEntity(UserCreateRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

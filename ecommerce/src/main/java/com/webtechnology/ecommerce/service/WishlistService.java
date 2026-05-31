@@ -17,7 +17,7 @@ public interface WishlistService {
 
     List<WishlistResponse> getWishlistsByProductId(UUID productId);
 
-    void removeWishlistById(UUID id);
+    void removeWishlistById(UUID id, UUID requesterId);
 
     void removeWishlistByUserId(UUID userId);
 

@@ -76,8 +76,12 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     @Override
-    public void removeWishlistById(UUID id) {
+    public void removeWishlistById(UUID id, UUID requesterId) {
         Wishlist wishlist = findWishlistById(id);
+        if (!wishlist.getUser().getId().equals(requesterId)) {
+            throw new com.webtechnology.ecommerce.exception.BadRequestException(
+                    "You are not authorized to remove this wishlist item");
+        }
         wishlistRepository.delete(wishlist);
     }
 

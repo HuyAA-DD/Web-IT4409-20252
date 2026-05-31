@@ -1,6 +1,5 @@
 package com.webtechnology.ecommerce.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -16,7 +15,4 @@ public class SepayCheckoutRequest {
 
     @NotNull(message = "Order ID cannot be null")
     private UUID orderId;
-
-    @NotBlank(message = "Return URL is required")
-    private String returnUrl;
 }

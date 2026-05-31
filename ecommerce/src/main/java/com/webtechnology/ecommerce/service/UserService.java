@@ -5,12 +5,14 @@ import java.util.UUID;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.webtechnology.ecommerce.dto.ChangePasswordRequest;
+import com.webtechnology.ecommerce.dto.UserCreateRequest;
 import com.webtechnology.ecommerce.dto.UserRequest;
 import com.webtechnology.ecommerce.dto.UserResponse;
 
 public interface UserService {
 
-    UserResponse createUser(UserRequest request);
+    UserResponse createUser(UserCreateRequest request);
 
     List<UserResponse> getAllUsers();
 
@@ -25,4 +27,6 @@ public interface UserService {
     UserResponse updateCurrentUserProfile(UserRequest request);
 
     UserResponse updateCurrentUserAvatar(MultipartFile file);
+
+    void changePassword(ChangePasswordRequest request);
 }

@@ -3,7 +3,9 @@ package com.webtechnology.ecommerce.service.impl;
 import com.webtechnology.ecommerce.dto.AddressRequest;
 import com.webtechnology.ecommerce.dto.AddressResponse;
 import com.webtechnology.ecommerce.entity.Address;
+import com.webtechnology.ecommerce.entity.Role;
 import com.webtechnology.ecommerce.entity.User;
+import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
 import com.webtechnology.ecommerce.mapper.AddressMapper;
 import com.webtechnology.ecommerce.repository.AddressRepository;
@@ -32,33 +34,32 @@ public class AddressServiceImpl implements AddressService {
         address.setUser(user);
 
         if (request.getIsDefault() != null && request.getIsDefault()) {
-            updateDefaultAddress(request.getUserId());
+            clearDefaultAddress(request.getUserId());
         }
 
-        Address savedAddress = addressRepository.save(address);
-        return addressMapper.toResponse(savedAddress);
+        return addressMapper.toResponse(addressRepository.save(address));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AddressResponse> getAllAddresses() {
-        return addressRepository.findAll()
-                .stream()
+        return addressRepository.findAll().stream()
                 .map(addressMapper::toResponse)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public AddressResponse getAddressById(UUID id) {
-        return addressMapper.toResponse(findAddressById(id));
+    public AddressResponse getAddressById(UUID id, UUID requesterId) {
+        Address address = findAddressById(id);
+        checkOwnership(address, requesterId);
+        return addressMapper.toResponse(address);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AddressResponse> getAddressesByUserId(UUID userId) {
-        return addressRepository.findByUserId(userId)
-                .stream()
+        return addressRepository.findByUserId(userId).stream()
                 .map(addressMapper::toResponse)
                 .toList();
     }
@@ -72,21 +73,24 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    public AddressResponse updateAddress(UUID id, AddressRequest request) {
-        Address existingAddress = findAddressById(id);
-        addressMapper.updateEntityFromRequest(request, existingAddress);
+    public AddressResponse updateAddress(UUID id, AddressRequest request, UUID requesterId) {
+        Address existing = findAddressById(id);
+        checkOwnership(existing, requesterId);
+
+        addressMapper.updateEntityFromRequest(request, existing);
 
         if (request.getIsDefault() != null && request.getIsDefault()) {
-            updateDefaultAddress(existingAddress.getUser().getId());
+            clearDefaultAddress(existing.getUser().getId());
+            existing.setIsDefault(true);
         }
 
-        Address savedAddress = addressRepository.save(existingAddress);
-        return addressMapper.toResponse(savedAddress);
+        return addressMapper.toResponse(addressRepository.save(existing));
     }
 
     @Override
-    public void deleteAddress(UUID id) {
+    public void deleteAddress(UUID id, UUID requesterId) {
         Address address = findAddressById(id);
+        checkOwnership(address, requesterId);
         addressRepository.delete(address);
     }
 
@@ -95,16 +99,27 @@ public class AddressServiceImpl implements AddressService {
         addressRepository.deleteByUserId(userId);
     }
 
+    // --- Helpers ---
+
     private Address findAddressById(UUID id) {
         return addressRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + id));
     }
 
-    private void updateDefaultAddress(UUID userId) {
+    /** Cho phép owner hoặc ADMIN truy cập */
+    private void checkOwnership(Address address, UUID requesterId) {
+        if (address.getUser().getId().equals(requesterId)) return;
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + requesterId));
+        if (requester.getRole() == Role.ADMIN) return;
+        throw new BadRequestException("You are not authorized to access this address");
+    }
+
+    private void clearDefaultAddress(UUID userId) {
         addressRepository.findByUserIdAndIsDefault(userId, true)
-                .ifPresent(address -> {
-                    address.setIsDefault(false);
-                    addressRepository.save(address);
+                .ifPresent(a -> {
+                    a.setIsDefault(false);
+                    addressRepository.save(a);
                 });
     }
 }

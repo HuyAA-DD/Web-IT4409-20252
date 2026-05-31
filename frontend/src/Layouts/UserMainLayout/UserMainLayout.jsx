@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo, Suspense} from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // <-- Đã thêm useLocation
+import React, { useEffect, useState, useMemo, Suspense, useRef } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Clone, Float, useGLTF, Environment, Center, PresentationControls, OrbitControls } from '@react-three/drei';
 import { Input, Badge, FloatButton, Button, Avatar, message } from "antd";
@@ -14,7 +14,6 @@ import {
   ShopOutlined,
   RiseOutlined,
   WalletOutlined,
-  DollarCircleOutlined,
   HomeOutlined,
   MessageOutlined,
   MenuOutlined, 
@@ -22,6 +21,7 @@ import {
   CloseOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
+import { isAuthenticated, isAuthorized, getStoredAuth } from '../../Utils/Auth';
 
 import api from "../../Apis/apiConfig";
 import API_ENDPOINTS from "../../Apis/apiEndpoints";
@@ -355,10 +355,24 @@ export default function UserMainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setLoading] = useState(true);
-  const [activeIndex,setActiveIndex] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
-  // --- LOGIC ẨN SIDEBAR DỰA VÀO ĐƯỜNG DẪN TẠI ĐÂY ---
+  // Khởi tạo Ref lưu Avatar URL ban đầu từ Local Storage
+  const avatarRef = useRef(getStoredAuth()?.avatarUrl || null);
+  const [, forceRender] = useState(0); // State này chỉ để ép Layout render lại khi ref đổi
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
   const location = useLocation();
   const isDetailsPage = location.pathname.startsWith('/product') || location.pathname.startsWith('/cart');
 
@@ -375,53 +389,37 @@ export default function UserMainLayout() {
     }
   };
 
+  // Hàm chia sẻ để trang con (Profile) gọi khi đổi ảnh
+  const updateSharedAvatarRef = (newUrl) => {
+    avatarRef.current = newUrl;
+    forceRender(prev => prev + 1); // Kích hoạt render lại để Navbar nhận Ref mới
+  };
+
   return (
     <div className={`min-h-screen font-sans flex flex-col relative overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 text-gray-200' : 'bg-gray-50 text-gray-800'}`}>
       
       <div className="relative z-50 pointer-events-auto">
-        <TopNavBar onMenuClick={handleMenuAction} isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)} setActiveIndex={setActiveIndex} />
+        <TopNavBar 
+          onMenuClick={handleMenuAction} 
+          isDarkMode={isDarkMode} 
+          toggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
+          setActiveIndex={setActiveIndex} 
+          avatarRef={avatarRef} // Truyền ref vào Header
+        />
       </div>
 
       <div className="fixed inset-0 z-[15] pointer-events-none">
-        <Canvas 
-          camera={{ position: [0, 0, 5], fov: 45 }} 
-          shadows  
-          style={{ pointerEvents: isDarkMode ? 'auto' : 'none' }}
-        >
+        <Canvas camera={{ position: [0, 0, 5], fov: 45 }} shadows style={{ pointerEvents: isDarkMode ? 'auto' : 'none' }}>
           <Suspense fallback={null}>
             {isDarkMode ? (
               <>
-                <Environment 
-                  background={true}
-                  files={['px.png', 'nx.png', 'py.png', 'ny.png', 'pz.png', 'nz.png']}
-                  path="/assets/night-sky/"
-                  environmentIntensity={0.05}  
-                />
+                <Environment background={true} files={['px.png', 'nx.png', 'py.png', 'ny.png', 'pz.png', 'nz.png']} path="/assets/night-sky/" environmentIntensity={0.05} />
                 <ambientLight intensity={0.03} />
-                <spotLight 
-                  position={[0, 7, 3]} 
-                  angle={0.5}
-                  penumbra={0.8}       
-                  intensity={3000} 
-                  distance={25} 
-                  decay={1.5} 
-                  castShadow           
-                  shadow-mapSize={[2048, 2048]}  
-                  color="#ffaa00" 
-                />
+                <spotLight position={[0, 7, 3]} angle={0.5} penumbra={0.8} intensity={3000} distance={25} decay={1.5} castShadow shadow-mapSize={[2048, 2048]} color="#ffaa00" />
                 <pointLight position={[0, -5, 2]} intensity={200} color="#334155" />
-                
-                {/* Chỉ Render Models và Stars ở đây */}
                 <ResponsiveModelGroup />
                 <DarkModeStars />
-
-                <OrbitControls 
-                  enableZoom={false} 
-                  enablePan={false}    
-                  enableRotate={false} 
-                  autoRotate={true}    
-                  autoRotateSpeed={0.8} 
-                />
+                <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} autoRotate={true} autoRotateSpeed={0.8} />
               </>
             ) : (
               <>
@@ -435,32 +433,22 @@ export default function UserMainLayout() {
         </Canvas>
       </div>
 
-      {/* LỚP 2: Nội dung chính */}
       <main className="relative z-20 max-w-7xl mx-auto px-4 py-8 flex-grow w-full pointer-events-auto">
         <div className="flex flex-col lg:flex-row gap-6 h-full">
-          {/* Tự động Ẩn Sidebar ở trang chi tiết sản phẩm / giỏ hàng */}
           {!isDetailsPage && (
-            <Sidebar 
-              collapsed={isSidebarCollapsed} 
-              isMobileOpen={isMobileMenuOpen} 
-              onCloseMobile={() => setIsMobileMenuOpen(false)} 
-              isDarkMode={isDarkMode} 
-              activeIndex={activeIndex} 
-              setActiveIndex={setActiveIndex} 
-            />
+            <Sidebar collapsed={isSidebarCollapsed} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} isDarkMode={isDarkMode} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
           )}
           <div className="flex-grow w-full overflow-hidden transition-all duration-300">
-            {isLoading ? <Loading /> : <Outlet context = {{isDarkMode}} />}
+            {/* Truyền update hàm xuống cho Outlet (Profile Page) */}
+            {isLoading ? <Loading /> : <Outlet context={{ isDarkMode, updateSharedAvatarRef }} />}
           </div>
         </div>
       </main>
 
-      {/* LỚP 3: BẬT FOOTER LÊN TRÊN (Nâng z-index lên z-20) */}
       <div className="relative z-20 pointer-events-auto">
         <Footer isDarkMode={isDarkMode} />
       </div>
 
-      {/* Tự động Ẩn Mobile Bottom Nav ở trang chi tiết sản phẩm / giỏ hàng */}
       {!isDetailsPage && (
         <nav className={`md:hidden fixed bottom-0 left-0 right-0 border-t flex justify-around py-3 z-40 shadow-inner pointer-events-auto transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'}`}>
           <a className="flex flex-col items-center gap-1 text-orange-600" href="#"><HomeOutlined className="text-xl" /><span className="text-[10px] font-bold">Trang chủ</span></a>

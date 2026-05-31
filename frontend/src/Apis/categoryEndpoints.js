@@ -1,11 +1,9 @@
 const CATEGORY_ENDPOINTS = {
-  list: "/categories",
-
-  byId: (id) => `/categories/${id}`,
-
-  create: "/categories",
-  update: (id) => `/categories/${id}`,
-  delete: (id) => `/categories/${id}`,
-};
+  list: "/api/v1/categories",
+  byId: (id) => `/api/v1/categories/${id}`,
+  create: "/api/v1/categories",
+  update: (id) => `/api/v1/categories/${id}`,
+  delete: (id) => `/api/v1/categories/${id}`
+}
 
 export default CATEGORY_ENDPOINTS;

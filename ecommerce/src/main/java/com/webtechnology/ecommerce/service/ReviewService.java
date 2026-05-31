@@ -19,5 +19,5 @@ public interface ReviewService {
 
     ReviewResponse updateReview(UUID id, ReviewRequest request);
 
-    void deleteReview(UUID id);
+    void deleteReview(UUID id, UUID requesterId);
 }

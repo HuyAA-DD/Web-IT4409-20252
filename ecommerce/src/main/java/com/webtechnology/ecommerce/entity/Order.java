@@ -55,6 +55,14 @@ public class Order {
     @Column(name = "coupon_code", length = 50)
     private String couponCode;
 
+    /**
+     * Mã đơn hàng ngắn dùng làm nội dung chuyển khoản SePay.
+     * Ví dụ: DH123456 — SePay sẽ trích ra làm field "code" trong webhook.
+     * Sinh tự động trong @PrePersist dựa trên timestamp.
+     */
+    @Column(name = "order_code", unique = true, length = 20)
+    private String orderCode;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
@@ -80,6 +88,12 @@ public class Order {
         }
         if (paymentStatus == null) {
             paymentStatus = PaymentStatus.PENDING;
+        }
+        if (orderCode == null) {
+            // Sinh mã ngắn: DH + 8 chữ số từ timestamp (milliseconds)
+            // Đủ unique trong thực tế, không trùng trong cùng 1 millisecond
+            orderCode = "DH" + String.format("%08d",
+                    System.currentTimeMillis() % 100_000_000L);
         }
     }
 }

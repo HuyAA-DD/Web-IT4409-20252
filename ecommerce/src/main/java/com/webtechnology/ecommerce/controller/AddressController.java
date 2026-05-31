@@ -10,6 +10,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,12 +24,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/addresses")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class AddressController {
 
     private final AddressService addressService;
 
+    /** Tạo địa chỉ — userId lấy từ JWT, không cần truyền trong body */
     @PostMapping
-    public ResponseEntity<ApiResponse<AddressResponse>> createAddress(@Valid @RequestBody AddressRequest request) {
+    public ResponseEntity<ApiResponse<AddressResponse>> createAddress(
+            @Valid @RequestBody AddressRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        request.setUserId(userId);
         AddressResponse response = addressService.createAddress(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<AddressResponse>builder()
@@ -37,7 +45,9 @@ public class AddressController {
                         .build());
     }
 
+    /** Lấy tất cả địa chỉ — chỉ ADMIN */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddresses() {
         return ResponseEntity.ok(ApiResponse.<List<AddressResponse>>builder()
                 .success(true)
@@ -47,15 +57,32 @@ public class AddressController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<AddressResponse>> getAddressById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<AddressResponse>> getAddressById(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        AddressResponse response = addressService.getAddressById(id, userId);
         return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true)
                 .message("Address retrieved successfully")
-                .data(addressService.getAddressById(id))
+                .data(response)
                 .build());
     }
 
+    /** Lấy địa chỉ của chính mình */
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<List<AddressResponse>>> getMyAddresses(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<List<AddressResponse>>builder()
+                .success(true)
+                .message("Addresses retrieved successfully")
+                .data(addressService.getAddressesByUserId(userId))
+                .build());
+    }
+
+    /** Lấy địa chỉ của user bất kỳ — chỉ ADMIN */
     @GetMapping("/by-user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAddressesByUserId(@PathVariable UUID userId) {
         return ResponseEntity.ok(ApiResponse.<List<AddressResponse>>builder()
                 .success(true)
@@ -64,8 +91,9 @@ public class AddressController {
                 .build());
     }
 
-    @GetMapping("/by-user/{userId}/default")
-    public ResponseEntity<ApiResponse<AddressResponse>> getDefaultAddressByUserId(@PathVariable UUID userId) {
+    @GetMapping("/my/default")
+    public ResponseEntity<ApiResponse<AddressResponse>> getMyDefaultAddress(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true)
                 .message("Default address retrieved successfully")
@@ -76,18 +104,23 @@ public class AddressController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
             @PathVariable UUID id,
-            @Valid @RequestBody AddressRequest request
-    ) {
+            @Valid @RequestBody AddressRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        AddressResponse response = addressService.updateAddress(id, request, userId);
         return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true)
                 .message("Address updated successfully")
-                .data(addressService.updateAddress(id, request))
+                .data(response)
                 .build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteAddress(@PathVariable UUID id) {
-        addressService.deleteAddress(id);
+    public ResponseEntity<ApiResponse<Void>> deleteAddress(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        addressService.deleteAddress(id, userId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Address deleted successfully")
@@ -95,8 +128,10 @@ public class AddressController {
                 .build());
     }
 
-    @DeleteMapping("/by-user/{userId}")
-    public ResponseEntity<ApiResponse<Void>> deleteAddressesByUserId(@PathVariable UUID userId) {
+    /** Xóa tất cả địa chỉ của chính mình */
+    @DeleteMapping("/my")
+    public ResponseEntity<ApiResponse<Void>> deleteMyAddresses(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         addressService.deleteAddressesByUserId(userId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)

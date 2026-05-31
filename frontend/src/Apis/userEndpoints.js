@@ -1,9 +1,10 @@
 const USER_ENDPOINTS = {
-  profile: "/users/me",
-  updateProfile: "/users/me",
-  uploadAvatar: "/users/me/avatar",
-  list: "/users",
-  byId: (id) => `/users/${id}`,
-};
+  profile: "/api/v1/users/me",
+  updateProfile: "/api/v1/users/me",
+  updateAvatar: "/api/v1/users/me/avatar",
+  changePassword: "/api/v1/users/me/password",
+  list: "/api/v1/users",
+  byId: (id) => `/api/v1/users/${id}`
+}
 
 export default USER_ENDPOINTS;

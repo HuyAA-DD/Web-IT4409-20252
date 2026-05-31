@@ -32,6 +32,7 @@ public interface ProductMapper {
     @Mapping(target = "seller", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     Product toEntity(ProductRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -40,10 +41,12 @@ public interface ProductMapper {
     @Mapping(target = "seller", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     void updateEntityFromRequest(ProductRequest request, @MappingTarget Product product);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "product", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     ProductVariant toVariantEntity(ProductVariantRequest request);
 
     default List<String> emptyImages() {

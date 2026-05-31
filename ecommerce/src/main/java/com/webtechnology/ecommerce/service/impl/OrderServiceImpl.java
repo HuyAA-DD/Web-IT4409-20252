@@ -11,6 +11,7 @@ import com.webtechnology.ecommerce.entity.OrderItem;
 import com.webtechnology.ecommerce.entity.ProductVariant;
 import com.webtechnology.ecommerce.entity.User;
 import com.webtechnology.ecommerce.enums.OrderStatus;
+import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
 import com.webtechnology.ecommerce.mapper.OrderMapper;

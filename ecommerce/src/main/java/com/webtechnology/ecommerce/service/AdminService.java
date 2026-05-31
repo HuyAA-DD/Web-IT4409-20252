@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface AdminService {
 
-    DashboardResponse getDashboard();
+    DashboardResponse getDashboard(Integer year, Integer month, Integer quarter);
 
-    RevenueResponse getRevenue();
+    RevenueResponse getRevenue(Integer year, Integer month, Integer quarter);
 
-    List<TopProductResponse> getTopProducts(int limit);
+    List<TopProductResponse> getTopProducts(int limit, Integer year, Integer month, Integer quarter);
 }
