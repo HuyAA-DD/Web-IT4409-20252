@@ -3,6 +3,7 @@ const ADDRESS_ENDPOINTS = {
   create: "/api/v1/addresses",
   byId: (id) => `/api/v1/addresses/${id}`,
   byUser: (userId) => `/api/v1/addresses/by-user/${userId}`,
+  my: "/api/v1/addresses/my",
   defaultByUser: (userId) => `/api/v1/addresses/by-user/${userId}/default`,
   update: (id) => `/api/v1/addresses/${id}`,
   delete: (id) => `/api/v1/addresses/${id}`,

@@ -1,7 +1,8 @@
 import axios from "axios"
 import { getAccessToken } from "../Utils/Auth"
  
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+const BASE_URL = rawBaseUrl.replace(/\/api\/v1\/?$/, "")
  
 const axiosInstance = axios.create({
   baseURL: BASE_URL
@@ -27,7 +28,7 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.message?.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!')
-      window.location.href = "/auth/login&register"
+      // window.location.href = "/auth/login-register"
  
     }
  

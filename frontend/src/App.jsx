@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
  
 // Import các Layouts và Pages
 import UserMainLayout from './Layouts/UserMainLayout/UserMainLayout';
@@ -40,6 +40,9 @@ import PaymentPage from './Pages/User/PaymentPage/PaymentPage';
 import SellerChangePasswordPage from './Pages/Seller/SellerChangePasswordPage/SellerChangePasswordPage';
  
 import RequireAuth from './Components/RequireAuth';
+import CheckoutPage from './Pages/User/CheckoutPage/CheckoutPage';
+import UserOrderListPage from './Pages/User/UserOrderListPage/UserOrderListPage';
+import UserOrderDetailPage from './Pages/User/UserOrderDetailPage/UserOrderDetailPage';
  
 // Thiết lập router
  
@@ -80,6 +83,14 @@ const router = createBrowserRouter([
         element: <ProductDetailPage/>
       },
       {
+        path: USER_ROUTE.Orders,
+        element: <RequireAuth requiredRole={"USER"}><UserOrderListPage /></RequireAuth>
+      },
+      {
+        path: USER_ROUTE.OrderDetail,
+        element: <RequireAuth requiredRole={"USER"}><UserOrderDetailPage /></RequireAuth>
+      },
+      {
         path : USER_ROUTE.Notification,
         element: <RequireAuth requiredRole={"USER"}><NotificationPage/></RequireAuth>
       },
@@ -87,6 +98,10 @@ const router = createBrowserRouter([
         path: USER_ROUTE.Profile,
         // Yêu cầu đăng nhập để xem/sửa profile
         element: <RequireAuth requiredRole={"USER"}><UserProfilePage/></RequireAuth>
+      },
+      {
+        path : USER_ROUTE.Checkout,
+        element: <RequireAuth requiredRole={"USER"}><CheckoutPage/></RequireAuth>
       }
     ],
   },
@@ -187,6 +202,10 @@ const router = createBrowserRouter([
   // OTHER
   {
     path: "/auth/login&register",
+    element: <Navigate to="/auth/login-register" replace />,
+  },
+  {
+    path: "/auth/login-register",
     element: <AuthPage />,
   },
   {

@@ -31,7 +31,6 @@ import {
   getAuthUser,
   getAuthUserAvatar,
   getAuthUserName,
-  isAuthenticated,
   updateAuthUser,
 } from "../../Utils/Auth";
 

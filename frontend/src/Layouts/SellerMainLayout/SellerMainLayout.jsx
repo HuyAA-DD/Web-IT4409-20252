@@ -117,7 +117,7 @@ export default function SellerMainLayout() {
   // Logic khi bấm Đăng xuất
   const handleLogout = () => {
     clearAuthUser();
-    navigate('/auth/login&register');
+    navigate('/auth/login-register');
   };
 
   // Cấu hình các item cho Dropdown menu

@@ -120,7 +120,7 @@ const WishListPage = () => {
     setLoading(true);
 
     try {
-      const wishlistResponse = await api.get(wishlistEndpoint.byUser(userId));
+      const wishlistResponse = await api.get(wishlistEndpoint.my());
       const wishlistData = unwrapApiData(wishlistResponse);
       const wishlistList = Array.isArray(wishlistData) ? wishlistData : [];
 
@@ -213,7 +213,7 @@ const WishListPage = () => {
 
     try {
       await api.delete(
-        wishlistEndpoint.deleteByUserProduct(userId, item.productId)
+        wishlistEndpoint.deleteByUserProduct(item.productId)
       );
 
       removeItemFromState(item.productId);
@@ -242,7 +242,7 @@ const WishListPage = () => {
     try {
       await Promise.all(
         selectedItems.map((item) =>
-          api.delete(wishlistEndpoint.deleteByUserProduct(userId, item.productId))
+          api.delete(wishlistEndpoint.deleteByUserProduct(item.productId))
         )
       );
 

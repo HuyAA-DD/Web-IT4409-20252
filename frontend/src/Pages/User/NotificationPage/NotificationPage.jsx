@@ -173,8 +173,8 @@ const NotificationPage = () => {
     try {
       const endpoint =
         activeTab === "UNREAD"
-          ? notificationEndpoint.unreadByUser(userId)
-          : notificationEndpoint.byUser(userId);
+          ? notificationEndpoint.myUnread
+          : notificationEndpoint.my;
 
       const response = await api.get(endpoint);
       const data = extractData(response);
@@ -282,7 +282,7 @@ const NotificationPage = () => {
     setDeletingId(notificationId);
 
     try {
-      await api.delete(notificationEndpoint.delete(notificationId));
+      await api.delete(notificationEndpoint.deleteMy(notificationId));
 
       setNotifications((prev) =>
         prev.filter(
@@ -314,7 +314,7 @@ const NotificationPage = () => {
         setBulkLoading(true);
 
         try {
-          await api.delete(notificationEndpoint.deleteByUser(userId));
+          await api.delete(notificationEndpoint.deleteMyAll);
           setNotifications([]);
           message.success("Đã xóa tất cả thông báo.");
         } catch (error) {

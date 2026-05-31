@@ -149,7 +149,7 @@ export default function AdminMainLayout() {
 
   const handleLogout = () => {
     clearAuthUser(); 
-    navigate('/auth/login&register');
+    navigate('/auth/login-register');
   };
 
   const userMenu = [

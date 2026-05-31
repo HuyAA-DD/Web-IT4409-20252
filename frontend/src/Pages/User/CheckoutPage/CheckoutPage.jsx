@@ -108,7 +108,7 @@ const CheckoutPage = () => {
     setLoading(true);
 
     try {
-      const response = await api.get(addressEndpoint.byUser(userId));
+      const response = await api.get(addressEndpoint.my);
       const data = unwrapApiData(response);
       const addressList = Array.isArray(data) ? data : [];
 

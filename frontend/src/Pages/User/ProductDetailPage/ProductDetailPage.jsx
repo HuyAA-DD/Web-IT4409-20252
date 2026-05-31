@@ -205,7 +205,7 @@ const ProductDetailPage = () => {
     if (!userId || !productId) return;
 
     try {
-      const response = await api.get(API_ENDPOINTS.wishlists.byUser(userId));
+      const response = await api.get(API_ENDPOINTS.wishlists.my());
       const wishlistItems = response?.data || response || [];
 
       const existed = wishlistItems.some((item) => {
@@ -492,7 +492,7 @@ const ProductDetailPage = () => {
     try {
       if (isWishlisted) {
         await api.delete(
-          API_ENDPOINTS.wishlists.deleteByUserProduct(userId, product.id)
+          API_ENDPOINTS.wishlists.deleteByUserProduct(product.id)
         );
 
         setIsWishlisted(false);
