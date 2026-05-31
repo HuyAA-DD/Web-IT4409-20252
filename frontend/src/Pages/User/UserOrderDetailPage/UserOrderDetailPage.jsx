@@ -7,7 +7,6 @@ import {
   Empty,
   Popconfirm,
   Spin,
-  Steps,
   Tag,
   Timeline,
   Typography,
@@ -15,9 +14,12 @@ import {
 } from "antd";
 import {
   ArrowLeftOutlined,
+  CreditCardOutlined,
   FileTextOutlined,
   HomeOutlined,
   ReloadOutlined,
+  ShoppingOutlined,
+  StarOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
@@ -48,6 +50,19 @@ const formatDateTime = (value) => {
 const extractData = (payload) => {
   if (payload?.data !== undefined) return payload.data;
   return payload;
+};
+
+const getApiErrorMessage = (error, fallback = "Có lỗi xảy ra.") => {
+  const responseData = error?.response?.data;
+
+  return (
+    responseData?.message ||
+    responseData?.error ||
+    responseData?.detail ||
+    responseData?.data?.message ||
+    error?.message ||
+    fallback
+  );
 };
 
 const getShortId = (id) => {
@@ -136,6 +151,85 @@ const canCancelOrder = (order) => {
   return ["PENDING", "CONFIRMED"].includes(order?.status);
 };
 
+const canReviewOrder = (order) => {
+  return order?.status === "DELIVERED";
+};
+
+const canPaySepayOrder = (order) => {
+  return order?.paymentMethod === "SEPAY" && order?.paymentStatus !== "PAID";
+};
+
+const getItemProductId = (item) => {
+  return (
+    item?.productId ||
+    item?.product?.id ||
+    item?.product?.productId ||
+    item?.productVariant?.productId ||
+    null
+  );
+};
+
+const buildTrackingItems = (order, tracking) => {
+  const status = order?.status;
+
+  if (tracking?.timeline && Array.isArray(tracking.timeline)) {
+    return tracking.timeline.map((item) => ({
+      children: (
+        <div>
+          <Text strong>{item.title || getOrderStatusText(item.status)}</Text>
+          <div className="text-sm text-gray-500">
+            {item.description || "Đơn hàng đã được cập nhật trạng thái."}
+          </div>
+          {item.createdAt && (
+            <div className="text-xs text-gray-400">
+              {formatDateTime(item.createdAt)}
+            </div>
+          )}
+        </div>
+      ),
+    }));
+  }
+
+  const baseItems = [
+    {
+      key: "PENDING",
+      title: "Đơn hàng đã được tạo",
+      description: "Hệ thống đã ghi nhận đơn hàng của bạn.",
+    },
+    {
+      key: "CONFIRMED",
+      title: "Đơn hàng đã được xác nhận",
+      description: "Người bán hoặc quản trị viên đã xác nhận đơn hàng.",
+    },
+    {
+      key: "PROCESSING",
+      title: "Đơn hàng đang được xử lý",
+      description: "Sản phẩm đang được chuẩn bị.",
+    },
+    {
+      key: "SHIPPED",
+      title: "Đơn hàng đang giao",
+      description: "Đơn hàng đã được bàn giao cho đơn vị vận chuyển.",
+    },
+    {
+      key: "DELIVERED",
+      title: "Đơn hàng đã giao",
+      description: "Bạn đã nhận được đơn hàng.",
+    },
+  ];
+
+  const currentIndex = getCurrentStep(status);
+
+  return baseItems.slice(0, currentIndex + 1).map((item) => ({
+    children: (
+      <div>
+        <Text strong>{item.title}</Text>
+        <div className="text-sm text-gray-500">{item.description}</div>
+      </div>
+    ),
+  }));
+};
+
 const UserOrderDetailPage = () => {
   const navigate = useNavigate();
   const { id: orderId } = useParams();
@@ -151,10 +245,15 @@ const UserOrderDetailPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
 
   const items = useMemo(() => {
     return Array.isArray(order?.items) ? order.items : [];
   }, [order]);
+
+  const trackingItems = useMemo(() => {
+    return buildTrackingItems(order, tracking);
+  }, [order, tracking]);
 
   const fetchOrderDetail = async () => {
     if (!userId || !orderId) return;
@@ -168,7 +267,7 @@ const UserOrderDetailPage = () => {
       setOrder(data);
     } catch (error) {
       console.error("Lỗi tải chi tiết đơn hàng:", error);
-      message.error("Không thể tải chi tiết đơn hàng.");
+      message.error(getApiErrorMessage(error, "Không thể tải chi tiết đơn hàng."));
       setOrder(null);
     } finally {
       setLoading(false);
@@ -176,7 +275,7 @@ const UserOrderDetailPage = () => {
   };
 
   const fetchTracking = async () => {
-    if (!userId || !orderId) return;
+    if (!userId || !orderId || !orderEndpoint?.tracking) return;
 
     setLoadingTracking(true);
 
@@ -212,23 +311,61 @@ const UserOrderDetailPage = () => {
       message.success("Đã hủy đơn hàng.");
     } catch (error) {
       console.error("Lỗi hủy đơn hàng:", error);
-      message.error("Không thể hủy đơn hàng.");
+      message.error(getApiErrorMessage(error, "Không thể hủy đơn hàng."));
     } finally {
       setCancelling(false);
     }
   };
 
   const handleGetInvoice = async () => {
-    if (!orderId) return;
+    if (!orderId || !orderEndpoint?.invoice) {
+      message.warning("Chưa cấu hình API hóa đơn.");
+      return;
+    }
+
+    setLoadingInvoice(true);
 
     try {
       const response = await api.get(orderEndpoint.invoice(orderId));
-      console.log("Invoice:", response);
+      const invoice = extractData(response);
+
+      console.log("Invoice:", invoice);
       message.success("Đã lấy thông tin hóa đơn. Kiểm tra console để xem dữ liệu.");
     } catch (error) {
       console.error("Lỗi lấy hóa đơn:", error);
-      message.error("Không thể lấy hóa đơn.");
+      message.error(getApiErrorMessage(error, "Không thể lấy hóa đơn."));
+    } finally {
+      setLoadingInvoice(false);
     }
+  };
+
+  const handlePaySepay = () => {
+    if (!order) return;
+
+    navigate("/seapay", {
+      state: {
+        order,
+      },
+    });
+  };
+
+  const handleReviewProduct = (item) => {
+    const productId = getItemProductId(item);
+
+    if (!productId) {
+      message.warning(
+        "Không tìm thấy productId của sản phẩm này. Cần kiểm tra OrderItemResponse backend."
+      );
+      return;
+    }
+
+    navigate(`/products/${productId}`, {
+      state: {
+        focusReview: true,
+        orderId: order?.id,
+        orderItemId: item?.id,
+      },
+    });
   };
 
   if (!userId) {
@@ -256,7 +393,7 @@ const UserOrderDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-orange-50 pt-24">
+      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-gradient-to-br from-orange-50 via-white to-amber-50">
         <Spin size="large" tip="Đang tải chi tiết đơn hàng..." />
       </div>
     );
@@ -282,30 +419,31 @@ const UserOrderDetailPage = () => {
   }
 
   const isCancelled = order.status === "CANCELLED";
+
   const orderStepItems = [
     {
-        key: "PENDING",
-        title: "Chờ xác nhận",
+      key: "PENDING",
+      title: "Chờ xác nhận",
     },
     {
-        key: "CONFIRMED",
-        title: "Đã xác nhận",
+      key: "CONFIRMED",
+      title: "Đã xác nhận",
     },
     {
-        key: "PROCESSING",
-        title: "Đang xử lý",
+      key: "PROCESSING",
+      title: "Đang xử lý",
     },
     {
-        key: "SHIPPED",
-        title: "Đang giao",
+      key: "SHIPPED",
+      title: "Đang giao",
     },
     {
-        key: "DELIVERED",
-        title: "Đã giao",
+      key: "DELIVERED",
+      title: "Đã giao",
     },
-    ];
+  ];
 
-    const currentStepIndex = getCurrentStep(order.status);
+  const currentStepIndex = getCurrentStep(order.status);
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
@@ -331,18 +469,31 @@ const UserOrderDetailPage = () => {
 
             <Button
               icon={<FileTextOutlined />}
+              loading={loadingInvoice}
               onClick={handleGetInvoice}
               className="!rounded-xl"
             >
               Xem hóa đơn
             </Button>
 
+            {canPaySepayOrder(order) && (
+              <Button
+                type="primary"
+                icon={<CreditCardOutlined />}
+                onClick={handlePaySepay}
+                className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+              >
+                Thanh toán ngay
+              </Button>
+            )}
+
             {canCancelOrder(order) && (
               <Popconfirm
-                title="Hủy đơn hàng?"
-                description="Bạn chỉ nên hủy đơn khi đơn chưa được giao."
+                title="Hủy đơn hàng"
+                description="Bạn có chắc chắn muốn hủy đơn hàng này không?"
                 okText="Hủy đơn"
                 cancelText="Không"
+                okButtonProps={{ danger: true }}
                 onConfirm={handleCancelOrder}
               >
                 <Button
@@ -390,80 +541,137 @@ const UserOrderDetailPage = () => {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-6">
             <Card className="rounded-3xl border-0 shadow-sm">
-            <Title level={3}>Trạng thái đơn hàng</Title>
+              <Title level={3}>Trạng thái đơn hàng</Title>
 
-            {isCancelled ? (
+              {isCancelled ? (
                 <div className="rounded-2xl bg-red-50 p-5 font-medium text-red-600">
-                Đơn hàng này đã được hủy.
+                  Đơn hàng này đã được hủy.
                 </div>
-            ) : (
+              ) : (
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                {orderStepItems.map((step, index) => {
+                  {orderStepItems.map((step, index) => {
                     const isDone = index < currentStepIndex;
                     const isCurrent = index === currentStepIndex;
 
                     return (
-                    <div
+                      <div
                         key={step.key}
                         className={`rounded-2xl border p-4 text-center transition ${
-                        isCurrent
+                          isCurrent
                             ? "border-orange-500 bg-orange-50 text-orange-600"
                             : isDone
                             ? "border-green-200 bg-green-50 text-green-600"
                             : "border-gray-100 bg-gray-50 text-gray-400"
                         }`}
-                    >
+                      >
                         <div
-                        className={`mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
+                          className={`mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
                             isCurrent
-                            ? "bg-orange-500 text-white"
-                            : isDone
-                            ? "bg-green-500 text-white"
-                            : "bg-white text-gray-400"
-                        }`}
+                              ? "bg-orange-500 text-white"
+                              : isDone
+                              ? "bg-green-500 text-white"
+                              : "bg-white text-gray-400"
+                          }`}
                         >
-                        {index + 1}
+                          {index + 1}
                         </div>
 
                         <div className="text-sm font-semibold leading-5">
-                        {step.title}
+                          {step.title}
                         </div>
-                    </div>
+                      </div>
                     );
-                })}
+                  })}
                 </div>
-            )}
+              )}
             </Card>
 
             <Card className="rounded-3xl border-0 shadow-sm">
-              <Title level={3}>Sản phẩm trong đơn</Title>
+              <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <Title level={3} className="!mb-1">
+                    Sản phẩm trong đơn
+                  </Title>
 
-              <div className="mt-4 space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-2xl border border-gray-100 bg-white p-4"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0">
-                        <Text strong>{item.productName}</Text>
+                  {canReviewOrder(order) && (
+                    <Text type="secondary">
+                      Đơn hàng đã giao. Bạn có thể đánh giá từng sản phẩm.
+                    </Text>
+                  )}
+                </div>
+              </div>
 
-                        <div className="mt-1 text-sm text-gray-500">
-                          SKU: {item.sku || "Không có"} · Số lượng:{" "}
-                          {item.quantity}
+              <div className="space-y-4">
+                {items.map((item) => {
+                  const productId = getItemProductId(item);
+                  const canReviewThisItem = canReviewOrder(order) && Boolean(productId);
+
+                  return (
+                    <div
+                      key={item.id || `${item.productName}-${item.sku}`}
+                      className="rounded-2xl border border-gray-100 bg-white p-4"
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <ShoppingOutlined className="text-orange-500" />
+                            <Text strong className="text-base">
+                              {item.productName}
+                            </Text>
+                          </div>
+
+                          <div className="text-sm text-gray-500">
+                            SKU: {item.sku || "Không có"} · Số lượng:{" "}
+                            {item.quantity}
+                          </div>
+
+                          <div className="mt-1 text-sm text-gray-500">
+                            Đơn giá: {formatCurrency(item.price)}
+                          </div>
+
+                          {!productId && canReviewOrder(order) && (
+                            <div className="mt-2 text-xs text-red-500">
+                              Chưa có productId trong order item nên chưa thể mở
+                              trang đánh giá.
+                            </div>
+                          )}
                         </div>
 
-                        <div className="mt-1 text-sm text-gray-500">
-                          Đơn giá: {formatCurrency(item.price)}
+                        <div className="flex flex-col items-start gap-3 lg:items-end">
+                          <Text className="text-lg font-bold !text-orange-600">
+                            {formatCurrency(
+                              item.lineTotal ||
+                                Number(item.price || 0) * Number(item.quantity || 0)
+                            )}
+                          </Text>
+
+                          <div className="flex flex-wrap gap-2">
+                            {productId && (
+                              <Button
+                                onClick={() => navigate(`/products/${productId}`)}
+                                className="!rounded-xl"
+                              >
+                                Xem sản phẩm
+                              </Button>
+                            )}
+
+                            {canReviewOrder(order) && (
+                              <Button
+                                type="primary"
+                                icon={<StarOutlined />}
+                                disabled={!canReviewThisItem}
+                                onClick={() => handleReviewProduct(item)}
+                                className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                              >
+                                Đánh giá
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-
-                      <Text className="text-lg font-bold !text-orange-600">
-                        {formatCurrency(item.lineTotal)}
-                      </Text>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
 
@@ -489,34 +697,34 @@ const UserOrderDetailPage = () => {
             </Card>
           </div>
 
-          <div className="xl:sticky xl:top-28 xl:h-fit">
+          <div className="space-y-6 xl:sticky xl:top-28 xl:h-fit">
             <Card className="rounded-3xl border-0 shadow-sm">
               <Title level={3}>Tóm tắt thanh toán</Title>
 
               <div className="mt-5 space-y-3 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <Text type="secondary">Tạm tính</Text>
                   <Text>{formatCurrency(order.subTotal)}</Text>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <Text type="secondary">Mã giảm giá</Text>
                   <Text>{order.couponCode || "Không áp dụng"}</Text>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <Text type="secondary">Giảm giá</Text>
                   <Text className="!text-green-600">
                     -{formatCurrency(order.discountAmount)}
                   </Text>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <Text type="secondary">Phương thức</Text>
                   <Text>{order.paymentMethod || "N/A"}</Text>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <Text type="secondary">Thanh toán</Text>
                   <Tag color={getPaymentStatusColor(order.paymentStatus)}>
                     {getPaymentStatusText(order.paymentStatus)}
@@ -526,7 +734,7 @@ const UserOrderDetailPage = () => {
 
               <Divider />
 
-              <div className="mb-5 flex items-center justify-between">
+              <div className="mb-5 flex items-center justify-between gap-4">
                 <Text strong>Tổng thanh toán</Text>
 
                 <Text className="text-2xl font-bold !text-orange-600">
@@ -534,24 +742,18 @@ const UserOrderDetailPage = () => {
                 </Text>
               </div>
 
-              {order.paymentMethod === "SEPAY" &&
-                order.paymentStatus === "PENDING" && (
-                  <Button
-                    type="primary"
-                    size="large"
-                    block
-                    onClick={() =>
-                      navigate("/seapay", {
-                        state: {
-                          order,
-                        },
-                      })
-                    }
-                    className="!h-12 !rounded-xl !bg-orange-500 hover:!bg-orange-600"
-                  >
-                    Thanh toán Sepay
-                  </Button>
-                )}
+              {canPaySepayOrder(order) && (
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  icon={<CreditCardOutlined />}
+                  onClick={handlePaySepay}
+                  className="!h-12 !rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                >
+                  Thanh toán Sepay
+                </Button>
+              )}
 
               <Button
                 block
@@ -563,31 +765,29 @@ const UserOrderDetailPage = () => {
               </Button>
             </Card>
 
-            <Card className="mt-6 rounded-3xl border-0 shadow-sm">
-              <Title level={4}>Theo dõi đơn hàng</Title>
+            <Card className="rounded-3xl border-0 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <Title level={3} className="!mb-0">
+                  Theo dõi đơn hàng
+                </Title>
+
+                <Button
+                  size="small"
+                  icon={<ReloadOutlined />}
+                  loading={loadingTracking}
+                  onClick={fetchTracking}
+                  className="!rounded-lg"
+                >
+                  Tải lại
+                </Button>
+              </div>
 
               {loadingTracking ? (
-                <div className="py-8 text-center">
+                <div className="py-10 text-center">
                   <Spin />
                 </div>
               ) : (
-                <Timeline
-                  className="mt-5"
-                  items={[
-                    {
-                      color: getOrderStatusColor(order.status),
-                      children: `Trạng thái hiện tại: ${getOrderStatusText(
-                        tracking?.status || order.status
-                      )}`,
-                    },
-                    {
-                      color: "gray",
-                      children: `Cập nhật lúc: ${formatDateTime(
-                        tracking?.createdAt || order.createdAt
-                      )}`,
-                    },
-                  ]}
-                />
+                <Timeline items={trackingItems} />
               )}
             </Card>
           </div>
