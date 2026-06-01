@@ -21,20 +21,9 @@
         <java.version>17</java.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <spring-ai.version>1.0.0-M5</spring-ai.version>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-bom</artifactId>
-                <version>${spring-ai.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+
 
     <dependencies>
         <dependency>
@@ -126,11 +115,14 @@
             <version>4.0.0</version>
         </dependency>
 
-        <!-- Vertex AI Gemini Starter (Supports API Key and Vertex AI) -->
+        <!-- Google Generative AI Java Client - Disabled for now -->
+        <!--
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-vertex-ai-gemini-spring-boot-starter</artifactId>
+            <groupId>com.google.ai.client.generativeai</groupId>
+            <artifactId>google-generative-ai</artifactId>
+            <version>0.4.0</version>
         </dependency>
+        -->
     </dependencies>
 
     <build>

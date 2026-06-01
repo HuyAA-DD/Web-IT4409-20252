@@ -1,3 +1,4 @@
+/*
 package com.webtechnology.ecommerce.service.impl;
 
 import com.webtechnology.ecommerce.entity.Product;
@@ -51,4 +52,5 @@ public class ProductIngestionService {
         log.info("Đã index thành công {} sản phẩm vào Vector Store.", documents.size());
     }
 }
+*/
 

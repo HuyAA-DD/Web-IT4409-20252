@@ -8,8 +8,7 @@ const USER_ROUTE = {
     "Seapay": "/seapay",
     "Notification" : "/notification",
     "Profile" : "/profile",
-
-
+    "Chatbot": "/chatbot",
 }
 
 export default USER_ROUTE;

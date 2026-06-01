@@ -1,3 +1,4 @@
+/*
 package com.webtechnology.ecommerce.config;
 
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -15,3 +16,4 @@ public class AiConfig {
                 .build();
     }
 }
+*/

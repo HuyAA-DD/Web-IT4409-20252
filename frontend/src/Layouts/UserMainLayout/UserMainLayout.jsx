@@ -15,7 +15,6 @@ import {
   RiseOutlined,
   WalletOutlined,
   HomeOutlined,
-  MessageOutlined,
   MenuOutlined, 
   HeartOutlined,
   CloseOutlined,
@@ -371,10 +370,7 @@ export default function UserMainLayout() {
         </nav>
       )}
 
-      <FloatButton.Group shape="circle" style={{ right: 24, bottom: 80 }} className="z-50 pointer-events-auto">
-        <FloatButton icon={<MessageOutlined />} type="primary" badge={{ count: 3 }} tooltip="Chat hỗ trợ" />
-        <FloatButton.BackTop visibilityHeight={300} />
-      </FloatButton.Group>
+      <FloatButton.BackTop visibilityHeight={300} style={{ right: 24, bottom: 100 }} />
     </div>
   );
 }
