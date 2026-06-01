@@ -127,10 +127,10 @@
         </dependency>
 
         <!-- Vertex AI Gemini Starter (Supports API Key and Vertex AI) -->
-        <!-- <dependency>
+        <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-vertex-ai-gemini-spring-boot-starter</artifactId>
-        </dependency> -->
+        </dependency>
     </dependencies>
 
     <build>
