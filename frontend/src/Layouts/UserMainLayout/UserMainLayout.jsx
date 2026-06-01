@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo, Suspense, useRef } from 'react';
+import React, { useEffect, useState, Suspense, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Clone, Float, useGLTF, Environment, Center, PresentationControls, OrbitControls } from '@react-three/drei';
-import { Input, Badge, FloatButton, Button, Avatar, message } from "antd";
+import { Environment, OrbitControls } from '@react-three/drei';
+import { Input, Badge, FloatButton, Button, Avatar, message, Dropdown } from "antd";
 import USER_ROUTE from '../../Routes/User.routes';
 import {
   ShoppingCartOutlined,
@@ -20,8 +20,9 @@ import {
   HeartOutlined,
   CloseOutlined,
   FileTextOutlined,
+  LogoutOutlined
 } from '@ant-design/icons';
-import { isAuthenticated, isAuthorized, getStoredAuth } from '../../Utils/Auth';
+import { isAuthenticated, getStoredAuth } from '../../Utils/Auth';
 
 import api from "../../Apis/apiConfig";
 import API_ENDPOINTS from "../../Apis/apiEndpoints";
@@ -34,8 +35,8 @@ import {
   updateAuthUser,
 } from "../../Utils/Auth";
 
-//Data import
-import { ObjectModels, StarPosition } from '../../Data/3Dmodels';
+// Data import
+import { ObjectModels } from '../../Data/3Dmodels';
 
 // Component import
 import RotatingPlanet from '../../Components/RotatingPlanet/RotatingPlanet';
@@ -47,6 +48,8 @@ import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
 const { Search } = Input;
 
+// Preload 3D Models
+import { useGLTF } from '@react-three/drei';
 useGLTF.preload("/assets/Shopping_cart.glb");
 useGLTF.preload("/assets/juice_carton_shop.glb");
 useGLTF.preload("/assets/box.glb");
@@ -76,12 +79,9 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
         setCurrentUser(null);
         return;
       }
-
       try {
         const response = await api.get(API_ENDPOINTS.users.profile);
-
         const userData = response?.data || response;
-
         updateAuthUser(userData);
         setCurrentUser(getAuthUser());
       } catch (error) {
@@ -105,26 +105,6 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
     };
   }, []);
 
-  const Navbar3DModel = ({ path }) => {
-    const { scene } = useGLTF(path);
-    const { gl } = useThree();
-
-    useMemo(() => {
-      scene.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-
-          if (child.material.map) {
-            child.material.map.anisotropy = gl.capabilities.getMaxAnisotropy();
-          }
-        }
-      });
-    }, [scene, gl]);
-
-    return <primitive object={scene} />;
-  };
-
   const handleSearch = (value) => {
     console.log("Searching:", value);
   };
@@ -137,14 +117,33 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
   const handleLogout = () => {
     clearAuthUser();
     setCurrentUser(null);
-
     window.dispatchEvent(new Event("auth-changed"));
-
     message.success("Đã đăng xuất.");
-
     navigate("/auth/login-register");
     setActiveIndex(-1);
   };
+
+  const userMenuItems = [
+    {
+      key: 'profile',
+      label: 'Trang cá nhân',
+      icon: <UserOutlined />,
+      onClick: () => {
+        navigate(USER_ROUTE.Profile);
+        setActiveIndex(-1);
+      },
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: handleLogout,
+    },
+  ];
 
   return (
     <header
@@ -169,23 +168,26 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
           }}
           className="flex items-center gap-3 cursor-pointer select-none"
         >
-          <div className="w-12 h-12 hidden sm:block">
+          <div className="w-18 h-18 hidden sm:block">
             {!isDarkMode && (
-              <Canvas camera={{ position: [0, 0, 4], fov: 35 }}>
-                <ambientLight intensity={1.5} />
-                <directionalLight position={[3, 3, 3]} intensity={1.8} />
+              <Canvas camera={{ position: [0, 0, 8], fov: 35 }}>
+                <ambientLight intensity={2.5} />
+                <directionalLight position={[2, 5, 5]} intensity={3} castShadow />
+                <pointLight position={[-3, -3, 3]} intensity={2} color="#ffffff" />
+                <Environment preset="city" />
+                
                 <Suspense fallback={null}>
-                  <Navbar3DModel path="/assets/Shopping_cart.glb" />
+                  <RotatingPlanet path="/assets/blender_planet_basic.glb" rotationSpeed={0.015} floatSpeed={1} scale={2} />
                 </Suspense>
               </Canvas>
             )}
 
             {isDarkMode && (
-              <Canvas camera={{ position: [0, 0, 4], fov: 35 }}>
+              <Canvas camera={{ position: [0, 0, 8], fov: 35 }}>
                 <ambientLight intensity={1.5} />
                 <directionalLight position={[3, 3, 3]} intensity={1.8} />
                 <Suspense fallback={null}>
-                  <Navbar3DModel path="/assets/planet_earth.glb" />
+                  <RotatingPlanet path="/assets/planet_earth.glb" rotationSpeed={0.01} floatSpeed={2} scale={0.5} />
                 </Suspense>
               </Canvas>
             )}
@@ -237,29 +239,27 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
         </Badge>
 
         {isLoggedIn && currentUser ? (
-          <div className="flex items-center gap-2">
-            <Avatar
-              src={userAvatar}
-              icon={!userAvatar ? <UserOutlined /> : null}
-              className="border-2 border-orange-500 shadow-sm cursor-pointer"
-              onClick={() => {
-                navigate(USER_ROUTE.Profile);
-                setActiveIndex(-1);
-              }}
-            />
-
-            <span
-              className={`hidden lg:inline max-w-[140px] truncate font-semibold ${
-                isDarkMode ? "text-white" : "text-gray-700"
-              }`}
-            >
-              {userName}
-            </span>
-
-            <Button danger onClick={handleLogout}>
-              Đăng xuất
-            </Button>
-          </div>
+          <Dropdown 
+            menu={{ items: userMenuItems }} 
+            placement="bottomRight" 
+            arrow
+            trigger={['hover']}
+          >
+            <div className={`flex items-center gap-2 cursor-pointer p-1.5 rounded-lg transition-colors border border-transparent ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-orange-100/50'}`}>
+              <Avatar
+                src={userAvatar}
+                icon={!userAvatar ? <UserOutlined /> : null}
+                className="border-2 border-orange-500 shadow-sm"
+              />
+              <span
+                className={`hidden lg:inline max-w-[140px] truncate font-semibold ${
+                  isDarkMode ? "text-white" : "text-gray-700"
+                }`}
+              >
+                {userName}
+              </span>
+            </div>
+          </Dropdown>
         ) : (
           <Button type="primary" onClick={handleLogin}>
             Đăng nhập
@@ -269,7 +269,6 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
     </header>
   );
 };
-
 
 // --- COMPONENT: SIDEBAR ---
 const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActiveIndex, activeIndex }) => {
@@ -284,7 +283,7 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
   ];
 
   const renderNavLinks = (isDesktopCollapsed) => (
-    <nav className="space-y-2 w-full px-2 flex flex-col items-center">
+    <nav className="space-y-2 w-full px-2 flex flex-col items-center ">
       {menuItems.map((item, idx) => (
         <a
           key={idx}
@@ -310,23 +309,66 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
     </nav>
   );
 
+
+  // Tạo hàm render Model 3D dùng chung cho cả 2 chế độ (Desktop/Mobile)
+  const renderSidebarModel = () => (
+    <div className={`absolute w-40 h-40 lg:top-0 bottom-16 right-4 flex justify-center items-center pointer-events-none `}>
+      <Canvas camera={{ position: [0, 0, 8], fov: 40 }}>
+        <ambientLight intensity={2.5} />
+        <directionalLight position={[2, 5, 5]} intensity={3} />
+        <pointLight position={[-3, -3, 3]} intensity={2} color="#ffffff" />
+        <Environment preset="city" />
+        <Suspense fallback={null}>
+          <Global3DModel 
+            path="/assets/juice_carton_shop.glb" 
+            rotationSpeed={0.01} 
+            floatSpeed={1} 
+            scale={1.1} 
+            position={[0, -2, 0]} 
+            rotation={[0, -Math.PI / 4 , 0]}
+          />
+        </Suspense>
+      </Canvas>
+    </div>
+  );
+
   return (
     <>
-      <div className={`fixed inset-0 bg-black/60 z-[100] lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={onCloseMobile} />
+      {/* Background mờ khi mở Menu Mobile */}
+      {/* <div className={`fixed inset-0 bg-black/60 z-[100] lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={onCloseMobile} /> */}
+      
+      {/* KHUNG MENU MOBILE (Trượt từ trái sang) */}
       <div className={`fixed top-0 left-0 h-full w-72 shadow-2xl z-[101] lg:hidden transform transition-transform duration-300 ease-in-out flex flex-col py-4 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className={`flex items-center justify-between px-6 mb-6 border-b pb-4 ${isDarkMode ? 'border-slate-700' : 'border-gray-100'}`}>
           <h1 className="text-2xl font-black text-orange-600 m-0">MegA<span className="italic text-transparent [-webkit-text-stroke:1px_#ea580c]">MaRt</span></h1>
           <Button type="text" icon={<CloseOutlined className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`} />} onClick={onCloseMobile} />
         </div>
-        <div className="px-6 mb-2"><h2 className={`text-sm font-bold m-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Danh mục</h2></div>
-        {renderNavLinks(false)}
+        
+        {/* Vùng cuộn linh hoạt chứa Menu và Model */}
+        <div className="flex-1 overflow-y-auto flex flex-col px-2">
+          <div className="px-4 mb-2"><h2 className={`text-sm font-bold m-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Danh mục</h2></div>
+          {renderNavLinks(false)}
+          
+          {/* Đưa mô hình 3D vào CUỐI menu trượt nhờ margin-top: auto */}
+          <div className="mt-auto pt-8 pb-4">
+            {renderSidebarModel()}
+          </div>
+        </div>
       </div>
 
+      {/* KHUNG MENU DESKTOP (Đứng im bên trái) */}
       <aside className={`hidden lg:flex flex-col gap-2 py-4 h-fit border rounded-xl sticky top-28 shadow-sm transition-all duration-300 ease-in-out z-20 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} ${collapsed ? 'w-[80px] items-center' : 'w-64'}`}>
+        
+        {/* Đưa mô hình 3D vào ĐẦU Sidebar Desktop */}
+        <div className={`w-full overflow-hidden transition-all duration-300 ${collapsed ? 'h-0 opacity-0 mb-0' : 'h-32 opacity-100 mb-2'}`}>
+          {!collapsed && renderSidebarModel("h-full")}
+        </div>
+
         <div className={`mb-2 overflow-hidden whitespace-nowrap transition-all duration-300 ${collapsed ? 'w-0 opacity-0 px-0' : 'w-full opacity-100 px-4'}`}>
           <h2 className={`text-lg font-bold m-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Danh mục</h2>
           <p className="text-xs text-gray-500 m-0">Truy cập nhanh</p>
         </div>
+        
         {renderNavLinks(collapsed)}
       </aside>
     </>
@@ -357,9 +399,8 @@ export default function UserMainLayout() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
-  // Khởi tạo Ref lưu Avatar URL ban đầu từ Local Storage
   const avatarRef = useRef(getStoredAuth()?.avatarUrl || null);
-  const [, forceRender] = useState(0); // State này chỉ để ép Layout render lại khi ref đổi
+  const [, forceRender] = useState(0); 
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -388,10 +429,9 @@ export default function UserMainLayout() {
     }
   };
 
-  // Hàm chia sẻ để trang con (Profile) gọi khi đổi ảnh
   const updateSharedAvatarRef = (newUrl) => {
     avatarRef.current = newUrl;
-    forceRender(prev => prev + 1); // Kích hoạt render lại để Navbar nhận Ref mới
+    forceRender(prev => prev + 1); 
   };
 
   return (
@@ -403,7 +443,7 @@ export default function UserMainLayout() {
           isDarkMode={isDarkMode} 
           toggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
           setActiveIndex={setActiveIndex} 
-          avatarRef={avatarRef} // Truyền ref vào Header
+          avatarRef={avatarRef} 
         />
       </div>
 
@@ -438,7 +478,6 @@ export default function UserMainLayout() {
             <Sidebar collapsed={isSidebarCollapsed} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} isDarkMode={isDarkMode} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
           )}
           <div className="flex-grow w-full overflow-hidden transition-all duration-300">
-            {/* Truyền update hàm xuống cho Outlet (Profile Page) */}
             {isLoading ? <Loading /> : <Outlet context={{ isDarkMode, updateSharedAvatarRef }} />}
           </div>
         </div>
