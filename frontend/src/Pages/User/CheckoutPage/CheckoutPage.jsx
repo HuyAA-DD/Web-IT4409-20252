@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   Modal,
+  Popconfirm,
   Radio,
   Spin,
   Tag,
@@ -15,6 +16,7 @@ import {
 } from "antd";
 import {
   CheckCircleOutlined,
+  DeleteOutlined,
   EnvironmentOutlined,
   PlusOutlined,
   ShoppingCartOutlined,
@@ -83,6 +85,8 @@ const CheckoutPage = () => {
 
   const [loading, setLoading] = useState(false);
   const [creatingAddress, setCreatingAddress] = useState(false);
+  const [settingDefaultAddressId, setSettingDefaultAddressId] = useState(null);
+  const [deletingAddressId, setDeletingAddressId] = useState(null);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
 
@@ -191,6 +195,74 @@ const CheckoutPage = () => {
       message.error("Không thể thêm địa chỉ nhận hàng.");
     } finally {
       setCreatingAddress(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId) => {
+    if (!addressId) return;
+
+    try {
+      setDeletingAddressId(addressId);
+
+      await api.delete(addressEndpoint.delete(addressId));
+
+      setAddresses((prev) => {
+        const nextAddresses = prev.filter(
+          (address) => String(address.id) !== String(addressId)
+        );
+
+        if (String(selectedAddressId) === String(addressId)) {
+          const nextSelectedAddress =
+            nextAddresses.find((address) => address.isDefault) ||
+            nextAddresses[0];
+
+          setSelectedAddressId(nextSelectedAddress?.id || null);
+        }
+
+        return nextAddresses;
+      });
+
+      message.success("Đã xóa địa chỉ nhận hàng.");
+    } catch (error) {
+      console.error("Lỗi xóa địa chỉ:", error);
+      message.error(error?.message || "Không thể xóa địa chỉ nhận hàng.");
+    } finally {
+      setDeletingAddressId(null);
+    }
+  };
+
+  const handleSetDefaultAddress = async (addressId) => {
+    if (!addressId) return;
+
+    try {
+      setSettingDefaultAddressId(addressId);
+
+      const currentDefaultAddresses = addresses.filter(
+        (address) =>
+          address.isDefault && String(address.id) !== String(addressId)
+      );
+
+      await Promise.all(
+        currentDefaultAddresses.map((address) =>
+          api.put(addressEndpoint.update(address.id), { isDefault: false })
+        )
+      );
+      await api.put(addressEndpoint.update(addressId), { isDefault: true });
+
+      setAddresses((prev) =>
+        prev.map((address) => ({
+          ...address,
+          isDefault: String(address.id) === String(addressId),
+        }))
+      );
+      setSelectedAddressId(addressId);
+
+      message.success("Đã đặt làm địa chỉ mặc định.");
+    } catch (error) {
+      console.error("Lỗi đặt địa chỉ mặc định:", error);
+      message.error(error?.message || "Không thể đặt địa chỉ mặc định.");
+    } finally {
+      setSettingDefaultAddressId(null);
     }
   };
 
@@ -440,7 +512,7 @@ const CheckoutPage = () => {
                     {addresses.map((address) => (
                       <label
                         key={address.id}
-                        className={`block cursor-pointer rounded-2xl border p-4 transition ${
+                        className={`relative block cursor-pointer rounded-2xl border p-4 pr-14 transition ${
                           String(selectedAddressId) === String(address.id)
                             ? "border-orange-500 bg-orange-50"
                             : "border-gray-100 bg-white hover:border-orange-300"
@@ -457,6 +529,26 @@ const CheckoutPage = () => {
                               {address.isDefault && (
                                 <Tag color="orange">Mặc định</Tag>
                               )}
+
+                              {!address.isDefault && (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  icon={<CheckCircleOutlined />}
+                                  loading={
+                                    String(settingDefaultAddressId) ===
+                                    String(address.id)
+                                  }
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    handleSetDefaultAddress(address.id);
+                                  }}
+                                  className="!h-auto !p-0 !text-orange-600"
+                                >
+                                  Đặt mặc định
+                                </Button>
+                              )}
                             </div>
 
                             <Text className="text-gray-600">
@@ -464,6 +556,34 @@ const CheckoutPage = () => {
                             </Text>
                           </div>
                         </Radio>
+
+                        <Popconfirm
+                          title="Xóa địa chỉ này?"
+                          description="Địa chỉ đã xóa sẽ không thể dùng cho đơn hàng mới."
+                          okText="Xóa"
+                          cancelText="Hủy"
+                          okButtonProps={{ danger: true }}
+                          onConfirm={(event) => {
+                            event?.stopPropagation?.();
+                            handleDeleteAddress(address.id);
+                          }}
+                          onCancel={(event) => event?.stopPropagation?.()}
+                        >
+                          <Button
+                            danger
+                            type="text"
+                            icon={<DeleteOutlined />}
+                            loading={
+                              String(deletingAddressId) === String(address.id)
+                            }
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            className="!absolute right-3 top-3"
+                            aria-label="Xóa địa chỉ"
+                          />
+                        </Popconfirm>
                       </label>
                     ))}
                   </div>

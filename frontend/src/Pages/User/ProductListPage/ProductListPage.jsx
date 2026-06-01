@@ -62,6 +62,24 @@ const getMainImage = (product) => {
   );
 };
 
+const getReviewSummary = (reviews = []) => {
+  if (!Array.isArray(reviews) || reviews.length === 0) {
+    return {
+      averageRating: 0,
+      reviewCount: 0,
+    };
+  }
+
+  const totalRating = reviews.reduce((sum, review) => {
+    return sum + Number(review?.rating || 0);
+  }, 0);
+
+  return {
+    averageRating: Number((totalRating / reviews.length).toFixed(1)),
+    reviewCount: reviews.length,
+  };
+};
+
 const normalizeSort = (sortType) => {
   switch (sortType) {
     case "PRICE_ASC":
@@ -99,8 +117,10 @@ const ProductListPage = () => {
 
   const productEndpoint = API_ENDPOINTS.products || API_ENDPOINTS.product;
   const categoryEndpoint = API_ENDPOINTS.categories || API_ENDPOINTS.category;
+  const reviewEndpoint = API_ENDPOINTS.reviews || API_ENDPOINTS.review;
 
   const [products, setProducts] = useState([]);
+  const [reviewSummaries, setReviewSummaries] = useState({});
   const [categories, setCategories] = useState([
     {
       id: "ALL",
@@ -139,6 +159,48 @@ const ProductListPage = () => {
     }
   };
 
+  const fetchReviewSummaries = async (productList) => {
+    if (!reviewEndpoint?.byProduct) return;
+
+    const productIds = productList
+      .map((product) => product?.id)
+      .filter(Boolean);
+
+    if (productIds.length === 0) {
+      setReviewSummaries({});
+      return;
+    }
+
+    try {
+      const entries = await Promise.all(
+        productIds.map(async (productId) => {
+          try {
+            const response = await api.get(reviewEndpoint.byProduct(productId));
+            const reviews = unwrapApiData(response);
+
+            return [productId, getReviewSummary(reviews)];
+          } catch (error) {
+            console.error("Không tải được đánh giá sản phẩm", productId, error);
+            return [
+              productId,
+              {
+                averageRating: 0,
+                reviewCount: 0,
+              },
+            ];
+          }
+        })
+      );
+
+      setReviewSummaries((prev) => ({
+        ...prev,
+        ...Object.fromEntries(entries),
+      }));
+    } catch (error) {
+      console.error("Không tải được đánh giá sản phẩm", error);
+    }
+  };
+
   const fetchProducts = async () => {
     setLoadingProducts(true);
 
@@ -170,6 +232,7 @@ const ProductListPage = () => {
       const list = unwrapApiData(response);
 
       setProducts(list);
+      fetchReviewSummaries(list);
     } catch (error) {
       console.error("Lỗi khi tải danh sách sản phẩm", error);
       message.error("Không thể tải danh sách sản phẩm.");
@@ -445,6 +508,8 @@ const ProductListPage = () => {
                 {filteredProducts.map((product) => {
                   const mainVariant = getMainVariant(product);
                   const isOutOfStock = Number(mainVariant.stock || 0) <= 0;
+                  const reviewSummary = reviewSummaries[product.id];
+                  const hasReviews = Number(reviewSummary?.reviewCount || 0) > 0;
 
                   return (
                     <Card
@@ -475,7 +540,11 @@ const ProductListPage = () => {
                           </Tag>
 
                           <Text type="secondary" className="text-xs">
-                            ⭐ {product.rating || "4.8"}
+                            {reviewSummary
+                              ? hasReviews
+                                ? `⭐ ${reviewSummary.averageRating} (${reviewSummary.reviewCount})`
+                                : "Chưa có đánh giá"
+                              : "Đang tải đánh giá"}
                           </Text>
                         </div>
 
