@@ -36,6 +36,7 @@ import SellerDashboardPage from './Pages/Seller/SellerDashboardPage/SellerDashbo
 import SellerProfilePage from './Pages/Seller/SellerProfilePage/SellerProfilePage';
 import SellerNotificationPage from './Pages/Seller/SellerNotificationPage/SellerNotificationPage';
 import UserProfilePage from './Pages/User/UserProfilePage/UserProfilePage';
+import UserChangePasswordPage from './Pages/User/UserChangePasswordPage/UserChangePasswordPage';
 import PaymentPage from './Pages/User/PaymentPage/PaymentPage';
 import SellerChangePasswordPage from './Pages/Seller/SellerChangePasswordPage/SellerChangePasswordPage';
  
@@ -98,6 +99,10 @@ const router = createBrowserRouter([
         path: USER_ROUTE.Profile,
         // Yêu cầu đăng nhập để xem/sửa profile
         element: <RequireAuth requiredRole={"USER"}><UserProfilePage/></RequireAuth>
+      },
+      {
+        path: USER_ROUTE.ChangePassword,
+        element: <RequireAuth requiredRole={"USER"}><UserChangePasswordPage/></RequireAuth>
       },
       {
         path : USER_ROUTE.Checkout,
