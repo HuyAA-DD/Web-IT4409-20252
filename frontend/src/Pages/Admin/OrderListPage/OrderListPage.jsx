@@ -214,7 +214,7 @@ export default function OrderListPage() {
                     {new Date(order.date).toLocaleDateString('vi-VN')}
                   </td>
                   <td className="p-4 font-bold text-orange-600 dark:text-orange-400 text-sm text-right">
-                    ${order.total.toFixed(2)}
+                    {`$${Number(order.total || 0).toFixed(2)}`}
                   </td>
                   <td className="p-4 text-center">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide inline-block ${getStatusBadge(order.status)}`}>
@@ -225,7 +225,7 @@ export default function OrderListPage() {
                     <div className="flex items-center justify-center gap-1">
                       {/* Nút Xem chi tiết */}
                       <button 
-                        onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        onClick={() => navigate(`/orders/${order.id}`)}
                         title="Xem chi tiết"
                         className="p-2 text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                       >
