@@ -30,6 +30,7 @@ import { HeartFilled, HeartOutlined } from "@ant-design/icons";
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
+import { notifyCartChanged } from "../../../Utils/CartEvents";
 
 const unwrapApiData = (response) => {
   if (response?.data !== undefined) return response.data;
@@ -248,10 +249,11 @@ const ProductDetailPage = () => {
     setAddingCart(true);
 
     try {
-      await api.post(API_ENDPOINTS.cart.items(userId), {
+      const response = await api.post(API_ENDPOINTS.cart.items(userId), {
         productVariantId: selectedVariant.id,
         quantity,
       });
+      notifyCartChanged(response);
 
       message.success("Đã thêm sản phẩm vào giỏ hàng.");
     } catch (error) {

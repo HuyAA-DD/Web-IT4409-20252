@@ -26,6 +26,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
+import { notifyCartChanged } from "../../../Utils/CartEvents";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -281,6 +282,7 @@ const CheckoutPage = () => {
           api.delete(cartEndpoint.item(userId, itemId))
         )
       );
+      notifyCartChanged();
     } catch (error) {
       console.error("Tạo đơn thành công nhưng lỗi khi xóa item khỏi cart:", error);
       message.warning(

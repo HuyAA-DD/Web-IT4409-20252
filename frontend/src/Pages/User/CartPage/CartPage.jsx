@@ -30,6 +30,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
+import { notifyCartChanged } from "../../../Utils/CartEvents";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -401,6 +402,7 @@ const CartPage = () => {
 
       const updatedCart = unwrapApiData(response);
       await applyCartData(updatedCart, true);
+      notifyCartChanged(updatedCart);
 
       message.success("Đã cập nhật số lượng.");
     } catch (error) {
@@ -421,6 +423,7 @@ const CartPage = () => {
       const updatedCart = unwrapApiData(response);
 
       await applyCartData(updatedCart, true);
+      notifyCartChanged(updatedCart);
       message.success("Đã xóa sản phẩm khỏi giỏ hàng.");
     } catch (error) {
       console.error("Lỗi xóa sản phẩm khỏi giỏ hàng:", error);
@@ -448,6 +451,7 @@ const CartPage = () => {
       );
 
       await fetchCart();
+      notifyCartChanged();
       message.success("Đã xóa các sản phẩm đã chọn.");
     } catch (error) {
       console.error("Lỗi xóa các sản phẩm đã chọn:", error);
@@ -468,6 +472,7 @@ const CartPage = () => {
       const updatedCart = unwrapApiData(response);
 
       await applyCartData(updatedCart, false);
+      notifyCartChanged(updatedCart);
       setAppliedCoupon(null);
       setDiscountAmount(0);
       setVoucherCode("");

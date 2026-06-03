@@ -23,6 +23,7 @@ import {
   LogoutOutlined
 } from '@ant-design/icons';
 import { isAuthenticated, getStoredAuth } from '../../Utils/Auth';
+import { CART_CHANGED_EVENT, getCartItemCount } from '../../Utils/CartEvents';
 
 import api from "../../Apis/apiConfig";
 import API_ENDPOINTS from "../../Apis/apiEndpoints";
@@ -65,7 +66,7 @@ useGLTF.preload("/assets/nike_shoe_box.glb");
 const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) => {
   const navigate = useNavigate();
 
-  const [cartCount] = useState(2);
+  const [cartCount, setCartCount] = useState(0);
   const [notiCount] = useState(5);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
 
@@ -74,9 +75,28 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
   const userAvatar = getAuthUserAvatar();
 
   useEffect(() => {
+    const fetchCartCount = async () => {
+      const authUser = getAuthUser();
+      const userId = authUser?.id;
+
+      if (!isAuthenticated() || !userId) {
+        setCartCount(0);
+        return;
+      }
+
+      try {
+        const response = await api.get(API_ENDPOINTS.cart.byUser(userId));
+        setCartCount(getCartItemCount(response));
+      } catch (error) {
+        console.warn("Khong the lay so luong gio hang:", error);
+        setCartCount(0);
+      }
+    };
+
     const syncUserFromBackend = async () => {
       if (!isAuthenticated()) {
         setCurrentUser(null);
+        setCartCount(0);
         return;
       }
       try {
@@ -91,16 +111,31 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
     };
 
     syncUserFromBackend();
+    fetchCartCount();
 
     const handleAuthChanged = () => {
       setCurrentUser(getAuthUser());
+      fetchCartCount();
+    };
+
+    const handleCartChanged = (event) => {
+      const nextCount = Number(event?.detail?.cartCount);
+
+      if (Number.isFinite(nextCount)) {
+        setCartCount(nextCount);
+        return;
+      }
+
+      fetchCartCount();
     };
 
     window.addEventListener("auth-changed", handleAuthChanged);
+    window.addEventListener(CART_CHANGED_EVENT, handleCartChanged);
     window.addEventListener("storage", handleAuthChanged);
 
     return () => {
       window.removeEventListener("auth-changed", handleAuthChanged);
+      window.removeEventListener(CART_CHANGED_EVENT, handleCartChanged);
       window.removeEventListener("storage", handleAuthChanged);
     };
   }, []);
@@ -117,6 +152,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
   const handleLogout = () => {
     clearAuthUser();
     setCurrentUser(null);
+    setCartCount(0);
     window.dispatchEvent(new Event("auth-changed"));
     message.success("Đã đăng xuất.");
     navigate("/auth/login-register");

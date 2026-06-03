@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
+import { notifyCartChanged } from "../../../Utils/CartEvents";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -295,10 +296,11 @@ const ProductListPage = () => {
     }
 
     try {
-      await api.post(API_ENDPOINTS.cart.items(userId), {
+      const response = await api.post(API_ENDPOINTS.cart.items(userId), {
         productVariantId: mainVariant.id,
         quantity: 1,
       });
+      notifyCartChanged(response);
 
       message.success("Đã thêm sản phẩm vào giỏ hàng.");
     } catch (error) {
