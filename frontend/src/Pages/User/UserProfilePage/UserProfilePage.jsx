@@ -34,7 +34,7 @@ export default function UserProfilePage() {
   }, []);
 
   const profileEndpoint = userEndpoint.profile || "/users/me";
-  const uploadAvatarEndpoint = userEndpoint.uploadAvatar || "/users/me/avatar";
+  const uploadAvatarEndpoint = userEndpoint.updateAvatar || "/api/v1/users/me/avatar";
   const updateProfileEndpoint = userEndpoint.updateProfile || "/users/me"; // Thêm endpoint cập nhật
 
   const fetchUserProfile = async () => {
@@ -123,11 +123,19 @@ export default function UserProfilePage() {
     try {
       const response = await api.postFormData(uploadAvatarEndpoint, formData);
       const updatedProfile = response?.data || response;
+      const avatarSource =
+        updatedProfile?.avatarUrl ||
+        updatedProfile?.avatar ||
+        updatedProfile?.imageUrl ||
+        updatedProfile?.profileImage;
+
+      if (!avatarSource) {
+        throw new Error("Upload avatar response does not include avatar URL.");
+      }
       
       // Fix cache trình duyệt bằng cách thêm timestamp vào URL
-      const newAvatarUrl = updatedProfile.avatarUrl 
-        ? `${updatedProfile.avatarUrl}?t=${new Date().getTime()}` 
-        : updatedProfile.avatar || updatedProfile.imageUrl;
+      const separator = avatarSource.includes("?") ? "&" : "?";
+      const newAvatarUrl = `${avatarSource}${separator}t=${new Date().getTime()}`;
 
       const userWithNewAvatar = { ...updatedProfile, avatarUrl: newAvatarUrl };
       

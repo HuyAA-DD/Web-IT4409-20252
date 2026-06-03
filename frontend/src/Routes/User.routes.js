@@ -19,6 +19,7 @@ const USER_ROUTE = {
   Seapay: "/seapay",
   Notification: "/notification",
   Profile: "/profile",
+  ChangePassword: "/change-password",
 };
 
 export default USER_ROUTE;
