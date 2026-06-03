@@ -25,6 +25,8 @@ import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 import { notifyCartChanged } from "../../../Utils/CartEvents";
 
+import {useOutletContext} from "react-router-dom";
+
 const { Title, Text, Paragraph } = Typography;
 
 const PLACEHOLDER_IMAGE =
@@ -86,7 +88,7 @@ const normalizeWishlistItem = (wishlistItem, productDetail = null) => {
 
 const WishListPage = () => {
   const navigate = useNavigate();
-
+  const {isDarkMode} = useOutletContext() || {};
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
@@ -380,7 +382,7 @@ const WishListPage = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+    <div className={`min-h-[calc(100vh-80px)] ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'} px-4 pb-10 pt-24 md:px-8 md:pt-28`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -455,7 +457,7 @@ const WishListPage = () => {
                 disabled={selectedWishlistIds.length === 0}
                 loading={bulkAddingCart}
                 onClick={handleAddSelectedToCart}
-                className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                className="!rounded-xl !bg-orange-500 hover:!bg-orange-600 text-white"
               >
                 Thêm mục chọn vào giỏ
               </Button>
@@ -468,7 +470,7 @@ const WishListPage = () => {
             <Spin size="large" tip="Đang tải danh sách yêu thích..." />
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+          <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm mt-6">
             <Empty
               description={
                 <span className="text-gray-500">
@@ -487,7 +489,7 @@ const WishListPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 mt-6">
             {items.map((item) => {
               const product = item.product;
               const mainVariant = getMainVariant(product);
@@ -603,7 +605,7 @@ const WishListPage = () => {
                         <Button
                           icon={<EyeOutlined />}
                           onClick={() => handleGoToProductDetail(item.productId)}
-                          className="!rounded-xl"
+                          className="!rounded-xl !p-5"
                         >
                           Xem chi tiết
                         </Button>
@@ -614,7 +616,7 @@ const WishListPage = () => {
                           disabled={isOutOfStock || !mainVariant?.id}
                           loading={addingCartId === String(item.wishlistId)}
                           onClick={() => handleAddToCart(item)}
-                          className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                          className="!rounded-xl !bg-orange-500 hover:!bg-orange-600 !p-5"
                         >
                           Thêm vào giỏ
                         </Button>

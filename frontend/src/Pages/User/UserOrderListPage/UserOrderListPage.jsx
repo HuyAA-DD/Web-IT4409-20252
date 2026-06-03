@@ -26,6 +26,8 @@ import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 
+import {useOutletContext} from "react-router-dom";
+
 const { Title, Text, Paragraph } = Typography;
 
 const formatCurrency = (value) => {
@@ -111,7 +113,7 @@ const canCancelOrder = (order) => {
 
 const UserOrderListPage = () => {
   const navigate = useNavigate();
-
+  const {isDarkMode} = useOutletContext() || {};
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
@@ -222,7 +224,7 @@ const UserOrderListPage = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+    <div className={`min-h-[calc(100vh-80px)] ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'} px-4 pb-10 pt-24 md:px-8 md:pt-28`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -283,7 +285,7 @@ const UserOrderListPage = () => {
             <Spin size="large" tip="Đang tải đơn hàng..." />
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+          <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm mt-6">
             <Empty description="Chưa có đơn hàng phù hợp." />
 
             <Button

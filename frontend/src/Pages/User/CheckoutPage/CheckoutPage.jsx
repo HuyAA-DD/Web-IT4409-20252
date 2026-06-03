@@ -28,6 +28,8 @@ import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 import { notifyCartChanged } from "../../../Utils/CartEvents";
 
+import { useOutletContext } from "react-router-dom";
+
 const { Title, Text, Paragraph } = Typography;
 
 const formatCurrency = (value) => {
@@ -73,6 +75,7 @@ const CheckoutPage = () => {
   const [form] = Form.useForm();
 
   const authUser = getAuthUser();
+  const { isDarkMode } = useOutletContext() || {};
   const userId = authUser?.id;
 
   const addressEndpoint = API_ENDPOINTS.addresses || API_ENDPOINTS.address;
@@ -447,7 +450,7 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+    <div className={`min-h-[calc(100vh-80px)] bg-gradient-to-br ${isDarkMode ? 'bg-transparent' : 'from-orange-50 via-white to-amber-50'}  px-4 pb-10 pt-24 md:px-8 md:pt-28 ${isDarkMode ? 'dark' : ''}`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
           <div className="flex items-center gap-3">
@@ -467,7 +470,7 @@ const CheckoutPage = () => {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-6">
-            <Card className="rounded-3xl border-0 shadow-sm">
+            <Card className="!mb-6 rounded-3xl border-0 shadow-sm ">
               <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2">
                   <EnvironmentOutlined className="text-xl text-orange-500" />
@@ -593,7 +596,7 @@ const CheckoutPage = () => {
               )}
             </Card>
 
-            <Card className="rounded-3xl border-0 shadow-sm">
+            <Card className="rounded-3xl border-0 shadow-sm !mb-6">
               <Title level={3}>Sản phẩm thanh toán</Title>
 
               <div className="mt-4 space-y-3">

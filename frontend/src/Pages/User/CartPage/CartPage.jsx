@@ -32,6 +32,8 @@ import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 import { notifyCartChanged } from "../../../Utils/CartEvents";
 
+import {useOutletContext} from "react-router-dom";
+
 const { Title, Text, Paragraph } = Typography;
 
 const PLACEHOLDER_IMAGE =
@@ -163,7 +165,7 @@ const getCouponEligibility = (coupon, subtotal) => {
 
 const CartPage = () => {
   const navigate = useNavigate();
-
+  const {isDarkMode} = useOutletContext() || {};
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
@@ -611,7 +613,7 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+    <div className={`min-h-[calc(100vh-80px)] ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'} px-4 pb-10 pt-24 md:px-8 md:pt-28`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -733,14 +735,14 @@ const CartPage = () => {
                 return (
                   <Card
                     key={item.id}
-                    className="overflow-hidden rounded-3xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                    className="overflow-hidden rounded-3xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md !mt-6"
                     styles={{
                       body: {
                         padding: 0,
                       },
                     }}
                   >
-                    <div className="grid grid-cols-[130px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                    <div className="grid grid-cols-[130px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[180px_minmax(0,1fr)] mt-6">
                       <div className="relative overflow-hidden rounded-2xl bg-orange-50">
                         <button
                           type="button"
