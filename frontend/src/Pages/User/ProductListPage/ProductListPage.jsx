@@ -22,6 +22,8 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
+import { useOutletContext } from "react-router-dom";
+
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
@@ -93,7 +95,7 @@ const normalizeSort = (sortType) => {
 
 const ProductListPage = () => {
   const navigate = useNavigate();
-
+  const {isDarkMode} = useOutletContext();
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
@@ -253,7 +255,7 @@ const ProductListPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 py-8 md:px-8">
+    <div className={`min-h-[calc(100vh-80px)] px-4 py-8 md:px-8 ${isDarkMode ? "bg-transparent" : "bg-gradient-to-br from-orange-50 via-white to-amber-50"}`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 rounded-3xl bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 p-8 text-white shadow-lg">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -266,10 +268,7 @@ const ProductListPage = () => {
                 Khám phá sản phẩm
               </Title>
 
-              <Paragraph className="!mb-0 max-w-2xl !text-white/90">
-                Tìm kiếm sản phẩm, lọc theo danh mục, mức giá và trạng thái tồn
-                kho. Dữ liệu đang được lấy từ backend.
-              </Paragraph>
+
             </div>
 
             <Button
@@ -412,7 +411,7 @@ const ProductListPage = () => {
           </Card>
 
           <div>
-            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className={`${!isDarkMode ? "text-slate-800" : "text-white"} mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
               <div>
                 <Title level={3} className="!mb-1">
                   Tìm thấy {filteredProducts.length} sản phẩm
