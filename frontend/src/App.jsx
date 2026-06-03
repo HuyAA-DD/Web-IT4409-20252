@@ -140,6 +140,10 @@ const router = createBrowserRouter([
         element: <OrderListPage/>
       },
       {
+        path: ADMIN_ROUTE.Order,
+        element: <OrderDetailPage/>
+      },
+      {
         path: ADMIN_ROUTE.Product,
         element: <AdminProductPage/>
       },
@@ -172,11 +176,6 @@ const router = createBrowserRouter([
         element: <AdminChangePasswordPage/>
       }
     ]
-  },
-  {
-    path: ADMIN_ROUTE.Order,
-    // Bọc RequireAuth vì trang này nằm ngoài AdminMainLayout
-    element: <RequireAuth requiredRole={"ADMIN"}><OrderDetailPage/></RequireAuth>
   },
  
   // SELLER ROUTE
