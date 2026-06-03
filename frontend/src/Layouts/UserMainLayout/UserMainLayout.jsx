@@ -20,6 +20,7 @@ import {
   HeartOutlined,
   CloseOutlined,
   FileTextOutlined,
+  KeyOutlined,
   LogoutOutlined
 } from '@ant-design/icons';
 import { isAuthenticated, getStoredAuth } from '../../Utils/Auth';
@@ -166,6 +167,15 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
       icon: <UserOutlined />,
       onClick: () => {
         navigate(USER_ROUTE.Profile);
+        setActiveIndex(-1);
+      },
+    },
+    {
+      key: 'changePassword',
+      label: 'Đổi mật khẩu',
+      icon: <KeyOutlined />,
+      onClick: () => {
+        navigate(USER_ROUTE.ChangePassword);
         setActiveIndex(-1);
       },
     },
