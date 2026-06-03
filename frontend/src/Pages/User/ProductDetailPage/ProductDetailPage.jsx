@@ -32,6 +32,7 @@ import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 import { notifyCartChanged } from "../../../Utils/CartEvents";
 
+import {useOutletContext} from "react-router-dom";
 const unwrapApiData = (response) => {
   if (response?.data !== undefined) return response.data;
   return response;
@@ -104,6 +105,7 @@ const getReviewDate = (dateValue) => {
 };
 
 const ProductDetailPage = () => {
+  const {isDarkMode} = useOutletContext();
   const navigate = useNavigate();
   const { id: productId } = useParams();
 
@@ -541,11 +543,13 @@ const ProductDetailPage = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-8 pt-24 md:px-8 md:pt-28">
+    <div className={` min-h-[calc(100vh-80px)]  px-4 pb-8 pt-24 md:px-8 md:pt-28 ${isDarkMode ? "bg-transparent" : "bg-gradient-to-br from-orange-50 via-white to-amber-50"}`}>
       <div className="mx-auto max-w-7xl">
-        <div className="mb-5 text-sm text-gray-500">
+        <div className={`mb-5 text-sm ${isDarkMode ? "text-gray-300" : "text-gray-500"}`}>
           MegaMart / {product.categoryName || "Sản phẩm"} /{" "}
-          <span className="font-medium text-gray-700">{product.name}</span>
+          <span className={`font-medium ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+            {product.name}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.1fr]">
