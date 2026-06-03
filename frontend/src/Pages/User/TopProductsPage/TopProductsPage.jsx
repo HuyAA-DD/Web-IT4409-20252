@@ -9,6 +9,7 @@ import {
   TrophyFilled,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import {useOutletContext} from "react-router-dom";
 
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
@@ -164,6 +165,7 @@ const normalizeProduct = (product, index) => {
 
 const TopProductsPage = () => {
   const navigate = useNavigate();
+  const {isDarkMode} = useOutletContext();
   const userId = getAuthUserId();
 
   const [timeFilter, setTimeFilter] = useState("week");
@@ -318,7 +320,7 @@ const TopProductsPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 md:px-8 md:pt-28">
+    <div className={`min-h-[calc(100vh-80px)] px-4 pb-10 pt-24 md:px-8 md:pt-28 ${isDarkMode ? "bg-transparent" : "bg-gradient-to-br from-orange-50 via-white to-amber-50"}`}>
       <div className="mx-auto max-w-7xl">
         <section className="mb-8 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
