@@ -20,6 +20,7 @@ const USER_ROUTE = {
   Notification: "/notification",
   Profile: "/profile",
   ChangePassword: "/change-password",
+    Chatbot: "/chatbot",
 };
 
 export default USER_ROUTE;

@@ -16,7 +16,7 @@ import { Avatar, Badge, Button, Dropdown } from 'antd';
 import SELLER_ROUTE from '../../Routes/Seller.routes';
 import USER_ROUTE from '../../Routes/User.routes';
 
-import { clearAuthUser, getAuthUser } from '../../Utils/auth';
+import { clearAuthUser, getAuthUser } from '../../Utils/Auth';
 
 // --- COMPONENT: SELLER SIDEBAR ---
 const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {

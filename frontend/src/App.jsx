@@ -1,6 +1,10 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
- 
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+
+// Import Floating Chatbot
+import FloatingChatbot from './Components/FloatingChatbot/FloatingChatbot';
+
 // Import các Layouts và Pages
 import UserMainLayout from './Layouts/UserMainLayout/UserMainLayout';
 import HomePage from './Pages/User/Homepage/HomePage';      
@@ -9,7 +13,8 @@ import WishListPage from './Pages/User/WishListPage/WishListPage';
 import TopProductsPage from './Pages/User/TopProductsPage/TopProductsPage';
 import NotFoundPage from './Pages/NotFoundPage/NotFoundPage';
 import CartPage from './Pages/User/CartPage/CartPage';
- 
+import ChatbotPage from './Pages/User/ChatbotPage/ChatbotPage';
+
 //Import cac Route
 import USER_ROUTE from './Routes/User.routes';
 import ADMIN_ROUTE from './Routes/Admin.routes';
@@ -107,6 +112,10 @@ const router = createBrowserRouter([
       {
         path : USER_ROUTE.Checkout,
         element: <RequireAuth requiredRole={"USER"}><CheckoutPage/></RequireAuth>
+      },
+      {
+        path : USER_ROUTE.Chatbot,
+        element : <RequireAuth requiredRole={"USER"}><ChatbotPage/></RequireAuth>
       }
     ],
   },
@@ -221,7 +230,10 @@ const router = createBrowserRouter([
  
 function App() {
   return (
-    <RouterProvider router={router} />
+    <>
+      <RouterProvider router={router} />
+      <FloatingChatbot />
+    </>
   );
 }
  
