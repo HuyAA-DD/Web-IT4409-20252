@@ -298,7 +298,7 @@ const UserOrderListPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-5 !mt-6">
             {filteredOrders.map((order) => {
               const items = Array.isArray(order.items) ? order.items : [];
               const firstItems = items.slice(0, 3);
@@ -307,7 +307,7 @@ const UserOrderListPage = () => {
               return (
                 <Card
                   key={order.id}
-                  className="rounded-3xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                  className="rounded-3xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md !mt-6"
                 >
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">

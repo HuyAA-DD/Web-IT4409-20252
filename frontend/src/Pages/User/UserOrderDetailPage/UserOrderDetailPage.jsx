@@ -28,6 +28,8 @@ import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 
+import { useOutletContext } from "react-router-dom";
+
 const { Title, Text, Paragraph } = Typography;
 
 const formatCurrency = (value) => {
@@ -233,6 +235,8 @@ const buildTrackingItems = (order, tracking) => {
 const UserOrderDetailPage = () => {
   const navigate = useNavigate();
   const { id: orderId } = useParams();
+
+  const {isDarkMode} = useOutletContext();
 
   const authUser = getAuthUser();
   const userId = authUser?.id;
@@ -446,7 +450,7 @@ const UserOrderDetailPage = () => {
   const currentStepIndex = getCurrentStep(order.status);
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
+    <div className={`min-h-[calc(100vh-80px)] ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'} px-4 pb-10 pt-24 md:px-8 md:pt-28`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Button
@@ -540,7 +544,7 @@ const UserOrderDetailPage = () => {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-6">
-            <Card className="rounded-3xl border-0 shadow-sm">
+            <Card className="rounded-3xl border-0 shadow-sm !mb-6">
               <Title level={3}>Trạng thái đơn hàng</Title>
 
               {isCancelled ? (
@@ -586,7 +590,7 @@ const UserOrderDetailPage = () => {
               )}
             </Card>
 
-            <Card className="rounded-3xl border-0 shadow-sm">
+            <Card className="rounded-3xl border-0 shadow-sm !mb-6">
               <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
                   <Title level={3} className="!mb-1">
