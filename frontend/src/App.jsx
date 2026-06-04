@@ -28,7 +28,7 @@ import AuditLogPage from './Pages/Admin/AuditLogPage/AuditLogPage';
 import AdminDashboardPage from './Pages/Admin/AdminDashboardPage/AdminDashboardPage';
 import CouponPage from './Pages/Admin/CouponPage/CouponPage';
 import AdminRevenuePage from './Pages/Admin/AdminRevenuePage/AdminRevenuePage';
-import AdminTopProductPage from './Pages/Admin/AdminTopProductPage/AdminTopProductPage';
+import AdminUserPage from './Pages/Admin/AdminUserPage/AdminUserPage';
 import AdminNotificationPage from './Pages/Admin/AdminNotificationPage/AdminNotificationPage';
 import AdminProfilePage from './Pages/Admin/AdminProfilePage/AdminProfilePage';
 import AdminChangePasswordPage from './Pages/Admin/AdminChangePasswordPage/AdminChangePasswordPage';
@@ -160,8 +160,8 @@ const router = createBrowserRouter([
         element : <CouponPage/>
       },
       {
-        path: ADMIN_ROUTE.Topproduct,
-        element : <AdminTopProductPage/>
+        path: ADMIN_ROUTE.Users,
+        element : <AdminUserPage/>
       },
       {
         path : ADMIN_ROUTE.Notification,

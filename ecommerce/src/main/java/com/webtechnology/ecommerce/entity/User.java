@@ -44,6 +44,10 @@ public class User {
     @Column(length = 500)
     private String avatarUrl;
 
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean active = true;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -54,6 +58,9 @@ public class User {
         }
         if (role == null) {
             role = Role.USER;
+        }
+        if (active == null) {
+            active = true;
         }
     }
 }

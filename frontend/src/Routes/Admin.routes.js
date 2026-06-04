@@ -7,7 +7,7 @@ const ADMIN_ROUTE = {
     "Voucher" : "/admin/voucher",
     "Setting" : '/admin/setting',
     "Revenue" : "/admin/revenue",
-    "Topproduct" : "/admin/top-product",
+    "Users" : "/admin/users",
     "Notification" : "/admin/notification",
     "Profile": "/admin/profile",
     "ChangePassword": "/admin/change-password"

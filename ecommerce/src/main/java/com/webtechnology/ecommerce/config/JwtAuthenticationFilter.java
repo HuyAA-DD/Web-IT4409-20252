@@ -1,12 +1,14 @@
 package com.webtechnology.ecommerce.config;
 
 import com.webtechnology.ecommerce.util.JwtUtil;
+import com.webtechnology.ecommerce.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -39,20 +42,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String subject = jwtUtil.extractSubject(token);
-            String role = jwtUtil.extractRole(token);
 
             if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                var user = userRepository.findById(UUID.fromString(subject))
+                        .filter(existingUser -> !Boolean.FALSE.equals(existingUser.getActive()))
+                        .orElse(null);
+
+                if (user == null) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         subject,
                         null,
-                        role == null
-                                ? java.util.List.of()
-                                : java.util.List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                        java.util.List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                 );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        } catch (JwtException exception) {
+        } catch (JwtException | IllegalArgumentException exception) {
             SecurityContextHolder.clearContext();
         }
 

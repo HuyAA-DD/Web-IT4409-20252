@@ -1,8 +1,7 @@
 package com.webtechnology.ecommerce.dto;
 
 import com.webtechnology.ecommerce.entity.Role;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,19 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
+public class UpdateUserRoleRequest {
 
-    private UUID id;
-
-    private String email;
-
-    private String fullName;
-
+    @NotNull(message = "Role is required")
     private Role role;
-
-    private String avatarUrl;
-
-    private Boolean active;
-
-    private LocalDateTime createdAt;
 }
