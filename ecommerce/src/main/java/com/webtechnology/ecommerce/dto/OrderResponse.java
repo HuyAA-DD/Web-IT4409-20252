@@ -21,6 +21,7 @@ public class OrderResponse {
     private UUID id;
     private UUID userId;
     private String userName;
+    private String userEmail;
     private UUID addressId;
     private AddressResponse address;
     private BigDecimal totalAmount;
