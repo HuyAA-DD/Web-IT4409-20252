@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.webtechnology.ecommerce.dto.ChangePasswordRequest;
+import com.webtechnology.ecommerce.dto.UpdateUserRoleRequest;
+import com.webtechnology.ecommerce.dto.UpdateUserStatusRequest;
 import com.webtechnology.ecommerce.dto.UserCreateRequest;
 import com.webtechnology.ecommerce.dto.UserRequest;
 import com.webtechnology.ecommerce.dto.UserResponse;
@@ -75,6 +77,39 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserResponse updateUserRole(UUID id, UpdateUserRoleRequest request) {
+        User user = findUserById(id);
+        user.setRole(request.getRole());
+        return userMapper.toResponse(userRepository.save(user));
+    }
+
+    @Override
+    public UserResponse updateUserStatus(UUID id, UpdateUserStatusRequest request) {
+        return setUserActiveStatus(id, request.getActive());
+    }
+
+    @Override
+    public UserResponse lockUser(UUID id) {
+        return setUserActiveStatus(id, false);
+    }
+
+    @Override
+    public UserResponse unlockUser(UUID id) {
+        return setUserActiveStatus(id, true);
+    }
+
+    private UserResponse setUserActiveStatus(UUID id, Boolean active) {
+        UUID currentUserId = getCurrentUserId();
+        if (currentUserId.equals(id) && Boolean.FALSE.equals(active)) {
+            throw new BadRequestException("Admin cannot lock their own account");
+        }
+
+        User user = findUserById(id);
+        user.setActive(active);
+        return userMapper.toResponse(userRepository.save(user));
+    }
+
+    @Override
     public void deleteUser(UUID id) {
         User user = findUserById(id);
         userRepository.delete(user);
@@ -83,22 +118,17 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser() {
-        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
-        UUID userId = UUID.fromString(principal);
-        return userMapper.toResponse(findUserById(userId));
+        return userMapper.toResponse(findUserById(getCurrentUserId()));
     }
 
     @Override
     public UserResponse updateCurrentUserProfile(UserRequest request) {
-        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
-        UUID userId = UUID.fromString(principal);
-        return updateUser(userId, request);
+        return updateUser(getCurrentUserId(), request);
     }
 
     @Override
     public UserResponse updateCurrentUserAvatar(MultipartFile file) {
-        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
-        UUID userId = UUID.fromString(principal);
+        UUID userId = getCurrentUserId();
         User user = findUserById(userId);
 
         // Upload image to Cloudinary
@@ -111,8 +141,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void changePassword(ChangePasswordRequest request) {
-        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
-        UUID userId = UUID.fromString(principal);
+        UUID userId = getCurrentUserId();
         User user = findUserById(userId);
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
@@ -126,6 +155,11 @@ public class UserServiceImpl implements UserService {
     private User findUserById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+    }
+
+    private UUID getCurrentUserId() {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        return UUID.fromString(principal);
     }
 
     private void validateEmailUniqueness(String email) {

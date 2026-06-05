@@ -1,13 +1,13 @@
 const ADMIN_ROUTE = {
     "Home": "/admin",
     "Dashboard": "/admin/dashboard",
-    "Order": "/admin/order-list/order", // Sau sẽ thêm UUID để track order
+    "Order": "/admin/orders/:id",
     "Orderlist": "/admin/order-list",
     "Product" : "/admin/product",
     "Voucher" : "/admin/voucher",
     "Setting" : '/admin/setting',
     "Revenue" : "/admin/revenue",
-    "Topproduct" : "/admin/top-product",
+    "Users" : "/admin/users",
     "Notification" : "/admin/notification",
     "Profile": "/admin/profile",
     "ChangePassword": "/admin/change-password"

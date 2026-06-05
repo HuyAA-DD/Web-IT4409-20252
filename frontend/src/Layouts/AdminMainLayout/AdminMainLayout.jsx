@@ -13,7 +13,6 @@ import {
   CloseOutlined,
   TagOutlined,
   DollarCircleOutlined,
-  TrophyOutlined,
   LogoutOutlined,
   KeyOutlined
 } from '@ant-design/icons';
@@ -54,7 +53,7 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
     { icon: <DollarCircleOutlined/> , label:'Revenue', path: ADMIN_ROUTE.Revenue},
     { icon: <ShoppingCartOutlined />, label: 'Orders', path: ADMIN_ROUTE.Orderlist },
     { icon: <InboxOutlined />, label: 'Products', path: ADMIN_ROUTE.Product },
-    { icon: <TrophyOutlined/>, label : "Top products", path: ADMIN_ROUTE.Topproduct},
+    { icon: <UserOutlined />, label: 'Users', path: ADMIN_ROUTE.Users },
     { icon: <TagOutlined/> , label: "Vouchers", path: ADMIN_ROUTE.Voucher},
     { icon: <SettingOutlined />, label: 'Settings', path: ADMIN_ROUTE.Setting},
   ];

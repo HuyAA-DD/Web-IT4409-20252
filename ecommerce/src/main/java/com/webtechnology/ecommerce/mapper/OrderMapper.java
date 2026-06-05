@@ -13,6 +13,7 @@ public interface OrderMapper {
 
     @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "userName", source = "user.fullName")
+    @Mapping(target = "userEmail", source = "user.email")
     @Mapping(target = "addressId", source = "address.id")
     @Mapping(target = "address", ignore = true)
     @Mapping(target = "items", ignore = true)

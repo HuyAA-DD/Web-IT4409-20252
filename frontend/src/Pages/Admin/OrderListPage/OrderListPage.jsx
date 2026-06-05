@@ -13,9 +13,32 @@ import {
 } from '@ant-design/icons';
 import { message } from 'antd'; // Dùng để hiện thông báo thành công
 import useDebounce from '../../../Hooks/useDebounce';
-import ADMIN_ROUTE from '../../../Routes/Admin.routes';
 import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+
+const extractData = (payload) => {
+  if (payload?.data !== undefined) return payload.data;
+  return payload;
+};
+
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(Number(value || 0));
+};
+
+const getShortId = (id) => {
+  if (!id) return 'N/A';
+  return String(id).slice(0, 8);
+};
+
+const getOrderDate = (order) => order.createdAt || order.date;
+
+const getOrderCustomer = (order) =>
+  order.customer || order.userName || order.address?.recipientName || 'N/A';
+
+const getOrderEmail = (order) => order.email || order.userEmail || 'N/A';
 
 export default function OrderListPage() {
   const navigate = useNavigate();
@@ -37,10 +60,12 @@ export default function OrderListPage() {
       setIsLoading(true);
       try {
         const response = await api.get(API_ENDPOINTS.admin.orders);
-        setOrders(response?.data || response || []);
+        const data = extractData(response);
+        setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Lỗi khi tải danh sách đơn hàng', error);
         message.error('Không thể tải đơn hàng.');
+        setOrders([]);
       } finally {
         setIsLoading(false);
       }
@@ -77,7 +102,7 @@ export default function OrderListPage() {
       const response = await api.put(API_ENDPOINTS.admin.updateOrderStatus(editingOrder.id), {
         status: newStatus,
       });
-      const updatedOrder = response?.data || response;
+      const updatedOrder = extractData(response);
 
       setOrders((prevOrders) =>
         prevOrders.map((o) =>
@@ -101,11 +126,15 @@ export default function OrderListPage() {
     return orders.filter(order => {
       const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
       const searchLower = finalSearchTerm.toLowerCase();
+      const orderId = String(order.id || '');
+      const customer = getOrderCustomer(order).toLowerCase();
+      const email = getOrderEmail(order).toLowerCase();
+      const orderDate = getOrderDate(order);
       const matchesSearch = 
-        order.id.toLowerCase().includes(searchLower) ||
-        order.customer.toLowerCase().includes(searchLower) ||
-        order.email.toLowerCase().includes(searchLower);
-      const matchesDate = !dateFilter || order.date === dateFilter;
+        orderId.toLowerCase().includes(searchLower) ||
+        customer.includes(searchLower) ||
+        email.includes(searchLower);
+      const matchesDate = !dateFilter || (orderDate && String(orderDate).slice(0, 10) === dateFilter);
 
       return matchesStatus && matchesSearch && matchesDate;
     });
@@ -125,6 +154,8 @@ export default function OrderListPage() {
   const getStatusBadge = (status) => {
     switch(status) {
       case 'PENDING': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'CONFIRMED': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
+      case 'PROCESSING': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
       case 'SHIPPED': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
       case 'DELIVERED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
       case 'CANCELLED': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
@@ -169,6 +200,8 @@ export default function OrderListPage() {
             >
               <option value="ALL" className="dark:bg-slate-800">Tất cả trạng thái</option>
               <option value="PENDING" className="dark:bg-slate-800">Pending (Chờ xử lý)</option>
+              <option value="CONFIRMED" className="dark:bg-slate-800">Confirmed (Đã xác nhận)</option>
+              <option value="PROCESSING" className="dark:bg-slate-800">Processing (Đang xử lý)</option>
               <option value="SHIPPED" className="dark:bg-slate-800">Shipped (Đang giao)</option>
               <option value="DELIVERED" className="dark:bg-slate-800">Delivered (Hoàn thành)</option>
               <option value="CANCELLED" className="dark:bg-slate-800">Cancelled (Đã hủy)</option>
@@ -201,20 +234,24 @@ export default function OrderListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-              {paginatedOrders.map(order => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan="6" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Đang tải đơn hàng...</td>
+                </tr>
+              ) : paginatedOrders.map(order => (
                 <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                   <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-400 font-medium">
-                    #{order.id.substring(0, 8)}...
+                    #{getShortId(order.id)}...
                   </td>
                   <td className="p-4">
-                    <p className="font-bold text-gray-800 dark:text-gray-200 text-sm m-0">{order.customer}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 m-0">{order.email}</p>
+                    <p className="font-bold text-gray-800 dark:text-gray-200 text-sm m-0">{getOrderCustomer(order)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 m-0">{getOrderEmail(order)}</p>
                   </td>
                   <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(order.date).toLocaleDateString('vi-VN')}
+                    {getOrderDate(order) ? new Date(getOrderDate(order)).toLocaleDateString('vi-VN') : 'N/A'}
                   </td>
                   <td className="p-4 font-bold text-orange-600 dark:text-orange-400 text-sm text-right">
-                    {`$${Number(order.total || 0).toFixed(2)}`}
+                    {formatCurrency(order.totalAmount ?? order.total)}
                   </td>
                   <td className="p-4 text-center">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide inline-block ${getStatusBadge(order.status)}`}>
@@ -244,7 +281,7 @@ export default function OrderListPage() {
                 </tr>
               ))}
               
-              {paginatedOrders.length === 0 && (
+              {!isLoading && paginatedOrders.length === 0 && (
                 <tr>
                   <td colSpan="6" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Không tìm thấy đơn hàng nào khớp với bộ lọc.</td>
                 </tr>
@@ -279,7 +316,7 @@ export default function OrderListPage() {
             <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 m-0">Cập nhật trạng thái</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-0 font-mono">Đơn hàng: #{editingOrder.id.substring(0, 8)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-0 font-mono">Đơn hàng: #{getShortId(editingOrder.id)}</p>
               </div>
               <button onClick={handleCloseModal} className="text-gray-400 hover:text-red-500 transition-colors p-1">
                 <CloseOutlined className="text-xl" />
@@ -297,6 +334,8 @@ export default function OrderListPage() {
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="PENDING">Chờ xử lý (PENDING)</option>
+                  <option value="CONFIRMED">Đã xác nhận (CONFIRMED)</option>
+                  <option value="PROCESSING">Đang xử lý (PROCESSING)</option>
                   <option value="SHIPPED">Đang giao hàng (SHIPPED)</option>
                   <option value="DELIVERED">Đã hoàn thành (DELIVERED)</option>
                   <option value="CANCELLED">Đã hủy (CANCELLED)</option>
@@ -304,7 +343,7 @@ export default function OrderListPage() {
               </div>
               
               <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 p-3 rounded-lg text-xs">
-                <strong>Lưu ý:</strong> Việc thay đổi trạng thái sẽ gửi email thông báo tự động đến khách hàng <strong>{editingOrder.customer}</strong>.
+                <strong>Lưu ý:</strong> Việc thay đổi trạng thái sẽ gửi email thông báo tự động đến khách hàng <strong>{getOrderCustomer(editingOrder)}</strong>.
               </div>
             </form>
 

@@ -53,6 +53,14 @@ const getMainImage = (product) => {
   return product?.imageUrls?.[0] || "https://via.placeholder.com/120x120?text=Product";
 };
 
+const getTotalStock = (product) =>
+  product?.variants?.reduce((sum, variant) => sum + Number(variant.stock || 0), 0) || 0;
+
+const getLowestPrice = (product) => {
+  const prices = product?.variants?.map((variant) => Number(variant.price || 0)) || [];
+  return prices.length ? Math.min(...prices) : 0;
+};
+
 // Hàm hỗ trợ chuyển đổi file Upload sang Base64 để giả lập URL
 const getBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -74,9 +82,11 @@ const AdminProductPage = () => {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [salesByProductId, setSalesByProductId] = useState({});
   const [keyword, setKeyword] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOption, setSortOption] = useState("NEWEST");
   const [isLoading, setIsLoading] = useState(false);
 
   // States cho các Modal
@@ -104,6 +114,21 @@ const AdminProductPage = () => {
 
         setProducts(Array.isArray(fetchedProducts) ? fetchedProducts : []);
         setCategories(Array.isArray(fetchedCategories) ? fetchedCategories : []);
+
+        try {
+          const topProductsResponse = await api.get(`${API_ENDPOINTS.admin.topProducts}?limit=1000`);
+          const fetchedTopProducts = topProductsResponse?.data || topProductsResponse || [];
+          const salesMap = Array.isArray(fetchedTopProducts)
+            ? fetchedTopProducts.reduce((map, product) => {
+                map[product.productId] = Number(product.totalSales || product.soldCount || 0);
+                return map;
+              }, {})
+            : {};
+          setSalesByProductId(salesMap);
+        } catch (topProductsError) {
+          console.warn("Khong the tai du lieu san pham ban chay", topProductsError);
+          setSalesByProductId({});
+        }
       } catch (error) {
         console.error('Lỗi tải sản phẩm hoặc danh mục', error);
         message.error('Không thể tải dữ liệu sản phẩm hoặc danh mục.');
@@ -116,11 +141,11 @@ const AdminProductPage = () => {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    const filtered = products.filter((product) => {
       const matchKeyword =
-        product.name.toLowerCase().includes(keyword.toLowerCase()) ||
+        product.name?.toLowerCase().includes(keyword.toLowerCase()) ||
         product.categoryName?.toLowerCase().includes(keyword.toLowerCase()) ||
-        product.variants?.some(v => v.sku.toLowerCase().includes(keyword.toLowerCase()));
+        product.variants?.some(v => v.sku?.toLowerCase().includes(keyword.toLowerCase()));
 
       const matchCategory =
         categoryFilter === "ALL" || product.categoryId === categoryFilter;
@@ -130,13 +155,37 @@ const AdminProductPage = () => {
 
       return matchKeyword && matchCategory && matchStatus;
     });
-  }, [products, keyword, categoryFilter, statusFilter]);
+
+    return [...filtered].sort((a, b) => {
+      switch (sortOption) {
+        case "BEST_SELLING":
+          return (salesByProductId[b.id] || 0) - (salesByProductId[a.id] || 0);
+        case "NAME_ASC":
+          return (a.name || "").localeCompare(b.name || "", "vi", { sensitivity: "base" });
+        case "NAME_DESC":
+          return (b.name || "").localeCompare(a.name || "", "vi", { sensitivity: "base" });
+        case "PRICE_ASC":
+          return getLowestPrice(a) - getLowestPrice(b);
+        case "PRICE_DESC":
+          return getLowestPrice(b) - getLowestPrice(a);
+        case "STOCK_ASC":
+          return getTotalStock(a) - getTotalStock(b);
+        case "STOCK_DESC":
+          return getTotalStock(b) - getTotalStock(a);
+        case "OLDEST":
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        case "NEWEST":
+        default:
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+    });
+  }, [products, keyword, categoryFilter, statusFilter, sortOption, salesByProductId]);
 
   const totalProducts = products.length;
   const activeProducts = products.filter((item) => item.status === "ACTIVE").length;
   const inactiveProducts = products.filter((item) => item.status === "INACTIVE").length;
   const totalStock = products.reduce(
-    (sum, item) => sum + (item.variants?.reduce((vSum, v) => vSum + v.stock, 0) || 0),
+    (sum, item) => sum + getTotalStock(item),
     0
   );
 
@@ -438,22 +487,22 @@ const AdminProductPage = () => {
       title: "Sản phẩm",
       dataIndex: "name",
       key: "name",
-      width: 330,
+      width: 280,
       render: (_, record) => {
         const mainVariant = getMainVariant(record);
         const variantCount = record.variants?.length || 1;
         return (
           <div className="flex items-center gap-3">
             <Image
-              width={56}
-              height={56}
+              width={48}
+              height={48}
               src={getMainImage(record)}
               alt={record.name}
               className="rounded-xl object-cover"
               fallback="https://via.placeholder.com/120x120?text=Product"
             />
             <div className="min-w-0">
-              <div className="line-clamp-1 font-semibold text-gray-800">
+              <div className="line-clamp-1 text-sm font-semibold text-gray-800">
                 {record.name}
               </div>
               <div className="mt-1 text-xs text-gray-500 flex items-center gap-2">
@@ -469,26 +518,26 @@ const AdminProductPage = () => {
       title: "Danh mục",
       dataIndex: "categoryName",
       key: "categoryName",
-      width: 150,
+      width: 130,
       render: (value) => <Tag color="blue">{value}</Tag>,
     },
     {
       title: "Giá (Từ)",
       key: "price",
-      width: 135,
+      width: 120,
       render: (_, record) => (
         <span className="font-semibold text-orange-600">
-          {formatCurrency(getMainVariant(record).price)}
+          {formatCurrency(getLowestPrice(record))}
         </span>
       ),
-      sorter: (a, b) => getMainVariant(a).price - getMainVariant(b).price,
+      sorter: (a, b) => getLowestPrice(a) - getLowestPrice(b),
     },
     {
       title: "Tổng Tồn",
       key: "stock",
-      width: 120,
+      width: 105,
       render: (_, record) => {
-        const totalStock = record.variants?.reduce((sum, v) => sum + v.stock, 0) || 0;
+        const totalStock = getTotalStock(record);
         return (
           <div className="space-y-1">
             <div className="font-semibold">{totalStock}</div>
@@ -497,29 +546,40 @@ const AdminProductPage = () => {
         );
       },
       sorter: (a, b) => {
-        const stockA = a.variants?.reduce((s, v) => s + v.stock, 0) || 0;
-        const stockB = b.variants?.reduce((s, v) => s + v.stock, 0) || 0;
+        const stockA = getTotalStock(a);
+        const stockB = getTotalStock(b);
         return stockA - stockB;
       },
+    },
+    {
+      title: "Đã bán",
+      key: "sold",
+      width: 90,
+      render: (_, record) => (
+        <span className="font-semibold text-gray-700">
+          {salesByProductId[record.id] || 0}
+        </span>
+      ),
+      sorter: (a, b) => (salesByProductId[a.id] || 0) - (salesByProductId[b.id] || 0),
     },
     {
       title: "Người bán",
       dataIndex: "sellerName",
       key: "sellerName",
-      width: 150,
+      width: 130,
       render: (value) => <span className="text-gray-700">{value}</span>,
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 120,
+      width: 110,
       render: getStatusTag,
     },
     {
       title: "Thao tác",
       key: "actions",
-      width: 145,
+      width: 130,
       render: (_, record) => (
         <Space size={8}>
           <Button icon={<EyeOutlined />} onClick={() => openViewModal(record)} />
@@ -547,103 +607,116 @@ const AdminProductPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 px-5 py-6">
-      <div className="mx-auto w-full max-w-[1320px]">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <Title level={2} className="!mb-1 !text-[32px]">Quản lý sản phẩm</Title>
-            <Text type="secondary">Dựng UI theo ProductRequest, ProductResponse và ProductVariant DTO.</Text>
+    <div className="min-h-screen overflow-x-hidden bg-gray-50 px-3 py-4 sm:px-4 sm:py-5">
+      <div className="mx-auto w-full max-w-[1240px]">
+        <div className="mb-4 flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <Title level={2} className="!mb-0 !text-xl sm:!text-2xl">Quản lý sản phẩm</Title>
+            <Text type="secondary" className="!text-xs sm:!text-sm">Dựng UI theo ProductRequest, ProductResponse và ProductVariant DTO.</Text>
           </div>
-          <Space>
+          <Space wrap className="w-full justify-start sm:w-auto lg:justify-end">
             <Button
-              size="large"
               icon={<FolderAddOutlined />}
               onClick={() => setCategoryModalOpen(true)}
-              className="!h-11 !rounded-xl"
+              className="!h-9 !min-w-0 !flex-1 !rounded-lg sm:!flex-none"
             >
               Cấu hình Danh mục
             </Button>
             <Button
               type="primary"
-              size="large"
               icon={<PlusOutlined />}
               onClick={openCreateModal}
-              className="!h-11 !rounded-xl !bg-orange-500 !px-5 hover:!bg-orange-600"
+              className="!h-9 !min-w-0 !flex-1 !rounded-lg !bg-orange-500 !px-4 hover:!bg-orange-600 sm:!flex-none"
             >
               Thêm sản phẩm
             </Button>
           </Space>
         </div>
 
-        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card className="rounded-2xl border-0 shadow-sm">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="rounded-xl border-0 shadow-sm" styles={{ body: { padding: 16 } }}>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-gray-500">Tổng sản phẩm</div>
-                <div className="mt-1 text-2xl font-bold">{totalProducts}</div>
+                <div className="text-xs text-gray-500">Tổng sản phẩm</div>
+                <div className="mt-1 text-xl font-bold">{totalProducts}</div>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-xl text-orange-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-lg text-orange-600">
                 <ShopOutlined />
               </div>
             </div>
           </Card>
 
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <div className="text-sm text-gray-500">Đang bán</div>
-            <div className="mt-1 text-2xl font-bold text-green-600">{activeProducts}</div>
+          <Card className="rounded-xl border-0 shadow-sm" styles={{ body: { padding: 16 } }}>
+            <div className="text-xs text-gray-500">Đang bán</div>
+            <div className="mt-1 text-xl font-bold text-green-600">{activeProducts}</div>
           </Card>
 
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <div className="text-sm text-gray-500">Đã ẩn</div>
-            <div className="mt-1 text-2xl font-bold text-gray-600">{inactiveProducts}</div>
+          <Card className="rounded-xl border-0 shadow-sm" styles={{ body: { padding: 16 } }}>
+            <div className="text-xs text-gray-500">Đã ẩn</div>
+            <div className="mt-1 text-xl font-bold text-gray-600">{inactiveProducts}</div>
           </Card>
 
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <div className="text-sm text-gray-500">Tổng tồn kho (All Variants)</div>
-            <div className="mt-1 text-2xl font-bold text-blue-600">{totalStock}</div>
+          <Card className="rounded-xl border-0 shadow-sm" styles={{ body: { padding: 16 } }}>
+            <div className="text-xs text-gray-500">Tổng tồn kho (All Variants)</div>
+            <div className="mt-1 text-xl font-bold text-blue-600">{totalStock}</div>
           </Card>
         </div>
 
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <div className="mb-5 grid grid-cols-1 gap-3 xl:grid-cols-12">
+        <Card className="max-w-full overflow-hidden rounded-xl border-0 shadow-sm" styles={{ body: { padding: 16 } }}>
+          <div className="mb-4 grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-12">
             <Input
-              size="large"
               placeholder="Tìm theo tên, danh mục hoặc SKU..."
               prefix={<SearchOutlined />}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              className="xl:col-span-6"
+              className="min-w-0 md:col-span-2 xl:col-span-5"
             />
             <Select
-              size="large"
               value={categoryFilter}
               onChange={setCategoryFilter}
-              className="xl:col-span-3"
+              className="min-w-0 xl:col-span-3"
               options={[
                 { label: "Tất cả danh mục", value: "ALL" },
                 ...categories.map((category) => ({ label: category.name, value: category.id })),
               ]}
             />
             <Select
-              size="large"
               value={statusFilter}
               onChange={setStatusFilter}
-              className="xl:col-span-3"
+              className="min-w-0 xl:col-span-2"
               options={[
                 { label: "Tất cả trạng thái", value: "ALL" },
                 { label: "ACTIVE", value: "ACTIVE" },
                 { label: "INACTIVE", value: "INACTIVE" },
               ]}
             />
+            <Select
+              value={sortOption}
+              onChange={setSortOption}
+              className="min-w-0 md:col-span-2 xl:col-span-2"
+              options={[
+                { label: "Mới nhất", value: "NEWEST" },
+                { label: "Cũ nhất", value: "OLDEST" },
+                { label: "Bán ra nhiều nhất", value: "BEST_SELLING" },
+                { label: "Tên A-Z", value: "NAME_ASC" },
+                { label: "Tên Z-A", value: "NAME_DESC" },
+                { label: "Giá thấp đến cao", value: "PRICE_ASC" },
+                { label: "Giá cao đến thấp", value: "PRICE_DESC" },
+                { label: "Tồn kho ít nhất", value: "STOCK_ASC" },
+                { label: "Tồn kho nhiều nhất", value: "STOCK_DESC" },
+              ]}
+            />
           </div>
 
           <Table
             rowKey="id"
+            className="max-w-full"
             columns={columns}
             dataSource={filteredProducts}
             pagination={{ pageSize: 5, showSizeChanger: false, showTotal: (total) => `Tổng ${total} sản phẩm` }}
-            scroll={{ x: 1150 }}
+            scroll={{ x: "max-content" }}
             loading={isLoading}
+            size="middle"
           />
         </Card>
 
@@ -661,7 +734,7 @@ const AdminProductPage = () => {
           onOk={handleSubmitProduct}
           okText={editingProduct ? "Cập nhật" : "Thêm mới"}
           cancelText="Hủy"
-          width={900} // Mở rộng Modal để chứa List dễ nhìn
+          width="min(900px, 96vw)" // Mở rộng Modal để chứa List dễ nhìn
           style={{ top: 20 }}
         >
           <Form form={form} layout="vertical" className="mt-5">
@@ -859,7 +932,7 @@ const AdminProductPage = () => {
               Đóng quản lý
             </Button>
           ]}
-          width={1100}
+          width="min(1100px, 96vw)"
           style={{ top: 40 }}
         >
           <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -961,7 +1034,7 @@ const AdminProductPage = () => {
               Đóng
             </Button>,
           ]}
-          width={850}
+          width="min(850px, 96vw)"
         >
           {viewingProduct && (
             <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-3">

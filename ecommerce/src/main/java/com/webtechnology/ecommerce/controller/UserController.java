@@ -18,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.webtechnology.ecommerce.dto.ApiResponse;
 import com.webtechnology.ecommerce.dto.ChangePasswordRequest;
+import com.webtechnology.ecommerce.dto.UpdateUserRoleRequest;
+import com.webtechnology.ecommerce.dto.UpdateUserStatusRequest;
 import com.webtechnology.ecommerce.dto.UserRequest;
 import com.webtechnology.ecommerce.dto.UserResponse;
 import com.webtechnology.ecommerce.service.UserService;
@@ -96,6 +98,65 @@ public class UserController {
                 .success(true)
                 .message("User retrieved successfully")
                 .data(userService.getUserById(id))
+                .build());
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable UUID id,
+            @Valid @RequestBody UserRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User updated successfully")
+                .data(userService.updateUser(id, request))
+                .build());
+    }
+
+    @PutMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserRole(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateUserRoleRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User role updated successfully")
+                .data(userService.updateUserRole(id, request))
+                .build());
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateUserStatusRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User status updated successfully")
+                .data(userService.updateUserStatus(id, request))
+                .build());
+    }
+
+    @PutMapping("/{id}/lock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> lockUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User locked successfully")
+                .data(userService.lockUser(id))
+                .build());
+    }
+
+    @PutMapping("/{id}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> unlockUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User unlocked successfully")
+                .data(userService.unlockUser(id))
                 .build());
     }
 
