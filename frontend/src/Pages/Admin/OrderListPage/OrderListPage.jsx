@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   SearchOutlined, 
   FilterOutlined, 
@@ -40,9 +39,26 @@ const getOrderCustomer = (order) =>
 
 const getOrderEmail = (order) => order.email || order.userEmail || 'N/A';
 
+const getOrderPhone = (order) => order.phone || order.address?.phone || order.address?.recipientPhone || 'N/A';
+const getOrderAddress = (order) => {
+  const address = order.address || order.shippingAddress || order.deliveryAddress;
+  if (!address) return 'N/A';
+  const parts = [
+    address.recipientName,
+    address.street,
+    address.ward,
+    address.district,
+    address.city,
+    address.state,
+    address.country,
+    address.postalCode,
+  ].filter(Boolean);
+  return parts.length ? parts.join(', ') : 'N/A';
+};
+const getOrderPayment = (order) => order.paymentMethod || order.paymentType || order.payment || 'N/A';
+const getOrderItems = (order) => order.items || order.orderItems || [];
+
 export default function OrderListPage() {
-  const navigate = useNavigate();
-  
   // States cho Bộ lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -79,6 +95,19 @@ export default function OrderListPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [newStatus, setNewStatus] = useState('');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewOrder, setViewOrder] = useState(null);
+
+  // Hàm mở Modal xem chi tiết đơn hàng
+  const handleOpenViewModal = (order) => {
+    setViewOrder(order);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewOrder(null);
+  };
 
   // Hàm mở Modal
   const handleOpenEditModal = (order) => {
@@ -262,7 +291,7 @@ export default function OrderListPage() {
                     <div className="flex items-center justify-center gap-1">
                       {/* Nút Xem chi tiết */}
                       <button 
-                        onClick={() => navigate(`/orders/${order.id}`)}
+                        onClick={() => handleOpenViewModal(order)}
                         title="Xem chi tiết"
                         className="p-2 text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                       >
@@ -304,6 +333,85 @@ export default function OrderListPage() {
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          MODAL: XEM CHI TIẾT ĐƠN HÀNG
+      ========================================================================= */}
+      {isViewModalOpen && viewOrder && (
+        <div className="fixed inset-0 z-[998] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 m-0">Chi tiết đơn hàng</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-0 font-mono">Mã đơn: #{getShortId(viewOrder.id)} | Trạng thái: {viewOrder.status || 'N/A'}</p>
+              </div>
+              <button onClick={handleCloseViewModal} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                <CloseOutlined className="text-xl" />
+              </button>
+            </div>
+
+            <div className="p-6 grid gap-4">
+              <div className="grid gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Khách hàng</span>
+                  <span>{getOrderCustomer(viewOrder)}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Email</span>
+                  <span>{getOrderEmail(viewOrder)}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Số điện thoại</span>
+                  <span>{getOrderPhone(viewOrder)}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Ngày đặt</span>
+                  <span>{getOrderDate(viewOrder) ? new Date(getOrderDate(viewOrder)).toLocaleString('vi-VN') : 'N/A'}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Địa chỉ giao hàng</span>
+                  <span>{getOrderAddress(viewOrder)}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Phương thức thanh toán</span>
+                  <span>{getOrderPayment(viewOrder)}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Tổng tiền</span>
+                  <span>{formatCurrency(viewOrder.totalAmount ?? viewOrder.total)}</span>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-700">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Sản phẩm trong đơn</h4>
+                {getOrderItems(viewOrder).length > 0 ? (
+                  <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                    {getOrderItems(viewOrder).map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-3 items-center">
+                        <div className="col-span-7 font-medium text-gray-800 dark:text-gray-200">{item.name || item.productName || item.title || 'Sản phẩm #' + (index + 1)}</div>
+                        <div className="col-span-2 text-right">x{item.quantity ?? item.qty ?? 1}</div>
+                        <div className="col-span-3 text-right font-semibold text-orange-600 dark:text-orange-400">{formatCurrency(item.price ?? item.unitPrice ?? item.totalPrice)}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Không có thông tin sản phẩm chi tiết trong đơn này.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end">
+              <button 
+                type="button" 
+                onClick={handleCloseViewModal} 
+                className="px-5 py-2 rounded-lg font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           MODAL: CẬP NHẬT TRẠNG THÁI (PORTAL OVERLAY)
