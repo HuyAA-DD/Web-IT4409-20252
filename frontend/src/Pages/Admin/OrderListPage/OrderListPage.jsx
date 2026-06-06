@@ -5,6 +5,7 @@ import {
   EyeOutlined, 
   DownloadOutlined,
   CalendarOutlined,
+  SortAscendingOutlined,
   LeftOutlined,
   RightOutlined,
   EditOutlined,
@@ -56,13 +57,26 @@ const getOrderAddress = (order) => {
   return parts.length ? parts.join(', ') : 'N/A';
 };
 const getOrderPayment = (order) => order.paymentMethod || order.paymentType || order.payment || 'N/A';
+const getOrderPaymentStatus = (order) => order.paymentStatus || 'N/A';
 const getOrderItems = (order) => order.items || order.orderItems || [];
+
+const SORT_OPTIONS = [
+  { value: 'date_desc', label: 'Ngày đặt mới nhất' },
+  { value: 'date_asc', label: 'Ngày đặt cũ nhất' },
+  { value: 'customer_asc', label: 'Tên khách hàng A-Z' },
+  { value: 'customer_desc', label: 'Tên khách hàng Z-A' },
+  { value: 'total_desc', label: 'Tổng tiền cao nhất' },
+  { value: 'total_asc', label: 'Tổng tiền thấp nhất' },
+  { value: 'status_asc', label: 'Trạng thái A-Z' },
+  { value: 'payment_asc', label: 'Thanh toán A-Z' },
+];
 
 export default function OrderListPage() {
   // States cho Bộ lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('');
+  const [sortOption, setSortOption] = useState('date_desc');
   const finalSearchTerm = useDebounce(searchTerm, 500);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -152,7 +166,7 @@ export default function OrderListPage() {
   // LOGIC LỌC VÀ PHÂN TRANG
   // =========================================================================
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    const filtered = orders.filter(order => {
       const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
       const searchLower = finalSearchTerm.toLowerCase();
       const orderId = String(order.id || '');
@@ -167,11 +181,42 @@ export default function OrderListPage() {
 
       return matchesStatus && matchesSearch && matchesDate;
     });
-  }, [orders, statusFilter, finalSearchTerm, dateFilter]);
+
+    const getSortValue = (order, key) => {
+      switch (key) {
+        case 'date':
+          return getOrderDate(order) ? new Date(getOrderDate(order)).getTime() : 0;
+        case 'customer':
+          return getOrderCustomer(order).toLocaleLowerCase('vi-VN');
+        case 'total':
+          return Number(order.totalAmount ?? order.total ?? 0);
+        case 'status':
+          return order.status || '';
+        case 'payment':
+          return getOrderPaymentStatus(order);
+        default:
+          return '';
+      }
+    };
+
+    const [key, direction] = sortOption.split('_');
+    return [...filtered].sort((a, b) => {
+      const first = getSortValue(a, key);
+      const second = getSortValue(b, key);
+
+      if (typeof first === 'number' && typeof second === 'number') {
+        return direction === 'desc' ? second - first : first - second;
+      }
+
+      return direction === 'desc'
+        ? String(second).localeCompare(String(first), 'vi-VN')
+        : String(first).localeCompare(String(second), 'vi-VN');
+    });
+  }, [orders, statusFilter, finalSearchTerm, dateFilter, sortOption]);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [finalSearchTerm, statusFilter, dateFilter]);
+  }, [finalSearchTerm, statusFilter, dateFilter, sortOption]);
 
   const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -189,6 +234,28 @@ export default function OrderListPage() {
       case 'DELIVERED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
       case 'CANCELLED': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
       default: return 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300';
+    }
+  };
+
+  const getPaymentBadge = (status) => {
+    switch(status) {
+      case 'PAID': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'FAILED':
+      case 'CANCELLED': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      case 'REFUNDED': return 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400';
+      case 'PENDING': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+      default: return 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300';
+    }
+  };
+
+  const getPaymentStatusText = (status) => {
+    switch(status) {
+      case 'PAID': return 'Đã thanh toán';
+      case 'PENDING': return 'Chờ thanh toán';
+      case 'FAILED': return 'Thanh toán lỗi';
+      case 'REFUNDED': return 'Đã hoàn tiền';
+      case 'CANCELLED': return 'Đã hủy thanh toán';
+      default: return status || 'N/A';
     }
   };
 
@@ -245,13 +312,27 @@ export default function OrderListPage() {
               className="pl-8 pr-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-transparent focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
             />
           </div>
+          <div className="relative shrink-0">
+            <SortAscendingOutlined className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="appearance-none pl-8 pr-8 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-transparent focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="dark:bg-slate-800">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* BẢNG DỮ LIỆU */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors">
         <div className="overflow-x-auto min-h-[350px]">
-          <table className="w-full text-left border-collapse min-w-[800px]">
+          <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <th className="p-4 font-semibold">Mã ĐH</th>
@@ -259,13 +340,14 @@ export default function OrderListPage() {
                 <th className="p-4 font-semibold">Ngày đặt</th>
                 <th className="p-4 font-semibold text-right">Tổng tiền</th>
                 <th className="p-4 font-semibold text-center">Trạng thái</th>
+                <th className="p-4 font-semibold text-center">Thanh toán</th>
                 <th className="p-4 font-semibold text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan="6" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Đang tải đơn hàng...</td>
+                  <td colSpan="7" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Đang tải đơn hàng...</td>
                 </tr>
               ) : paginatedOrders.map(order => (
                 <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -285,6 +367,11 @@ export default function OrderListPage() {
                   <td className="p-4 text-center">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide inline-block ${getStatusBadge(order.status)}`}>
                       {order.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide inline-block ${getPaymentBadge(getOrderPaymentStatus(order))}`}>
+                      {getPaymentStatusText(getOrderPaymentStatus(order))}
                     </span>
                   </td>
                   <td className="p-4 text-center">
@@ -312,7 +399,7 @@ export default function OrderListPage() {
               
               {!isLoading && paginatedOrders.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Không tìm thấy đơn hàng nào khớp với bộ lọc.</td>
+                  <td colSpan="7" className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium">Không tìm thấy đơn hàng nào khớp với bộ lọc.</td>
                 </tr>
               )}
             </tbody>
@@ -343,7 +430,9 @@ export default function OrderListPage() {
             <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 m-0">Chi tiết đơn hàng</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-0 font-mono">Mã đơn: #{getShortId(viewOrder.id)} | Trạng thái: {viewOrder.status || 'N/A'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-0 font-mono">
+                  Mã đơn: #{getShortId(viewOrder.id)} | Trạng thái: {viewOrder.status || 'N/A'} | Thanh toán: {getPaymentStatusText(getOrderPaymentStatus(viewOrder))}
+                </p>
               </div>
               <button onClick={handleCloseViewModal} className="text-gray-400 hover:text-red-500 transition-colors p-1">
                 <CloseOutlined className="text-xl" />
@@ -375,6 +464,12 @@ export default function OrderListPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <span className="font-semibold text-gray-700 dark:text-gray-200">Phương thức thanh toán</span>
                   <span>{getOrderPayment(viewOrder)}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">Trạng thái thanh toán</span>
+                  <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide inline-block ${getPaymentBadge(getOrderPaymentStatus(viewOrder))}`}>
+                    {getPaymentStatusText(getOrderPaymentStatus(viewOrder))}
+                  </span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <span className="font-semibold text-gray-700 dark:text-gray-200">Tổng tiền</span>

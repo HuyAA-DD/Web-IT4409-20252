@@ -5,6 +5,7 @@ import com.webtechnology.ecommerce.dto.OrderItemResponse;
 import com.webtechnology.ecommerce.dto.OrderResponse;
 import com.webtechnology.ecommerce.entity.Order;
 import com.webtechnology.ecommerce.entity.OrderItem;
+import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.mapper.OrderMapper;
 import com.webtechnology.ecommerce.repository.OrderItemRepository;
 import com.webtechnology.ecommerce.repository.OrderRepository;
@@ -52,10 +53,15 @@ public class SellerServiceImpl implements SellerService {
     public DashboardResponse getSellerDashboard(UUID sellerId, Integer year, Integer month, Integer quarter) {
         List<OrderItem> sellerItems;
         if (year == null && month == null && quarter == null) {
-            sellerItems = orderItemRepository.findByProductSellerId(sellerId);
+            sellerItems = orderItemRepository.findByProductSellerIdAndOrderPaymentStatus(sellerId, PaymentStatus.PAID);
         } else {
             LocalDateTime[] range = calculateDateRange(year, month, quarter);
-            sellerItems = orderItemRepository.findByProductSellerIdAndOrderCreatedAtBetween(sellerId, range[0], range[1]);
+            sellerItems = orderItemRepository.findByProductSellerIdAndOrderPaymentStatusAndOrderCreatedAtBetween(
+                    sellerId,
+                    PaymentStatus.PAID,
+                    range[0],
+                    range[1]
+            );
         }
         
         long totalOrders = sellerItems.stream()

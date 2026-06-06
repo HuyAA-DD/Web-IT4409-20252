@@ -11,6 +11,7 @@ import com.webtechnology.ecommerce.entity.OrderItem;
 import com.webtechnology.ecommerce.entity.ProductVariant;
 import com.webtechnology.ecommerce.entity.User;
 import com.webtechnology.ecommerce.enums.OrderStatus;
+import com.webtechnology.ecommerce.enums.PaymentMethod;
 import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
@@ -193,6 +194,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(newStatus);
+        markCodOrderAsPaidWhenDelivered(order, newStatus);
         Order savedOrder = orderRepository.save(order);
 
         auditLogService.createAuditLog(AuditLogRequest.builder()
@@ -206,6 +208,14 @@ public class OrderServiceImpl implements OrderService {
         createOrderStatusNotification(savedOrder, oldStatus, newStatus);
 
         return buildOrderResponse(savedOrder);
+    }
+
+    private void markCodOrderAsPaidWhenDelivered(Order order, OrderStatus newStatus) {
+        if (OrderStatus.DELIVERED.equals(newStatus)
+                && PaymentMethod.COD.equals(order.getPaymentMethod())
+                && !PaymentStatus.PAID.equals(order.getPaymentStatus())) {
+            order.setPaymentStatus(PaymentStatus.PAID);
+        }
     }
 
     private void createOrderCreatedNotification(Order order) {

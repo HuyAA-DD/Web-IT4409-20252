@@ -95,6 +95,23 @@ const getPaymentBadge = (status) => {
   }
 };
 
+const getPaymentStatusText = (status) => {
+  switch (status) {
+    case 'PAID':
+      return 'Đã thanh toán';
+    case 'PENDING':
+      return 'Chờ thanh toán';
+    case 'FAILED':
+      return 'Thanh toán lỗi';
+    case 'REFUNDED':
+      return 'Đã hoàn tiền';
+    case 'CANCELLED':
+      return 'Đã hủy thanh toán';
+    default:
+      return status || 'N/A';
+  }
+};
+
 export default function OrderDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -203,6 +220,9 @@ export default function OrderDetailPage() {
             <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getStatusBadge(order.status)}`}>
               {order.status || 'N/A'}
             </span>
+            <span className={`px-2 py-1 rounded text-xs font-bold ${getPaymentBadge(order.paymentStatus)}`}>
+              Thanh toán: {getPaymentStatusText(order.paymentStatus)}
+            </span>
           </div>
           <p className="text-gray-500 text-sm m-0 ml-8">
             ID: <span className="font-mono text-gray-800">{order.id}</span> · Tạo lúc {formatDateTime(order.createdAt)}
@@ -278,9 +298,9 @@ export default function OrderDetailPage() {
                 <span className="text-gray-800 font-bold">{order.paymentMethod || 'N/A'}</span>
               </div>
               <div className="flex justify-between gap-4 pb-3 border-b border-gray-100">
-                <span className="text-gray-500">Trạng thái</span>
+                <span className="text-gray-500">Trạng thái thanh toán</span>
                 <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getPaymentBadge(order.paymentStatus)}`}>
-                  {order.paymentStatus || 'N/A'}
+                  {getPaymentStatusText(order.paymentStatus)}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
