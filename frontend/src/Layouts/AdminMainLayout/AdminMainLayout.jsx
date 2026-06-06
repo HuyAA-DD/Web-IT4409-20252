@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Canvas, useThree } from '@react-three/fiber'; // Thêm useThree
 import { Environment } from '@react-three/drei';
@@ -21,6 +21,8 @@ import Global3DModel from '../../Components/Global3DModel/Global3DModel';
 
 import { clearAuthUser, getAuthUser } from '../../Utils/Auth'; 
 import ADMIN_ROUTE from '../../Routes/Admin.routes';
+import api from '../../Apis/apiConfig';
+import API_ENDPOINTS from '../../Apis/apiEndpoints';
 
 // --- COMPONENT: RESPONSIVE 3D MODEL ---
 // Xử lý scale và position tự động dựa trên kích thước Canvas
@@ -132,6 +134,7 @@ const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
 export default function AdminMainLayout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const user = getAuthUser();
 
@@ -150,6 +153,30 @@ export default function AdminMainLayout() {
     clearAuthUser(); 
     navigate('/auth/login-register');
   };
+
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await api.get(API_ENDPOINTS.notifications.list);
+        const data = response?.data || response || [];
+        setNotificationCount(
+          Array.isArray(data)
+            ? data.filter((notification) => !notification.isRead).length
+            : 0
+        );
+      } catch (error) {
+        console.warn('Khong the tai so thong bao admin', error);
+        setNotificationCount(0);
+      }
+    };
+
+    fetchNotificationCount();
+    window.addEventListener('notifications-changed', fetchNotificationCount);
+
+    return () => {
+      window.removeEventListener('notifications-changed', fetchNotificationCount);
+    };
+  }, []);
 
   const userMenu = [
     {
@@ -195,7 +222,7 @@ export default function AdminMainLayout() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Badge count={3} size="small" offset={[-4, 4]} onClick={() => navigate('/admin/notification')}>
+            <Badge count={notificationCount} size="small" offset={[-4, 4]} onClick={() => navigate('/admin/notification')}>
               <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                 <BellOutlined className="text-lg" />
               </button>

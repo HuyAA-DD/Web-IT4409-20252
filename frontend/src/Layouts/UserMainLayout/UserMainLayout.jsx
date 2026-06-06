@@ -67,7 +67,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
   const navigate = useNavigate();
 
   const [cartCount, setCartCount] = useState(0);
-  const [notiCount] = useState(5);
+  const [notiCount, setNotiCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
 
   const isLoggedIn = isAuthenticated();
@@ -93,10 +93,30 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
       }
     };
 
+    const fetchNotificationCount = async () => {
+      const authUser = getAuthUser();
+      const userId = authUser?.id;
+
+      if (!isAuthenticated() || !userId) {
+        setNotiCount(0);
+        return;
+      }
+
+      try {
+        const response = await api.get(API_ENDPOINTS.notifications.myUnread);
+        const data = response?.data || response;
+        setNotiCount(Array.isArray(data) ? data.length : 0);
+      } catch (error) {
+        console.warn("Khong the lay so thong bao chua doc:", error);
+        setNotiCount(0);
+      }
+    };
+
     const syncUserFromBackend = async () => {
       if (!isAuthenticated()) {
         setCurrentUser(null);
         setCartCount(0);
+        setNotiCount(0);
         return;
       }
       try {
@@ -112,10 +132,12 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
 
     syncUserFromBackend();
     fetchCartCount();
+    fetchNotificationCount();
 
     const handleAuthChanged = () => {
       setCurrentUser(getAuthUser());
       fetchCartCount();
+      fetchNotificationCount();
     };
 
     const handleCartChanged = (event) => {
@@ -131,11 +153,13 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
 
     window.addEventListener("auth-changed", handleAuthChanged);
     window.addEventListener(CART_CHANGED_EVENT, handleCartChanged);
+    window.addEventListener("notifications-changed", fetchNotificationCount);
     window.addEventListener("storage", handleAuthChanged);
 
     return () => {
       window.removeEventListener("auth-changed", handleAuthChanged);
       window.removeEventListener(CART_CHANGED_EVENT, handleCartChanged);
+      window.removeEventListener("notifications-changed", fetchNotificationCount);
       window.removeEventListener("storage", handleAuthChanged);
     };
   }, []);
@@ -153,6 +177,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
     clearAuthUser();
     setCurrentUser(null);
     setCartCount(0);
+    setNotiCount(0);
     window.dispatchEvent(new Event("auth-changed"));
     message.success("Đã đăng xuất.");
     navigate("/auth/login-register");
