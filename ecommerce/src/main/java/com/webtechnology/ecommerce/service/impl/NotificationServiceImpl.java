@@ -12,6 +12,7 @@ import com.webtechnology.ecommerce.service.NotificationService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,23 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setUser(user);
         Notification savedNotification = notificationRepository.save(notification);
         return notificationMapper.toResponse(savedNotification);
+    }
+
+    @Override
+    public NotificationResponse createOrderNotification(
+            UUID userId,
+            UUID orderId,
+            String title,
+            String message
+    ) {
+        return createNotification(NotificationRequest.builder()
+                .userId(userId)
+                .title(title)
+                .message(message)
+                .type("ORDER")
+                .relatedEntityType("ORDER")
+                .relatedEntityId(orderId)
+                .build());
     }
 
     @Override
@@ -71,7 +89,7 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationResponse markAsRead(UUID id, UUID requesterId) {
         Notification notification = findNotificationById(id);
         // Chỉ owner mới được đánh dấu đã đọc
-        if (!notification.getUser().getId().equals(requesterId)) {
+        if (!notification.getUser().getId().equals(requesterId) && !isCurrentUserAdmin()) {
             throw new com.webtechnology.ecommerce.exception.BadRequestException(
                     "You are not authorized to mark this notification as read");
         }
@@ -94,6 +112,16 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public void deleteNotification(UUID id, UUID requesterId) {
+        Notification notification = findNotificationById(id);
+        if (!notification.getUser().getId().equals(requesterId) && !isCurrentUserAdmin()) {
+            throw new com.webtechnology.ecommerce.exception.BadRequestException(
+                    "You are not authorized to delete this notification");
+        }
+        notificationRepository.delete(notification);
+    }
+
+    @Override
     public void deleteNotificationsByUserId(UUID userId) {
         notificationRepository.deleteByUserId(userId);
     }
@@ -101,5 +129,12 @@ public class NotificationServiceImpl implements NotificationService {
     private Notification findNotificationById(UUID id) {
         return notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+    }
+
+    private boolean isCurrentUserAdmin() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null
+                && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }
