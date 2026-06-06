@@ -228,6 +228,7 @@ const NotificationPage = () => {
         })
       );
 
+      window.dispatchEvent(new Event("notifications-changed"));
       message.success("Đã đánh dấu thông báo là đã đọc.");
     } catch (error) {
       console.error("Lỗi đánh dấu đã đọc:", error);
@@ -265,6 +266,7 @@ const NotificationPage = () => {
         }))
       );
 
+      window.dispatchEvent(new Event("notifications-changed"));
       message.success("Đã đánh dấu tất cả là đã đọc.");
     } catch (error) {
       console.error("Lỗi đánh dấu tất cả đã đọc:", error);
@@ -290,6 +292,7 @@ const NotificationPage = () => {
         )
       );
 
+      window.dispatchEvent(new Event("notifications-changed"));
       message.success("Đã xóa thông báo.");
     } catch (error) {
       console.error("Lỗi xóa thông báo:", error);
@@ -316,6 +319,7 @@ const NotificationPage = () => {
         try {
           await api.delete(notificationEndpoint.deleteMyAll);
           setNotifications([]);
+          window.dispatchEvent(new Event("notifications-changed"));
           message.success("Đã xóa tất cả thông báo.");
         } catch (error) {
           console.error("Lỗi xóa tất cả thông báo:", error);

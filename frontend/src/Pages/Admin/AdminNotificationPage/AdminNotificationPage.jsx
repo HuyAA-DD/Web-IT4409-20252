@@ -13,10 +13,12 @@ import {
   RightOutlined
 } from '@ant-design/icons';
 import { message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
 
 export default function AdminNotificationPage() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('ALL'); // 'ALL' | 'UNREAD'
   
@@ -42,6 +44,7 @@ export default function AdminNotificationPage() {
     try {
       await api.put(API_ENDPOINTS.notifications.markAsRead(id));
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      window.dispatchEvent(new Event('notifications-changed'));
       message.success('Đã đánh dấu là đã đọc!');
     } catch (error) {
       console.error('Lỗi đánh dấu thông báo đã đọc', error);
@@ -55,6 +58,7 @@ export default function AdminNotificationPage() {
         notifications.filter(n => !n.isRead).map(n => api.put(API_ENDPOINTS.notifications.markAsRead(n.id)))
       );
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      window.dispatchEvent(new Event('notifications-changed'));
       message.success('Đã đánh dấu tất cả là đã đọc!');
     } catch (error) {
       console.error('Lỗi đánh dấu tất cả đã đọc', error);
@@ -67,6 +71,7 @@ export default function AdminNotificationPage() {
     try {
       await api.delete(API_ENDPOINTS.notifications.byId(id));
       setNotifications(prev => prev.filter(n => n.id !== id));
+      window.dispatchEvent(new Event('notifications-changed'));
       message.success('Đã xóa thông báo!');
     } catch (error) {
       console.error('Lỗi xóa thông báo', error);
@@ -76,13 +81,34 @@ export default function AdminNotificationPage() {
 
   // --- UI HELPERS ---
   const getNotificationStyle = (type) => {
-    switch(type) {
+    switch(String(type || '').toUpperCase()) {
       case 'ORDER': return { icon: <ShoppingCartOutlined />, color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/30' };
       case 'ALERT': return { icon: <WarningOutlined />, color: 'text-red-500 bg-red-100 dark:bg-red-900/30' };
       case 'PROMOTION': return { icon: <TagOutlined />, color: 'text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30' };
       case 'USER': return { icon: <UserOutlined />, color: 'text-purple-500 bg-purple-100 dark:bg-purple-900/30' };
       default: return { icon: <InfoCircleOutlined />, color: 'text-gray-500 bg-gray-100 dark:bg-slate-700' };
     }
+  };
+
+  const getTargetPath = (notification) => {
+    const relatedType = String(notification?.relatedEntityType || '').toUpperCase();
+    const relatedId = notification?.relatedEntityId;
+
+    if (!relatedId) return null;
+    if (relatedType === 'ORDER') return `/admin/orders/${relatedId}`;
+    if (relatedType === 'PRODUCT') return '/admin/product';
+    return null;
+  };
+
+  const handleOpenRelated = async (notification) => {
+    const targetPath = getTargetPath(notification);
+    if (!targetPath) return;
+
+    if (!notification.isRead) {
+      await handleMarkAsRead(notification.id);
+    }
+
+    navigate(targetPath);
   };
 
   const formatRelativeTime = (dateString) => {
@@ -195,7 +221,10 @@ export default function AdminNotificationPage() {
 
                       {/* Optional: Related Entity Link */}
                       {notif.relatedEntityId && (
-                        <div className="mt-2 text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline cursor-pointer inline-block">
+                        <div
+                          onClick={() => handleOpenRelated(notif)}
+                          className="mt-2 text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline cursor-pointer inline-block"
+                        >
                           Xem chi tiết {notif.relatedEntityType}
                         </div>
                       )}
