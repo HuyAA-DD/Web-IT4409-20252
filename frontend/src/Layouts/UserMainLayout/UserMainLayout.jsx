@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, useRef } from 'react';
+import React, { useEffect, useState, Suspense, useRef} from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
@@ -460,6 +460,7 @@ export default function UserMainLayout() {
 
   const location = useLocation();
   const isDetailsPage = location.pathname.startsWith('/product') || location.pathname.startsWith('/cart');
+  const isPaymentStatusPage = location.pathname.startsWith('/payment-success') || location.pathname.startsWith('/payment-failure');
 
   useEffect(() => {
     const timer = setTimeout(() => { setLoading(false); }, 3000);
@@ -519,7 +520,7 @@ export default function UserMainLayout() {
 
       <main className="relative z-20 max-w-7xl mx-auto px-4 py-8 flex-grow w-full pointer-events-auto">
         <div className="flex flex-col lg:flex-row gap-6 h-full">
-          {!isDetailsPage && (
+          {!isDetailsPage && !isPaymentStatusPage && (
             <Sidebar collapsed={isSidebarCollapsed} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} isDarkMode={isDarkMode} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
           )}
           <div className="flex-grow w-full overflow-hidden transition-all duration-300">
