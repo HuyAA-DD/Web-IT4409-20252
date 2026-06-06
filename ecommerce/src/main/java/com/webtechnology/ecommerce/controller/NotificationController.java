@@ -126,6 +126,32 @@ public class NotificationController {
     }
 
     /** Xóa tất cả notification của user — chỉ ADMIN */
+    @DeleteMapping("/my/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteMyNotification(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        notificationService.deleteNotification(id, userId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Notification deleted successfully")
+                .data(null)
+                .build());
+    }
+
+    @DeleteMapping("/my")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteMyNotifications(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        notificationService.deleteNotificationsByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Notifications deleted successfully")
+                .data(null)
+                .build());
+    }
+
     @DeleteMapping("/by-user/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteNotificationsByUserId(@PathVariable UUID userId) {

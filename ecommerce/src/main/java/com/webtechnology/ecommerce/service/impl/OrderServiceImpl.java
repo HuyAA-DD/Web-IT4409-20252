@@ -22,6 +22,7 @@ import com.webtechnology.ecommerce.repository.ProductVariantRepository;
 import com.webtechnology.ecommerce.repository.UserRepository;
 import com.webtechnology.ecommerce.service.AuditLogService;
 import com.webtechnology.ecommerce.service.CouponService;
+import com.webtechnology.ecommerce.service.NotificationService;
 import com.webtechnology.ecommerce.service.OrderService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -45,6 +46,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductVariantRepository productVariantRepository;
     private final CouponService couponService;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
     private final OrderMapper orderMapper;
     private final AddressMapper addressMapper;
 
@@ -132,6 +134,8 @@ public class OrderServiceImpl implements OrderService {
 
         order = orderRepository.save(order);
 
+        createOrderCreatedNotification(order);
+
         return buildOrderResponse(order);
     }
 
@@ -199,7 +203,49 @@ public class OrderServiceImpl implements OrderService {
                 .newValue(newStatus.name())
                 .build());
 
+        createOrderStatusNotification(savedOrder, oldStatus, newStatus);
+
         return buildOrderResponse(savedOrder);
+    }
+
+    private void createOrderCreatedNotification(Order order) {
+        notificationService.createOrderNotification(
+                order.getUser().getId(),
+                order.getId(),
+                "Đặt hàng thành công",
+                "Đơn hàng " + getOrderDisplayCode(order)
+                        + " đã được tạo thành công và đang chờ xác nhận."
+        );
+    }
+
+    private void createOrderStatusNotification(Order order, OrderStatus oldStatus, OrderStatus newStatus) {
+        notificationService.createOrderNotification(
+                order.getUser().getId(),
+                order.getId(),
+                "Trạng thái đơn hàng đã thay đổi",
+                "Đơn hàng " + getOrderDisplayCode(order)
+                        + " đã chuyển từ " + getOrderStatusText(oldStatus)
+                        + " sang " + getOrderStatusText(newStatus) + "."
+        );
+    }
+
+    private String getOrderDisplayCode(Order order) {
+        return order.getOrderCode() != null ? "#" + order.getOrderCode() : "#" + order.getId();
+    }
+
+    private String getOrderStatusText(OrderStatus status) {
+        if (status == null) {
+            return "Không xác định";
+        }
+
+        return switch (status) {
+            case PENDING -> "chờ xử lý";
+            case CONFIRMED -> "đã xác nhận";
+            case PROCESSING -> "đang xử lý";
+            case SHIPPED -> "đang giao";
+            case DELIVERED -> "đã giao";
+            case CANCELLED -> "đã hủy";
+        };
     }
 
     private void restoreStock(UUID orderId) {

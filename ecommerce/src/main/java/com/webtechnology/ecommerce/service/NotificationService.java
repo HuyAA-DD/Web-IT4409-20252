@@ -9,6 +9,13 @@ public interface NotificationService {
 
     NotificationResponse createNotification(NotificationRequest request);
 
+    NotificationResponse createOrderNotification(
+            UUID userId,
+            UUID orderId,
+            String title,
+            String message
+    );
+
     List<NotificationResponse> getAllNotifications();
 
     NotificationResponse getNotificationById(UUID id);
@@ -22,6 +29,8 @@ public interface NotificationService {
     NotificationResponse markAsSent(UUID id);
 
     void deleteNotification(UUID id);
+
+    void deleteNotification(UUID id, UUID requesterId);
 
     void deleteNotificationsByUserId(UUID userId);
 }
