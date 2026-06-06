@@ -654,11 +654,11 @@ const CheckoutPage = () => {
                     </Radio>
                   </label>
 
-                  <label className="block cursor-pointer rounded-2xl border border-gray-100 p-4 hover:border-orange-300">
+                  {/* <label className="block cursor-pointer rounded-2xl border border-gray-100 p-4 hover:border-orange-300">
                     <Radio value="BANK_TRANSFER">
                       Chuyển khoản ngân hàng
                     </Radio>
-                  </label>
+                  </label> */}
                 </div>
               </Radio.Group>
             </Card>
