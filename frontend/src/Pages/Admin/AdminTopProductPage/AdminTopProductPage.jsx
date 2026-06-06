@@ -47,7 +47,7 @@ export default function AdminTopProductPage() {
       {/* HEADER */}
       <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-800  mb-1 flex items-center gap-2">
             <FireOutlined className="text-red-500" /> Bảng xếp hạng Sản phẩm
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">Danh sách các sản phẩm bán chạy nhất mang lại doanh thu cao.</p>
