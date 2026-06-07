@@ -1,5 +1,6 @@
 const PRODUCT_ENDPOINTS = {
   list: "/api/v1/products",
+  topProducts: "/api/v1/products/top-products",
   search: "/api/v1/products/search",
   filter: "/api/v1/products/filter",
   byId: (id) => `/api/v1/products/${id}`,

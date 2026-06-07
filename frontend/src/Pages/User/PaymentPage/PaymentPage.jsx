@@ -5,6 +5,7 @@ import {
   Descriptions,
   Empty,
   Modal,
+  Select,
   Space,
   Spin,
   Table,
@@ -20,6 +21,7 @@ import {
   EyeOutlined,
   LinkOutlined,
   ReloadOutlined,
+  SortAscendingOutlined,
   SyncOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
@@ -146,6 +148,47 @@ const isPayableSepayOrder = (order) => {
   return order?.paymentMethod === "SEPAY" && order?.paymentStatus !== "PAID";
 };
 
+const SORT_OPTIONS = [
+  { value: "createdAt_desc", label: "Mới nhất" },
+  { value: "createdAt_asc", label: "Cũ nhất" },
+  { value: "totalAmount_desc", label: "Tổng tiền cao nhất" },
+  { value: "totalAmount_asc", label: "Tổng tiền thấp nhất" },
+  { value: "payable_desc", label: "Chưa thanh toán trước" },
+  { value: "payable_asc", label: "Đã thanh toán trước" },
+  { value: "paymentStatus_asc", label: "Trạng thái thanh toán A-Z" },
+  { value: "status_asc", label: "Trạng thái đơn A-Z" },
+];
+
+const getOrderTime = (order) => {
+  const timestamp = new Date(order?.createdAt || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const getPaymentStatusLabel = (status) => {
+  return paymentStatusMap[status]?.label || status || "";
+};
+
+const getOrderStatusLabel = (status) => {
+  return orderStatusMap[status]?.label || status || "";
+};
+
+const getSortValue = (order, key) => {
+  switch (key) {
+    case "createdAt":
+      return getOrderTime(order);
+    case "totalAmount":
+      return Number(order?.totalAmount || 0);
+    case "payable":
+      return isPayableSepayOrder(order) ? 1 : 0;
+    case "paymentStatus":
+      return getPaymentStatusLabel(order?.paymentStatus);
+    case "status":
+      return getOrderStatusLabel(order?.status);
+    default:
+      return "";
+  }
+};
+
 const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,10 +212,30 @@ const PaymentPage = () => {
   const [creatingCheckoutId, setCreatingCheckoutId] = useState(null);
   const [refreshingStatusId, setRefreshingStatusId] = useState(null);
   const [queryingTransactionId, setQueryingTransactionId] = useState(null);
+  const [sortOption, setSortOption] = useState("createdAt_desc");
 
   const sepayOrders = useMemo(() => {
-    return orders.filter((order) => order.paymentMethod === "SEPAY");
-  }, [orders]);
+    const filtered = orders.filter((order) => order.paymentMethod === "SEPAY");
+    const [sortKey, sortDirection] = sortOption.split("_");
+
+    return [...filtered].sort((firstOrder, secondOrder) => {
+      const firstValue = getSortValue(firstOrder, sortKey);
+      const secondValue = getSortValue(secondOrder, sortKey);
+
+      if (typeof firstValue === "number" && typeof secondValue === "number") {
+        return sortDirection === "desc"
+          ? secondValue - firstValue
+          : firstValue - secondValue;
+      }
+
+      const result = String(firstValue).localeCompare(
+        String(secondValue),
+        "vi-VN"
+      );
+
+      return sortDirection === "desc" ? -result : result;
+    });
+  }, [orders, sortOption]);
 
   const pendingSepayOrders = useMemo(() => {
     return sepayOrders.filter((order) => order.paymentStatus !== "PAID");
@@ -767,6 +830,14 @@ const PaymentPage = () => {
                 <strong>{formatCurrency(totalPendingAmount)}</strong>
               </Text>
             </div>
+
+            <Select
+              value={sortOption}
+              onChange={setSortOption}
+              className="min-w-[240px]"
+              suffixIcon={<SortAscendingOutlined />}
+              options={SORT_OPTIONS}
+            />
 
             <Button
               icon={<ReloadOutlined />}

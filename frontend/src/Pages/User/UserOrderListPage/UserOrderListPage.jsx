@@ -18,6 +18,7 @@ import {
   ReloadOutlined,
   SearchOutlined,
   ShoppingOutlined,
+  SortAscendingOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -111,6 +112,38 @@ const canCancelOrder = (order) => {
   return ["PENDING", "CONFIRMED"].includes(order?.status);
 };
 
+const SORT_OPTIONS = [
+  { value: "createdAt_desc", label: "Mới nhất" },
+  { value: "createdAt_asc", label: "Cũ nhất" },
+  { value: "totalAmount_desc", label: "Tổng tiền cao nhất" },
+  { value: "totalAmount_asc", label: "Tổng tiền thấp nhất" },
+  { value: "status_asc", label: "Trạng thái đơn A-Z" },
+  { value: "paymentStatus_asc", label: "Trạng thái thanh toán A-Z" },
+  { value: "paymentMethod_asc", label: "Phương thức thanh toán A-Z" },
+];
+
+const getOrderTime = (order) => {
+  const timestamp = new Date(order?.createdAt || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const getSortValue = (order, key) => {
+  switch (key) {
+    case "createdAt":
+      return getOrderTime(order);
+    case "totalAmount":
+      return Number(order?.totalAmount || 0);
+    case "status":
+      return getOrderStatusText(order?.status);
+    case "paymentStatus":
+      return getPaymentStatusText(order?.paymentStatus);
+    case "paymentMethod":
+      return order?.paymentMethod || "";
+    default:
+      return "";
+  }
+};
+
 const UserOrderListPage = () => {
   const navigate = useNavigate();
   const {isDarkMode} = useOutletContext() || {};
@@ -125,11 +158,12 @@ const UserOrderListPage = () => {
 
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOption, setSortOption] = useState("createdAt_desc");
 
   const filteredOrders = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
-    return orders.filter((order) => {
+    const filtered = orders.filter((order) => {
       const matchStatus =
         statusFilter === "ALL" || String(order.status) === statusFilter;
 
@@ -141,7 +175,27 @@ const UserOrderListPage = () => {
 
       return matchStatus && matchKeyword;
     });
-  }, [orders, keyword, statusFilter]);
+
+    const [sortKey, sortDirection] = sortOption.split("_");
+
+    return [...filtered].sort((firstOrder, secondOrder) => {
+      const firstValue = getSortValue(firstOrder, sortKey);
+      const secondValue = getSortValue(secondOrder, sortKey);
+
+      if (typeof firstValue === "number" && typeof secondValue === "number") {
+        return sortDirection === "desc"
+          ? secondValue - firstValue
+          : firstValue - secondValue;
+      }
+
+      const result = String(firstValue).localeCompare(
+        String(secondValue),
+        "vi-VN"
+      );
+
+      return sortDirection === "desc" ? -result : result;
+    });
+  }, [orders, keyword, statusFilter, sortOption]);
 
   const fetchOrders = async () => {
     if (!userId) {
@@ -254,7 +308,7 @@ const UserOrderListPage = () => {
         </div>
 
         <Card className="mb-6 rounded-3xl border-0 shadow-sm">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_240px_240px]">
             <Input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
@@ -276,6 +330,14 @@ const UserOrderListPage = () => {
                 { value: "DELIVERED", label: "Đã giao" },
                 { value: "CANCELLED", label: "Đã hủy" },
               ]}
+            />
+
+            <Select
+              value={sortOption}
+              onChange={setSortOption}
+              className="w-full"
+              suffixIcon={<SortAscendingOutlined />}
+              options={SORT_OPTIONS}
             />
           </div>
         </Card>

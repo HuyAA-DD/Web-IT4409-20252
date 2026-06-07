@@ -21,7 +21,9 @@ import com.webtechnology.ecommerce.dto.ApiResponse;
 import com.webtechnology.ecommerce.dto.FileUploadResponse;
 import com.webtechnology.ecommerce.dto.ProductRequest;
 import com.webtechnology.ecommerce.dto.ProductResponse;
+import com.webtechnology.ecommerce.dto.TopProductResponse;
 import com.webtechnology.ecommerce.enums.ProductStatus;
+import com.webtechnology.ecommerce.service.AdminService;
 import com.webtechnology.ecommerce.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductController {
 
     private final ProductService productService;
+    private final AdminService adminService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
@@ -61,6 +64,19 @@ public class ProductController {
             .success(true)
             .message("Products retrieved successfully")
             .data(productService.getAllProducts())
+            .build());
+    }
+
+    @GetMapping("/top-products")
+    public ResponseEntity<ApiResponse<List<TopProductResponse>>> getTopProducts(
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter) {
+        return ResponseEntity.ok(ApiResponse.<List<TopProductResponse>>builder()
+            .success(true)
+            .message("Top products retrieved successfully")
+            .data(adminService.getTopProducts(limit, year, month, quarter))
             .build());
     }
 
