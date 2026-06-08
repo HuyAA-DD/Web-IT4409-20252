@@ -133,7 +133,7 @@ public class CouponServiceImpl implements CouponService {
         // Calculate discount
         BigDecimal discountAmount = BigDecimal.ZERO;
 
-        if ("PERCENTAGE".equalsIgnoreCase(coupon.getDiscountType())) {
+        if ("PERCENT".equalsIgnoreCase(coupon.getDiscountType())) {
             discountAmount = orderAmount.multiply(coupon.getDiscountValue()).divide(BigDecimal.valueOf(100));
         } else if ("FIXED".equalsIgnoreCase(coupon.getDiscountType())) {
             discountAmount = coupon.getDiscountValue();

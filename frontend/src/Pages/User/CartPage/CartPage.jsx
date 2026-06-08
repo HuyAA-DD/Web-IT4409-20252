@@ -510,7 +510,9 @@ const CartPage = () => {
         orderAmount: subtotal,
       });
 
+
       const result = unwrapApiData(response);
+            console.log(result)
 
       if (response?.success === false || result?.isValid === false) {
         message.warning(
