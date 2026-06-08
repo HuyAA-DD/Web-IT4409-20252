@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, Empty, Progress, Spin, Tag, message } from "antd";
+import { Button, Empty, Spin, Tag, message } from "antd";
 import {
   EyeOutlined,
   FireFilled,
@@ -14,6 +14,7 @@ import {useOutletContext} from "react-router-dom";
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUserId } from "../../../Utils/Auth";
+import { notifyCartChanged } from "../../../Utils/CartEvents";
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -87,6 +88,32 @@ const getTotalStock = (product) => {
   }, 0);
 };
 
+const getReviewSummary = (reviews = []) => {
+  if (!Array.isArray(reviews) || reviews.length === 0) {
+    return {
+      averageRating: 0,
+      reviewCount: 0,
+    };
+  }
+
+  const totalRating = reviews.reduce((sum, review) => {
+    return sum + Number(review?.rating || 0);
+  }, 0);
+
+  return {
+    averageRating: Number((totalRating / reviews.length).toFixed(1)),
+    reviewCount: reviews.length,
+  };
+};
+
+const getRatingText = (product) => {
+  if (Number(product?.reviewCount || 0) <= 0) {
+    return "Chưa có đánh giá";
+  }
+
+  return `${Number(product?.rating || 0).toFixed(1)} (${product.reviewCount})`;
+};
+
 const getRankStyle = (rank) => {
   switch (rank) {
     case 1:
@@ -128,16 +155,16 @@ const getBadgeByRank = (rank) => {
   return null;
 };
 
-const normalizeProduct = (product, index) => {
+const normalizeProduct = (product, index, reviewSummaries = {}, salesSummaries = {}) => {
   const variant = getBestVariant(product);
   const price = getMinPrice(product);
   const totalStock = getTotalStock(product);
   const rank = index + 1;
-
-  const soldPercent = Math.min(
-    98,
-    Math.max(35, 100 - Math.min(totalStock, 100))
-  );
+  const reviewSummary = reviewSummaries[product.id] || {
+    averageRating: 0,
+    reviewCount: 0,
+  };
+  const sold = Number(salesSummaries[product.id]?.totalSales || 0);
 
   return {
     id: product.id,
@@ -154,10 +181,9 @@ const normalizeProduct = (product, index) => {
     stock: totalStock,
     price,
     originalPrice: price > 0 ? Math.round(price * 1.12) : 0,
-    rating: 4.5 + (rank % 5) * 0.1,
-    sold: Math.max(12, 140 - rank * 9),
-    views: Math.max(200, 2500 - rank * 130),
-    soldPercent,
+    rating: reviewSummary.averageRating,
+    reviewCount: reviewSummary.reviewCount,
+    sold,
     badge: getBadgeByRank(rank),
     createdAt: product.createdAt,
   };
@@ -168,14 +194,84 @@ const TopProductsPage = () => {
   const {isDarkMode} = useOutletContext();
   const userId = getAuthUserId();
 
-  const [timeFilter, setTimeFilter] = useState("week");
   const [activeCategory, setActiveCategory] = useState("all");
   const [rawProducts, setRawProducts] = useState([]);
+  const [reviewSummaries, setReviewSummaries] = useState({});
+  const [salesSummaries, setSalesSummaries] = useState({});
   const [loading, setLoading] = useState(false);
   const [addingProductId, setAddingProductId] = useState(null);
 
   const productEndpoint = API_ENDPOINTS.products || API_ENDPOINTS.product;
+  const reviewEndpoint = API_ENDPOINTS.reviews || API_ENDPOINTS.review;
   const cartEndpoint = API_ENDPOINTS.cart;
+
+  const fetchSalesSummaries = async () => {
+    if (!productEndpoint?.topProducts) return;
+
+    try {
+      const response = await api.get(productEndpoint.topProducts, {
+        limit: 1000,
+      });
+      const topProducts = unwrapApiData(response);
+      const summaries = Array.isArray(topProducts) ? topProducts : [];
+
+      setSalesSummaries(
+        Object.fromEntries(
+          summaries
+            .filter((product) => product?.productId)
+            .map((product) => [
+              product.productId,
+              {
+                totalSales: Number(product.totalSales || product.soldCount || 0),
+                totalRevenue: Number(product.totalRevenue || 0),
+              },
+            ])
+        )
+      );
+    } catch (error) {
+      console.error("Failed to load product sales summaries:", error);
+      setSalesSummaries({});
+    }
+  };
+
+  const fetchReviewSummaries = async (productList) => {
+    if (!reviewEndpoint?.byProduct) return;
+
+    const productIds = productList
+      .map((product) => product?.id)
+      .filter(Boolean);
+
+    if (productIds.length === 0) {
+      setReviewSummaries({});
+      return;
+    }
+
+    try {
+      const entries = await Promise.all(
+        productIds.map(async (productId) => {
+          try {
+            const response = await api.get(reviewEndpoint.byProduct(productId));
+            const reviews = unwrapApiData(response);
+
+            return [productId, getReviewSummary(reviews)];
+          } catch (error) {
+            console.error("Failed to load product reviews:", productId, error);
+            return [
+              productId,
+              {
+                averageRating: 0,
+                reviewCount: 0,
+              },
+            ];
+          }
+        })
+      );
+
+      setReviewSummaries(Object.fromEntries(entries));
+    } catch (error) {
+      console.error("Failed to load product review summaries:", error);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -187,10 +283,16 @@ const TopProductsPage = () => {
       const products = Array.isArray(data) ? data : [];
 
       setRawProducts(products);
+      await Promise.all([
+        fetchReviewSummaries(products),
+        fetchSalesSummaries(),
+      ]);
     } catch (error) {
       console.error("Failed to load top products:", error);
       message.error("Không thể tải danh sách sản phẩm nổi bật.");
       setRawProducts([]);
+      setReviewSummaries({});
+      setSalesSummaries({});
     } finally {
       setLoading(false);
     }
@@ -245,23 +347,22 @@ const TopProductsPage = () => {
           });
 
     const sortedProducts = [...filteredByCategory].sort((a, b) => {
-      const stockA = getTotalStock(a);
-      const stockB = getTotalStock(b);
-      const priceA = getMinPrice(a);
-      const priceB = getMinPrice(b);
-
+      const salesA = Number(salesSummaries[a.id]?.totalSales || 0);
+      const salesB = Number(salesSummaries[b.id]?.totalSales || 0);
+      const ratingA = Number(reviewSummaries[a.id]?.averageRating || 0);
+      const ratingB = Number(reviewSummaries[b.id]?.averageRating || 0);
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
 
-      if (timeFilter === "week") {
-        return dateB - dateA || stockB - stockA || priceB - priceA;
-      }
-
-      return stockB - stockA || priceB - priceA || dateB - dateA;
+      return salesB - salesA || ratingB - ratingA || dateB - dateA;
     });
 
-    return sortedProducts.slice(0, 12).map(normalizeProduct);
-  }, [rawProducts, activeCategory, timeFilter]);
+    return sortedProducts
+      .slice(0, 12)
+      .map((product, index) =>
+        normalizeProduct(product, index, reviewSummaries, salesSummaries)
+      );
+  }, [rawProducts, activeCategory, reviewSummaries, salesSummaries]);
 
   const topFeatured = normalizedProducts.slice(0, 3);
   const listProducts = normalizedProducts.slice(3);
@@ -274,28 +375,30 @@ const TopProductsPage = () => {
     if (!userId) {
       message.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.");
       navigate("/auth/login-register");
-      return;
+      return false;
     }
 
     if (!product?.variantId) {
       message.warning("Sản phẩm này chưa có biến thể để thêm vào giỏ hàng.");
-      return;
+      return false;
     }
 
     if (Number(product.stock || 0) <= 0) {
       message.warning("Sản phẩm này hiện đã hết hàng.");
-      return;
+      return false;
     }
 
     setAddingProductId(product.id);
 
     try {
-      await api.post(cartEndpoint.items(userId), {
+      const response = await api.post(cartEndpoint.items(userId), {
         productVariantId: product.variantId,
         quantity: 1,
       });
+      notifyCartChanged(response);
 
       message.success("Đã thêm sản phẩm vào giỏ hàng.");
+      return true;
     } catch (error) {
       console.error("Lỗi thêm sản phẩm vào giỏ hàng:", error);
 
@@ -306,15 +409,16 @@ const TopProductsPage = () => {
         "Không thể thêm sản phẩm vào giỏ hàng.";
 
       message.error(backendMessage);
+      return false;
     } finally {
       setAddingProductId(null);
     }
   };
 
   const handleBuyNow = async (product) => {
-    await handleAddToCart(product);
+    const added = await handleAddToCart(product);
 
-    if (userId && product?.variantId && Number(product.stock || 0) > 0) {
+    if (added) {
       navigate("/cart");
     }
   };
@@ -334,8 +438,7 @@ const TopProductsPage = () => {
               </div>
 
               <p className="m-0 max-w-2xl text-sm text-white/90 md:text-base">
-                Hiển thị sản phẩm thật từ database, sắp xếp theo độ nổi bật tạm
-                thời dựa trên sản phẩm mới, tồn kho và giá bán.
+                Hiển thị sản phẩm theo số lượng đã bán thật, kèm rating từ đánh giá người dùng.
               </p>
             </div>
 
@@ -350,33 +453,7 @@ const TopProductsPage = () => {
           </div>
         </section>
 
-        <section className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex w-fit rounded-2xl bg-gray-100 p-1 dark:bg-slate-800">
-            <button
-              type="button"
-              onClick={() => setTimeFilter("week")}
-              className={`rounded-xl px-6 py-2 text-sm font-bold transition-all ${
-                timeFilter === "week"
-                  ? "bg-white text-orange-600 shadow-sm dark:bg-slate-700 dark:text-orange-400"
-                  : "text-gray-500 hover:text-orange-600 dark:text-gray-400"
-              }`}
-            >
-              Theo tuần
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTimeFilter("month")}
-              className={`rounded-xl px-6 py-2 text-sm font-bold transition-all ${
-                timeFilter === "month"
-                  ? "bg-white text-orange-600 shadow-sm dark:bg-slate-700 dark:text-orange-400"
-                  : "text-gray-500 hover:text-orange-600 dark:text-gray-400"
-              }`}
-            >
-              Theo tháng
-            </button>
-          </div>
-
+        <section className="mb-6 flex justify-end">
           <div className="flex gap-3 overflow-x-auto pb-2">
             {categories.map((category) => (
               <button
@@ -474,12 +551,10 @@ const TopProductsPage = () => {
                     <div className="mb-5 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                       <span>
                         <StarFilled className="mr-1 text-yellow-400" />
-                        {item.rating.toFixed(1)}
+                        {getRatingText(item)}
                       </span>
 
-                      <span>{item.sold} đã bán</span>
-
-                      <span>Còn {item.stock}</span>
+                      <span>{item.sold.toLocaleString("vi-VN")} đã bán</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -572,33 +647,16 @@ const TopProductsPage = () => {
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                           <span>
                             <StarFilled className="mr-1 text-yellow-400" />
-                            {item.rating.toFixed(1)}
+                            {getRatingText(item)}
                           </span>
 
-                          <span>
-                            <EyeOutlined className="mr-1" />
-                            {item.views} lượt xem
-                          </span>
-
-                          <span>Còn {item.stock} sản phẩm</span>
+                          <span>{item.sold.toLocaleString("vi-VN")} đã bán</span>
                         </div>
                       </div>
 
                       <div className="flex flex-col justify-between gap-3">
-                        <div>
-                          <div className="mb-1 text-right text-xl font-black text-orange-600">
-                            {formatCurrency(item.price)}
-                          </div>
-
-                          <Progress
-                            percent={item.soldPercent}
-                            showInfo={false}
-                            strokeColor="#f97316"
-                          />
-
-                          <div className="mt-1 text-right text-xs font-bold text-orange-600">
-                            {item.soldPercent}% ĐÃ BÁN
-                          </div>
+                        <div className="mb-1 text-right text-xl font-black text-orange-600">
+                          {formatCurrency(item.price)}
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
