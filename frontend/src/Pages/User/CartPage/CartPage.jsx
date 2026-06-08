@@ -512,7 +512,7 @@ const CartPage = () => {
 
 
       const result = unwrapApiData(response);
-            console.log(result)
+
 
       if (response?.success === false || result?.isValid === false) {
         message.warning(
