@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   InboxOutlined, 
@@ -15,8 +15,21 @@ import {
 import { Avatar, Badge, Button, Dropdown } from 'antd';
 import SELLER_ROUTE from '../../Routes/Seller.routes';
 import USER_ROUTE from '../../Routes/User.routes';
+import api from '../../Apis/apiConfig';
+import API_ENDPOINTS from '../../Apis/apiEndpoints';
 
 import { clearAuthUser, getAuthUser } from '../../Utils/Auth';
+
+const SELLER_NOTIFICATION_TYPES = new Set(['SELLER_ORDER', 'SALE_PAID']);
+
+const extractData = (payload) => {
+  if (payload?.data !== undefined) return payload.data;
+  return payload;
+};
+
+const isSellerNotification = (notification) => {
+  return SELLER_NOTIFICATION_TYPES.has(String(notification?.type || '').toUpperCase());
+};
 
 // --- COMPONENT: SELLER SIDEBAR ---
 const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -100,6 +113,7 @@ const SellerSidebar = ({ isMobileOpen, onCloseMobile }) => {
 export default function SellerMainLayout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const user = getAuthUser();
 
@@ -114,9 +128,40 @@ export default function SellerMainLayout() {
     setSellerNameUpdate(newSellerName);
   }
 
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      const authUser = getAuthUser();
+
+      if (!authUser?.id) {
+        setNotificationCount(0);
+        return;
+      }
+
+      try {
+        const response = await api.get(API_ENDPOINTS.notifications.myUnread);
+        const data = extractData(response);
+        setNotificationCount(Array.isArray(data) ? data.filter(isSellerNotification).length : 0);
+      } catch (error) {
+        console.warn('Khong the tai so thong bao ban hang chua doc', error);
+        setNotificationCount(0);
+      }
+    };
+
+    fetchNotificationCount();
+    window.addEventListener('notifications-changed', fetchNotificationCount);
+    window.addEventListener('auth-changed', fetchNotificationCount);
+
+    return () => {
+      window.removeEventListener('notifications-changed', fetchNotificationCount);
+      window.removeEventListener('auth-changed', fetchNotificationCount);
+    };
+  }, []);
+
   // Logic khi bấm Đăng xuất
   const handleLogout = () => {
     clearAuthUser();
+    setNotificationCount(0);
+    window.dispatchEvent(new Event('auth-changed'));
     navigate('/auth/login-register');
   };
 
@@ -176,7 +221,7 @@ export default function SellerMainLayout() {
             </button>
             <div className="h-4 w-px bg-gray-300 hidden md:block"></div>
             
-            <Badge count={5} size="small" offset={[-4, 4]} onClick={() => navigate(SELLER_ROUTE.Notification)}>
+            <Badge count={notificationCount} size="small" offset={[-4, 4]} onClick={() => navigate(SELLER_ROUTE.Notification)}>
               <button className="p-2 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-full transition-colors cursor-pointer">
                 <BellOutlined className="text-lg" />
               </button>

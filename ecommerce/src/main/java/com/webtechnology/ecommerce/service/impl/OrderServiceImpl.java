@@ -2,6 +2,7 @@ package com.webtechnology.ecommerce.service.impl;
 
 import com.webtechnology.ecommerce.dto.AuditLogRequest;
 import com.webtechnology.ecommerce.dto.CouponCalculationResponse;
+import com.webtechnology.ecommerce.dto.NotificationRequest;
 import com.webtechnology.ecommerce.dto.OrderItemResponse;
 import com.webtechnology.ecommerce.dto.OrderRequest;
 import com.webtechnology.ecommerce.dto.OrderResponse;
@@ -15,6 +16,7 @@ import com.webtechnology.ecommerce.enums.PaymentMethod;
 import com.webtechnology.ecommerce.enums.PaymentStatus;
 import com.webtechnology.ecommerce.exception.BadRequestException;
 import com.webtechnology.ecommerce.exception.ResourceNotFoundException;
+import com.webtechnology.ecommerce.mapper.AddressMapper;
 import com.webtechnology.ecommerce.mapper.OrderMapper;
 import com.webtechnology.ecommerce.repository.AddressRepository;
 import com.webtechnology.ecommerce.repository.OrderItemRepository;
@@ -26,6 +28,7 @@ import com.webtechnology.ecommerce.service.CouponService;
 import com.webtechnology.ecommerce.service.NotificationService;
 import com.webtechnology.ecommerce.service.OrderService;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,12 +36,14 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.webtechnology.ecommerce.mapper.AddressMapper;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class OrderServiceImpl implements OrderService {
+
+    private static final String SELLER_ORDER_NOTIFICATION_TYPE = "SELLER_ORDER";
+    private static final String SALE_PAID_NOTIFICATION_TYPE = "SALE_PAID";
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -78,6 +83,7 @@ public class OrderServiceImpl implements OrderService {
         order = orderRepository.save(order);
 
         BigDecimal subTotal = BigDecimal.ZERO;
+        List<OrderItem> savedOrderItems = new ArrayList<>();
 
         for (var itemRequest : request.getItems()) {
             ProductVariant variant = findProductVariantById(itemRequest.getProductVariantId());
@@ -101,7 +107,7 @@ public class OrderServiceImpl implements OrderService {
                     .quantity(itemRequest.getQuantity())
                     .build();
 
-            orderItemRepository.save(orderItem);
+            savedOrderItems.add(orderItemRepository.save(orderItem));
 
             subTotal = subTotal.add(lineTotal);
 
@@ -135,6 +141,7 @@ public class OrderServiceImpl implements OrderService {
 
         order = orderRepository.save(order);
 
+        createSellerOrderCreatedNotifications(order, savedOrderItems);
         createOrderCreatedNotification(order);
 
         return buildOrderResponse(order);
@@ -182,6 +189,7 @@ public class OrderServiceImpl implements OrderService {
     private OrderResponse updateOrderStatusInternal(Order order, OrderStatus newStatus) {
         UUID orderId = order.getId();
         OrderStatus oldStatus = order.getStatus();
+        PaymentStatus oldPaymentStatus = order.getPaymentStatus();
 
         if (order.getStatus().equals(newStatus)) {
             return buildOrderResponse(order);
@@ -207,7 +215,21 @@ public class OrderServiceImpl implements OrderService {
 
         createOrderStatusNotification(savedOrder, oldStatus, newStatus);
 
+        if (!PaymentStatus.PAID.equals(oldPaymentStatus)
+                && PaymentStatus.PAID.equals(savedOrder.getPaymentStatus())) {
+            createSellerPaidNotifications(savedOrder);
+        }
+
         return buildOrderResponse(savedOrder);
+    }
+
+    @Override
+    public void notifySellerOrderPaid(UUID orderId) {
+        Order order = findOrderById(orderId);
+
+        if (PaymentStatus.PAID.equals(order.getPaymentStatus())) {
+            createSellerPaidNotifications(order);
+        }
     }
 
     private void markCodOrderAsPaidWhenDelivered(Order order, OrderStatus newStatus) {
@@ -226,6 +248,67 @@ public class OrderServiceImpl implements OrderService {
                 "Đơn hàng " + getOrderDisplayCode(order)
                         + " đã được tạo thành công và đang chờ xác nhận."
         );
+    }
+
+    private void createSellerOrderCreatedNotifications(Order order, List<OrderItem> orderItems) {
+        createSellerNotificationsByOrderItems(
+                order,
+                orderItems,
+                SELLER_ORDER_NOTIFICATION_TYPE,
+                "Đơn hàng mới có sản phẩm của bạn",
+                " vừa được tạo với "
+        );
+    }
+
+    private void createSellerPaidNotifications(Order order) {
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+        createSellerNotificationsByOrderItems(
+                order,
+                orderItems,
+                SALE_PAID_NOTIFICATION_TYPE,
+                null,
+                " đã được ghi nhận thanh toán với "
+        );
+    }
+
+    private void createSellerNotificationsByOrderItems(
+            Order order,
+            List<OrderItem> orderItems,
+            String notificationType,
+            String fixedTitle,
+            String messageVerb
+    ) {
+        Map<UUID, List<OrderItem>> itemsBySellerId = orderItems.stream()
+                .collect(Collectors.groupingBy(item -> item.getProduct().getSeller().getId()));
+
+        itemsBySellerId.forEach((sellerId, sellerItems) -> {
+            int soldQuantity = sellerItems.stream()
+                    .mapToInt(item -> item.getQuantity() == null ? 0 : item.getQuantity())
+                    .sum();
+
+            if (soldQuantity <= 0) {
+                return;
+            }
+
+            String productSummary = sellerItems.stream()
+                    .map(item -> item.getProductName() + " x" + item.getQuantity())
+                    .collect(Collectors.joining(", "));
+
+            String title = fixedTitle != null
+                    ? fixedTitle
+                    : "Bạn vừa bán thêm " + soldQuantity + " sản phẩm";
+
+            notificationService.createNotification(NotificationRequest.builder()
+                    .userId(sellerId)
+                    .title(title)
+                    .message("Đơn hàng " + getOrderDisplayCode(order)
+                            + messageVerb + soldQuantity + " sản phẩm từ gian hàng của bạn: "
+                            + productSummary + ".")
+                    .type(notificationType)
+                    .relatedEntityType("ORDER")
+                    .relatedEntityId(order.getId())
+                    .build());
+        });
     }
 
     private void createOrderStatusNotification(Order order, OrderStatus oldStatus, OrderStatus newStatus) {

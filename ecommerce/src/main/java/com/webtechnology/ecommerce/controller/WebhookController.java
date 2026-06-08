@@ -138,6 +138,7 @@ public class WebhookController {
                 order.setPaymentStatus(PaymentStatus.PAID);
                 orderRepository.save(order);
                 orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED);
+                orderService.notifySellerOrderPaid(orderId);
                 log.info("Sepay webhook: xác nhận thanh toán thành công — orderId={}, amount={}",
                         orderId, paidAmount);
             } else {

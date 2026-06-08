@@ -20,6 +20,8 @@ public interface OrderService {
 
     OrderResponse updateOrderStatus(UUID orderId, OrderStatus newStatus);
 
+    void notifySellerOrderPaid(UUID orderId);
+
     List<OrderResponse> getAllOrders();
 
     OrderResponse getOrderTracking(UUID orderId, UUID userId);
