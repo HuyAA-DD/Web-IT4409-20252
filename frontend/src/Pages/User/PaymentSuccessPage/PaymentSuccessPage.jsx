@@ -145,7 +145,7 @@ const PaymentSuccessPage = () => {
               Thanh toán thành công!
             </h1>
             <p className={`text-[18px] leading-[1.6] font-normal ${isDarkMode ? 'text-[#cccccc]' : 'text-[#464554]'} max-w-md mx-auto mb-8`}>
-              Cảm ơn bạn đã mua sắm tại <strong>PetCommunity</strong>.<br></br> 
+              Cảm ơn bạn đã mua sắm tại <strong>Mega Mart</strong>.<br></br> 
               Đơn hàng của bạn đã được ghi nhận và đang được xử lý.
             </p>
 
