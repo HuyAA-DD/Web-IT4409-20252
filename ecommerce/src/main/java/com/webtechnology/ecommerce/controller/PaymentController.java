@@ -33,6 +33,7 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<PaymentResponse>> createSepayCheckout(
             @Valid @RequestBody SepayCheckoutRequest request,
             Authentication authentication) {
+  
         UUID userId = UUID.fromString(authentication.getName());
         PaymentResponse response = paymentService.createSepayCheckout(userId, request);
         return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()

@@ -22,7 +22,7 @@ const USER_ROUTE = {
   ChangePassword: "/change-password",
   Chatbot: "/chatbot",
   PaymentSuccess: "/payment-success",
-  PaymentFail: "/payment-failure",
+
 };
 
 export default USER_ROUTE;

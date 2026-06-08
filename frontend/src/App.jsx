@@ -44,8 +44,8 @@ import UserProfilePage from './Pages/User/UserProfilePage/UserProfilePage';
 import UserChangePasswordPage from './Pages/User/UserChangePasswordPage/UserChangePasswordPage';
 import PaymentPage from './Pages/User/PaymentPage/PaymentPage';
 import SellerChangePasswordPage from './Pages/Seller/SellerChangePasswordPage/SellerChangePasswordPage';
- import PaymentSuccessPage from './Pages/User/PaymentSuccessPage/PaymentSuccessPage';
- import PaymentFailPage from './Pages/User/PaymentFailPage/PaymentFailPage';
+import PaymentSuccessPage from './Pages/User/PaymentSuccessPage/PaymentSuccessPage';
+
 
 import RequireAuth from './Components/RequireAuth';
 import CheckoutPage from './Pages/User/CheckoutPage/CheckoutPage';
@@ -123,10 +123,7 @@ const router = createBrowserRouter([
         path: USER_ROUTE.PaymentSuccess,
         element: <RequireAuth requiredRole={"USER"}><PaymentSuccessPage/></RequireAuth>
       },
-      {
-        path: USER_ROUTE.PaymentFail,
-        element: <RequireAuth requiredRole={"USER"}><PaymentFailPage/></RequireAuth>
-      }
+ 
     ],
   },
 
