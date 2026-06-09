@@ -13,6 +13,10 @@ import com.webtechnology.ecommerce.enums.ProductStatus;
 
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
+    long countByStatus(ProductStatus status);
+
+    List<Product> findTop8ByStatusOrderByCreatedAtDesc(ProductStatus status);
+
     @Query("SELECT DISTINCT p FROM Product p LEFT JOIN ProductVariant v ON v.product = p WHERE "
             + "(:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) "
             + "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) "

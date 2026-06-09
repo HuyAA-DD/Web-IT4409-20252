@@ -43,6 +43,15 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(java.util.List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
+ 
+        // thêm firebase vào frontend
+        configuration.setAllowedOrigins(java.util.List.of(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:3000",
+            "https://<firebase-project-id>.web.app",
+            "https://<firebase-project-id>.firebaseapp.com"
+        ));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
