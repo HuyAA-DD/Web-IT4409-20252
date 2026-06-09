@@ -28,17 +28,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow requests from frontend (development & production)
-        configuration.setAllowedOrigins(java.util.List.of(
-            "http://localhost:5173",      // Vite dev server
-            "http://localhost:5174",      // Vite dev server (current frontend)
-            "http://localhost:3000",      // React/Vue dev server
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174",
-            "http://127.0.0.1:3000"
-            // Add production URLs after deployment: "https://your-frontend.com"
-        ));
-        
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*"));
         configuration.setAllowCredentials(true);
@@ -49,8 +38,8 @@ public class SecurityConfig {
             "http://localhost:5173",
             "http://localhost:5174",
             "http://localhost:3000",
-            "https://<firebase-project-id>.web.app",
-            "https://<firebase-project-id>.firebaseapp.com"
+            "https://web-it4409-20252.web.app",
+            "https://web-it4409-20252.firebaseapp.com"
         ));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
