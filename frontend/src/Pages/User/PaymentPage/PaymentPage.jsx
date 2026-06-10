@@ -513,7 +513,6 @@ const PaymentPage = () => {
             </Button>
           )}
           <Button icon={<ReloadOutlined />} loading={refreshingStatusId === String(order.id)} onClick={() => handleRefreshPaymentStatus(order)} className="!rounded-xl">Cập nhật</Button>
-          <Button icon={<SyncOutlined />} loading={queryingTransactionId === String(order.id)} onClick={() => handleQueryTransactionStatus(order)} className="!rounded-xl">Giao dịch</Button>
         </Space>
       ),
     },

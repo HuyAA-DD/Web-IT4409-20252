@@ -471,15 +471,6 @@ const UserOrderDetailPage = () => {
               Làm mới
             </Button>
 
-            <Button
-              icon={<FileTextOutlined />}
-              loading={loadingInvoice}
-              onClick={handleGetInvoice}
-              className="!rounded-xl"
-            >
-              Xem hóa đơn
-            </Button>
-
             {canPaySepayOrder(order) && (
               <Button
                 type="primary"
