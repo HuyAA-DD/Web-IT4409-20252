@@ -1,15 +1,11 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   Button,
-  Card,
   Descriptions,
   Empty,
   Modal,
   Select,
-  Space,
   Spin,
-  Table,
-  Tag,
   Typography,
   message,
 } from "antd";
@@ -25,12 +21,15 @@ import {
   SyncOutlined,
   WalletOutlined,
   CopyOutlined,
+  LeftOutlined,
+  RightOutlined
 } from "@ant-design/icons";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
+import { notifyCartChanged } from "../../../Utils/CartEvents";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -43,7 +42,6 @@ const formatCurrency = (value) => {
 
 const formatDateTime = (value) => {
   if (!value) return "Không xác định";
-
   try {
     return new Date(value).toLocaleString("vi-VN");
   } catch {
@@ -59,7 +57,6 @@ const unwrapApiData = (response) => {
 
 const getApiMessage = (error, fallback = "Có lỗi xảy ra.") => {
   const responseData = error?.response?.data;
-
   return (
     responseData?.message ||
     responseData?.error ||
@@ -75,31 +72,37 @@ const getShortId = (id) => {
   return String(id).slice(0, 8).toUpperCase();
 };
 
-const paymentStatusMap = {
-  PENDING: { color: "gold", label: "Chờ thanh toán" },
-  PAID: { color: "green", label: "Đã thanh toán" },
-  FAILED: { color: "red", label: "Thanh toán thất bại" },
-  REFUNDED: { color: "blue", label: "Đã hoàn tiền" },
-  CANCELLED: { color: "default", label: "Đã hủy" },
+// Custom UI Badges matching HTML template
+const getPaymentStatusBadge = (status, isDarkMode) => {
+  switch (status) {
+    case 'PENDING':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md border ${isDarkMode ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-orange-100 text-orange-600 border-orange-200'}`}>Chờ thanh toán</span>;
+    case 'PAID':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md border ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-100 text-emerald-600 border-emerald-200'}`}>Đã thanh toán</span>;
+    case 'FAILED':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md border ${isDarkMode ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-red-100 text-red-600 border-red-200'}`}>Thất bại</span>;
+    case 'REFUNDED':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md border ${isDarkMode ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-100 text-blue-600 border-blue-200'}`}>Đã hoàn tiền</span>;
+    default:
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md border ${isDarkMode ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>{status || "N/A"}</span>;
+  }
 };
 
-const orderStatusMap = {
-  PENDING: { color: "gold", label: "Chờ xác nhận" },
-  CONFIRMED: { color: "blue", label: "Đã xác nhận" },
-  PROCESSING: { color: "purple", label: "Đang xử lý" },
-  SHIPPED: { color: "cyan", label: "Đang giao" },
-  DELIVERED: { color: "green", label: "Đã giao" },
-  CANCELLED: { color: "red", label: "Đã hủy" },
-};
-
-const getPaymentStatusTag = (status) => {
-  const data = paymentStatusMap[status] || { color: "default", label: status || "Không xác định" };
-  return <Tag color={data.color}>{data.label}</Tag>;
-};
-
-const getOrderStatusTag = (status) => {
-  const data = orderStatusMap[status] || { color: "default", label: status || "Không xác định" };
-  return <Tag color={data.color}>{data.label}</Tag>;
+const getOrderStatusBadge = (status, isDarkMode) => {
+  switch (status) {
+    case 'PENDING':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md ${isDarkMode ? 'bg-slate-700 text-yellow-400' : 'bg-gray-100 text-yellow-600'}`}>Chờ xác nhận</span>;
+    case 'PROCESSING':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md ${isDarkMode ? 'bg-slate-700 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>Đang xử lý</span>;
+    case 'SHIPPED':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md ${isDarkMode ? 'bg-slate-700 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>Đang giao</span>;
+    case 'DELIVERED':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md ${isDarkMode ? 'bg-slate-700 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>Đã giao</span>;
+    case 'CANCELLED':
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md border ${isDarkMode ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-red-100 text-red-600 border-red-200'}`}>Đã hủy</span>;
+    default:
+      return <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-md ${isDarkMode ? 'bg-slate-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>{status || "N/A"}</span>;
+  }
 };
 
 const isPayableSepayOrder = (order) => {
@@ -113,39 +116,7 @@ const SORT_OPTIONS = [
   { value: "totalAmount_asc", label: "Tổng tiền thấp nhất" },
   { value: "payable_desc", label: "Chưa thanh toán trước" },
   { value: "payable_asc", label: "Đã thanh toán trước" },
-  { value: "paymentStatus_asc", label: "Trạng thái thanh toán A-Z" },
-  { value: "status_asc", label: "Trạng thái đơn A-Z" },
 ];
-
-const getOrderTime = (order) => {
-  const timestamp = new Date(order?.createdAt || 0).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
-const getPaymentStatusLabel = (status) => {
-  return paymentStatusMap[status]?.label || status || "";
-};
-
-const getOrderStatusLabel = (status) => {
-  return orderStatusMap[status]?.label || status || "";
-};
-
-const getSortValue = (order, key) => {
-  switch (key) {
-    case "createdAt":
-      return getOrderTime(order);
-    case "totalAmount":
-      return Number(order?.totalAmount || 0);
-    case "payable":
-      return isPayableSepayOrder(order) ? 1 : 0;
-    case "paymentStatus":
-      return getPaymentStatusLabel(order?.paymentStatus);
-    case "status":
-      return getOrderStatusLabel(order?.status);
-    default:
-      return "";
-  }
-};
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -162,13 +133,15 @@ const PaymentPage = () => {
   const [orders, setOrders] = useState([]);
   const [focusedOrder, setFocusedOrder] = useState(orderFromState);
   const [paymentResult, setPaymentResult] = useState(null);
-  // const [transactionResult, setTransactionResult] = useState(null);
 
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [creatingCheckoutId, setCreatingCheckoutId] = useState(null);
   const [refreshingStatusId, setRefreshingStatusId] = useState(null);
-  const [queryingTransactionId, setQueryingTransactionId] = useState(null);
   const [sortOption, setSortOption] = useState("createdAt_desc");
+  
+  // Custom Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
 
   // --- STATE VÀ REF CHO CHỨC NĂNG POLLING TỰ ĐỘNG ---
   const [pollingOrderId, setPollingOrderId] = useState(null);
@@ -178,25 +151,32 @@ const PaymentPage = () => {
     const filtered = orders.filter((order) => order.paymentMethod === "SEPAY");
     const [sortKey, sortDirection] = sortOption.split("_");
 
-    return [...filtered].sort((firstOrder, secondOrder) => {
-      const firstValue = getSortValue(firstOrder, sortKey);
-      const secondValue = getSortValue(secondOrder, sortKey);
-
-      if (typeof firstValue === "number" && typeof secondValue === "number") {
-        return sortDirection === "desc"
-          ? secondValue - firstValue
-          : firstValue - secondValue;
+    return [...filtered].sort((a, b) => {
+      let valA, valB;
+      if (sortKey === "createdAt") {
+        valA = new Date(a.createdAt || 0).getTime();
+        valB = new Date(b.createdAt || 0).getTime();
+      } else if (sortKey === "totalAmount") {
+        valA = Number(a.totalAmount || 0);
+        valB = Number(b.totalAmount || 0);
+      } else if (sortKey === "payable") {
+        valA = isPayableSepayOrder(a) ? 1 : 0;
+        valB = isPayableSepayOrder(b) ? 1 : 0;
       }
 
-      const result = String(firstValue).localeCompare(
-        String(secondValue),
-        "vi-VN"
-      );
-
-      return sortDirection === "desc" ? -result : result;
+      if (sortDirection === "desc") {
+        return valB - valA;
+      }
+      return valA - valB;
     });
   }, [orders, sortOption]);
 
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return sepayOrders.slice(startIndex, startIndex + pageSize);
+  }, [sepayOrders, currentPage]);
+
+  const totalPages = Math.ceil(sepayOrders.length / pageSize);
 
   const pendingSepayOrders = useMemo(() => sepayOrders.filter((order) => order.paymentStatus !== "PAID"), [sepayOrders]);
   const paidSepayOrders = useMemo(() => sepayOrders.filter((order) => order.paymentStatus === "PAID"), [sepayOrders]);
@@ -243,27 +223,23 @@ const PaymentPage = () => {
           const data = unwrapApiData(response);
 
           if (data.paymentStatus === "PAID") {
-            // 1. Dừng đếm giờ
             clearInterval(intervalId);
             setPollingOrderId(null);
 
-            // 2. Đóng tự động Modal QR nếu đang mở
             if (qrModalRef.current) {
               qrModalRef.current.destroy();
             }
 
-            // 3. Cập nhật UI & Chuyển hướng
             message.success("Nhận tiền thành công! Đang chuyển hướng...");
             setPaymentResult(data);
             updateOrderPaymentStatus(data);
             
-            // Điều hướng sang trang thành công
             navigate(`/payment-success?orderId=${pollingOrderId}`); 
           }
         } catch (error) {
           console.error("Lỗi khi tự động kiểm tra trạng thái:", error);
         }
-      }, 3000); // 3 giây kiểm tra 1 lần
+      }, 3000); 
     }
 
     return () => {
@@ -326,11 +302,11 @@ const PaymentPage = () => {
 
       if (data?.qrCodeUrl) {
         const modalInstance = Modal.info({
-          title: <span className="text-lg font-bold text-orange-600">Quét mã để thanh toán</span>,
+          title: <span className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-orange-600'}`}>Quét mã để thanh toán</span>,
           width: 500,
           okText: "Đóng",
+          className: isDarkMode ? 'dark-modal' : '',
           onOk: () => {
-            // Tắt polling nếu khách hàng bấm Đóng bằng tay
             setPollingOrderId(null);
           },
           icon: <WalletOutlined className="text-orange-500" />,
@@ -339,52 +315,40 @@ const PaymentPage = () => {
               <img
                 src={data.qrCodeUrl}
                 alt="Mã QR Thanh toán SePay"
-                className="w-64 h-64 object-contain rounded-2xl shadow-sm border border-gray-100 mb-6"
+                className={`w-64 h-64 object-contain rounded-2xl shadow-sm border mb-6 ${isDarkMode ? 'border-slate-700 bg-white' : 'border-gray-100'}`}
               />
 
-              <div className="w-full bg-orange-50 p-4 rounded-xl border border-orange-100 space-y-3">
-                <div className="flex justify-between items-center border-b border-orange-200/50 pb-2">
-                  <span className="text-gray-600">Ngân hàng:</span>
-                  <strong className="text-orange-600 text-lg">{data.bankName}</strong>
+              <div className={`w-full p-4 rounded-xl border space-y-3 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-orange-50 border-orange-100'}`}>
+                <div className={`flex justify-between items-center border-b pb-2 ${isDarkMode ? 'border-slate-700' : 'border-orange-200/50'}`}>
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Ngân hàng:</span>
+                  <strong className={`text-lg ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>{data.bankName}</strong>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-orange-200/50 pb-2">
-                  <span className="text-gray-600">Số tài khoản:</span>
+                <div className={`flex justify-between items-center border-b pb-2 ${isDarkMode ? 'border-slate-700' : 'border-orange-200/50'}`}>
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Số tài khoản:</span>
                   <div className="flex items-center gap-2">
-                    <strong className="text-lg">{data.bankAccountNumber}</strong>
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<CopyOutlined className="text-orange-500" />}
-                      onClick={() => handleCopy(data.bankAccountNumber, "số tài khoản")}
-                      title="Sao chép"
-                    />
+                    <strong className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{data.bankAccountNumber}</strong>
+                    <Button size="small" type="text" icon={<CopyOutlined className="text-orange-500" />} onClick={() => handleCopy(data.bankAccountNumber, "số tài khoản")} />
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-orange-200/50 pb-2">
-                  <span className="text-gray-600">Số tiền:</span>
+                <div className={`flex justify-between items-center border-b pb-2 ${isDarkMode ? 'border-slate-700' : 'border-orange-200/50'}`}>
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Số tiền:</span>
                   <strong className="text-red-500 text-lg">{formatCurrency(data.amount)}</strong>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Nội dung <span className="text-red-500">*</span>:</span>
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Nội dung <span className="text-red-500">*</span>:</span>
                   <div className="flex items-center gap-2">
-                    <strong className="bg-yellow-200 text-yellow-800 px-3 py-1 rounded-md text-lg">
+                    <strong className={`px-3 py-1 rounded-md text-lg ${isDarkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-200 text-yellow-800'}`}>
                       {data.transferContent}
                     </strong>
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<CopyOutlined className="text-orange-500" />}
-                      onClick={() => handleCopy(data.transferContent, "nội dung chuyển khoản")}
-                      title="Sao chép"
-                    />
+                    <Button size="small" type="text" icon={<CopyOutlined className="text-orange-500" />} onClick={() => handleCopy(data.transferContent, "nội dung chuyển khoản")} />
                   </div>
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500 mt-5 text-center">
+              <p className={`text-sm mt-5 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Mở App ngân hàng bất kỳ để quét mã.<br />
                 Hệ thống sẽ tự động chuyển trang khi nhận được tiền.
               </p>
@@ -392,18 +356,15 @@ const PaymentPage = () => {
           ),
         });
 
-        // Bắt đầu quá trình Polling
         qrModalRef.current = modalInstance;
         setPollingOrderId(order.id);
 
       } else {
         Modal.error({
-          title: "Lỗi khởi tạo thanh toán",
-          content: "Backend không trả về dữ liệu ảnh QR. Vui lòng kiểm tra lại cấu hình.",
+          title: "Lỗi khởi tạo",
+          content: "Không nhận được mã QR. Vui lòng thử lại.",
         });
       }
-
-      message.success("Khởi tạo mã thanh toán Sepay thành công.");
     } catch (error) {
       console.error("Lỗi tạo Sepay checkout:", error);
       message.error(getApiMessage(error, "Không thể tạo thanh toán Sepay."));
@@ -422,41 +383,9 @@ const PaymentPage = () => {
       updateOrderPaymentStatus(data);
       message.success("Đã cập nhật trạng thái thanh toán.");
     } catch (error) {
-      console.error("Lỗi cập nhật trạng thái thanh toán:", error);
-      message.error(getApiMessage(error, "Không thể cập nhật trạng thái. Có thể đơn hàng chưa tạo giao dịch thanh toán."));
+      message.error(getApiMessage(error, "Không thể cập nhật trạng thái."));
     } finally {
       setRefreshingStatusId(null);
-    }
-  };
-
-  const handleQueryTransactionStatus = async (order) => {
-    if (!order?.id) return;
-    setQueryingTransactionId(String(order.id));
-    try {
-      const response = await api.get(paymentEndpoint.transactionStatus(order.id));
-      const data = unwrapApiData(response);
-      // setTransactionResult(data);
-
-      Modal.info({
-        title: "Trạng thái giao dịch Sepay",
-        content: (
-          <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="Transaction ID">{data?.transactionId || "Không có"}</Descriptions.Item>
-            <Descriptions.Item label="External ID">{data?.externalId || "Không có"}</Descriptions.Item>
-            <Descriptions.Item label="Trạng thái">{data?.status || "Không xác định"}</Descriptions.Item>
-            <Descriptions.Item label="Số tiền">{formatCurrency(data?.amount)}</Descriptions.Item>
-            <Descriptions.Item label="Tiền tệ">{data?.currency || "VND"}</Descriptions.Item>
-            <Descriptions.Item label="Thời gian">{data?.timestamp || "Không có"}</Descriptions.Item>
-          </Descriptions>
-        ),
-        okText: "Đóng",
-        width: 720,
-      });
-    } catch (error) {
-      console.error("Lỗi truy vấn trạng thái giao dịch:", error);
-      message.error(getApiMessage(error, "Không thể truy vấn giao dịch. Có thể đơn hàng chưa có transactionId."));
-    } finally {
-      setQueryingTransactionId(null);
     }
   };
 
@@ -464,68 +393,14 @@ const PaymentPage = () => {
     navigate(`/orders/${orderId}`);
   };
 
-  const columns = [
-    {
-      title: "Mã đơn",
-      dataIndex: "id",
-      key: "id",
-      render: (id) => <Tag color="orange" className="rounded-full px-3 py-1">#{getShortId(id)}</Tag>,
-    },
-    {
-      title: "Ngày tạo",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (value) => formatDateTime(value),
-    },
-    {
-      title: "Tổng tiền",
-      dataIndex: "totalAmount",
-      key: "totalAmount",
-      render: (value) => <Text strong className="!text-orange-600">{formatCurrency(value)}</Text>,
-    },
-    {
-      title: "Thanh toán",
-      dataIndex: "paymentStatus",
-      key: "paymentStatus",
-      render: (status) => getPaymentStatusTag(status),
-    },
-    {
-      title: "Đơn hàng",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => getOrderStatusTag(status),
-    },
-    {
-      title: "Hành động",
-      key: "actions",
-      render: (_, order) => (
-        <Space wrap>
-          <Button icon={<EyeOutlined />} onClick={() => handleViewOrder(order.id)} className="!rounded-xl">Xem đơn</Button>
-          {isPayableSepayOrder(order) && (
-            <Button
-              type="primary"
-              icon={<CreditCardOutlined />}
-              loading={creatingCheckoutId === String(order.id)}
-              onClick={() => handleCreateSepayCheckout(order)}
-              className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
-            >
-              Thanh toán
-            </Button>
-          )}
-          <Button icon={<ReloadOutlined />} loading={refreshingStatusId === String(order.id)} onClick={() => handleRefreshPaymentStatus(order)} className="!rounded-xl">Cập nhật</Button>
-        </Space>
-      ),
-    },
-  ];
-
   if (!userId) {
     return (
-      <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
-        <div className="mx-auto max-w-5xl rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+      <div className={`min-h-[calc(100vh-80px)] px-4 pb-10 pt-24 md:px-8 md:pt-28 ${isDarkMode ? 'bg-slate-950' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'}`}>
+        <div className={`mx-auto max-w-5xl rounded-3xl px-6 py-16 text-center shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-100'}`}>
           <WalletOutlined className="mb-4 text-5xl text-orange-500" />
-          <Title level={2}>Bạn chưa đăng nhập</Title>
-          <Paragraph className="text-gray-500">Vui lòng đăng nhập để quản lý thanh toán.</Paragraph>
-          <Button type="primary" size="large" onClick={() => navigate("/auth/login-register")} className="!rounded-xl !bg-orange-500 hover:!bg-orange-600">
+          <Title level={2} className={isDarkMode ? '!text-white' : ''}>Bạn chưa đăng nhập</Title>
+          <Paragraph className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Vui lòng đăng nhập để quản lý thanh toán.</Paragraph>
+          <Button type="primary" size="large" onClick={() => navigate("/auth/login-register")} className="!rounded-xl !bg-orange-500 hover:!bg-orange-600 border-0">
             Đăng nhập ngay
           </Button>
         </div>
@@ -533,130 +408,359 @@ const PaymentPage = () => {
     );
   }
 
+  // Common Class cho các thẻ (Cards) 
+  const cardClass = `rounded-2xl border transition-all duration-300 ${
+    isDarkMode 
+      ? 'bg-slate-900 border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.4)]' 
+      : 'bg-white border-gray-100 shadow-sm hover:border-outline-variant hover:shadow-md'
+  }`;
+
   return (
-    <div className={`min-h-[calc(100vh-80px)] ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'} px-4 pb-10 pt-24 md:px-8 md:pt-28`}>
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-3 flex items-center gap-3">
-                <WalletOutlined className="text-3xl" />
-                <Title level={2} className="!mb-0 !text-white">Thanh toán Sepay</Title>
-              </div>
-              <Text className="!text-white/90">Quản lý các đơn hàng thanh toán qua Sepay và cập nhật trạng thái giao dịch.</Text>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orders")} className="!rounded-xl">Đơn hàng của tôi</Button>
-              <Button icon={<ReloadOutlined />} loading={loadingOrders} onClick={fetchOrders} className="!rounded-xl">Làm mới</Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-xl text-orange-500"><WalletOutlined /></div>
-              <div><Text type="secondary">Đơn Sepay</Text><div className="text-2xl font-bold">{sepayOrders.length}</div></div>
-            </div>
-          </Card>
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-50 text-xl text-yellow-500"><ClockCircleOutlined /></div>
-              <div><Text type="secondary">Chờ thanh toán</Text><div className="text-2xl font-bold">{pendingSepayOrders.length}</div></div>
-            </div>
-          </Card>
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-xl text-green-500"><CheckCircleOutlined /></div>
-              <div><Text type="secondary">Đã thanh toán</Text><div className="text-2xl font-bold">{paidSepayOrders.length}</div></div>
-            </div>
-          </Card>
-        </div>
-
-        {focusedOrder && (
-          <Card className="mb-6 rounded-3xl border-0 shadow-sm">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Tag color="orange" className="rounded-full px-3 py-1">Đơn đang chọn #{getShortId(focusedOrder.id)}</Tag>
-                  {getPaymentStatusTag(focusedOrder.paymentStatus)}
-                  {getOrderStatusTag(focusedOrder.status)}
-                  <Tag>{focusedOrder.paymentMethod || "N/A"}</Tag>
-                </div>
-                <Title level={4} className="!mb-1">Tổng thanh toán: {formatCurrency(focusedOrder.totalAmount)}</Title>
-                <Text type="secondary">Ngày tạo: {formatDateTime(focusedOrder.createdAt)}</Text>
-              </div>
-              <Space wrap>
-                <Button icon={<EyeOutlined />} onClick={() => handleViewOrder(focusedOrder.id)} className="!rounded-xl">Xem chi tiết đơn</Button>
-                {isPayableSepayOrder(focusedOrder) && (
-                  <Button type="primary" icon={<CreditCardOutlined />} loading={creatingCheckoutId === String(focusedOrder.id)} onClick={() => handleCreateSepayCheckout(focusedOrder)} className="!rounded-xl !bg-orange-500 hover:!bg-orange-600">Tạo thanh toán Sepay</Button>
-                )}
-                <Button icon={<ReloadOutlined />} loading={refreshingStatusId === String(focusedOrder.id)} onClick={() => handleRefreshPaymentStatus(focusedOrder)} className="!rounded-xl">Cập nhật trạng thái</Button>
-              </Space>
-            </div>
-          </Card>
-        )}
-
-        {paymentResult && (
-          <Card className="mb-6 rounded-3xl border-0 shadow-sm !my-6 ">
-            <Title level={4}><LinkOutlined className="mr-2 text-orange-500" />Giao dịch vừa tạo</Title>
-            <Descriptions column={{ xs: 1, sm: 2, md: 2 }} bordered size="small">
-              <Descriptions.Item label="Order ID">{paymentResult.orderId || "Không có"}</Descriptions.Item>
-              <Descriptions.Item label="Transaction ID">{paymentResult.transactionId || "Không có"}</Descriptions.Item>
-              <Descriptions.Item label="Số tiền"><Text strong className="text-red-500">{formatCurrency(paymentResult.amount)}</Text></Descriptions.Item>
-              <Descriptions.Item label="Trạng thái">{getPaymentStatusTag(paymentResult.paymentStatus)}</Descriptions.Item>
-              {paymentResult.qrCodeUrl && (
-                <Descriptions.Item label="Thông tin chuyển khoản" span={2}>
-                  <div className="flex flex-col md:flex-row gap-6 items-start">
-                    <img src={paymentResult.qrCodeUrl} alt="QR Code" className="w-32 h-32 object-contain border border-gray-200 rounded-lg shadow-sm" />
-                    <div className="space-y-2">
-                      <div>Ngân hàng: <strong>{paymentResult.bankName}</strong></div>
-                      <div>Số tài khoản: <strong className="text-lg">{paymentResult.bankAccountNumber}</strong><Button type="link" icon={<CopyOutlined />} onClick={() => handleCopy(paymentResult.bankAccountNumber, "số tài khoản")} /></div>
-                      <div>Nội dung: <strong className="bg-yellow-100 px-2 py-1 rounded">{paymentResult.transferContent}</strong><Button type="link" icon={<CopyOutlined />} onClick={() => handleCopy(paymentResult.transferContent, "nội dung")} /></div>
-                    </div>
-                  </div>
-                </Descriptions.Item>
-              )}
-            </Descriptions>
-          </Card>
-        )}
-
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <Title level={3} className="!mb-1">Danh sách đơn hàng Sepay</Title>
-              <Text type="secondary">Tổng tiền đang chờ thanh toán: <strong>{formatCurrency(totalPendingAmount)}</strong></Text>
-            </div>
-
-            <Select
-              value={sortOption}
-              onChange={setSortOption}
-              className="min-w-[240px]"
-              suffixIcon={<SortAscendingOutlined />}
-              options={SORT_OPTIONS}
+    <div className={`min-h-[calc(100vh-80px)] px-2 sm:px-4 py-8 md:px-8 w-full ${isDarkMode ? 'bg-transparent' : 'bg-transparent'}`}>
+      <div className="w-full">
+        
+        {/* HERO BANNER - IMAGE VỚI GRADIENT OVERLAY */}
+        <section className={`relative overflow-hidden rounded-3xl mb-8 min-h-[220px] md:min-h-[260px] flex items-center border ${
+          isDarkMode ? 'border-slate-800 shadow-[0_8px_30px_rgba(0,0,0,0.6)]' : 'border-gray-200 shadow-xl shadow-orange-500/10'
+        }`}>
+          {/* Background Image */}
+          <div className="absolute inset-0">
+            <img 
+              src="https://images.unsplash.com/photo-1621416894569-0f39ed31d247?q=80&w=1200&auto=format&fit=crop" 
+              alt="Payment Wallet Background" 
+              className="w-full h-full object-cover object-center"
             />
+          </div>
+          {/* Gradient Overlay L to R */}
+          <div className={`absolute inset-0 bg-gradient-to-r ${
+            isDarkMode 
+              ? 'from-slate-950 via-slate-950/90 to-transparent' 
+              : 'from-white via-white/95 to-transparent'
+          }`}></div>
+          
+          <div className="relative z-10 p-6 md:p-10 lg:p-12 w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 rounded-xl backdrop-blur-md ${isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-500 text-white'}`}>
+                  <WalletOutlined className="text-2xl" />
+                </div>
+                <h1 className={`m-0 text-3xl md:text-4xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Thanh toán Sepay
+                </h1>
+              </div>
+              <p className={`text-base md:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Quản lý các đơn hàng thanh toán qua cổng Sepay và cập nhật trạng thái giao dịch theo thời gian thực.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button 
+                onClick={() => navigate("/orders")} 
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all ${
+                  isDarkMode 
+                    ? 'bg-white/10 hover:bg-white/20 text-white border border-white/10' 
+                    : 'bg-white border border-gray-200 text-gray-700 hover:border-orange-500 hover:text-orange-600 shadow-sm'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+                Đơn hàng của tôi
+              </button>
+              <button 
+                onClick={fetchOrders} 
+                disabled={loadingOrders}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg ${
+                  isDarkMode
+                    ? 'bg-orange-500 text-white hover:bg-orange-600 border border-orange-400/50'
+                    : 'bg-orange-500 text-white hover:bg-orange-600 border-0'
+                }`}
+              >
+                <SyncOutlined spin={loadingOrders} className="text-[18px]" />
+                Làm mới
+              </button>
+            </div>
+          </div>
+        </section>
 
-            <Button
-              icon={<ReloadOutlined />}
-              loading={loadingOrders}
-              onClick={fetchOrders}
-              className="!rounded-xl"
-            >
-              Tải lại
-            </Button>
+        {/* STATS BENTO GRID */}
+        <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className={`${cardClass} p-6 flex items-center gap-6 group`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform duration-500 group-hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-orange-400' : 'bg-orange-50 text-orange-500'}`}>
+              <WalletOutlined className="text-3xl" />
+            </div>
+            <div>
+              <span className={`text-sm font-semibold uppercase tracking-wider block mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Đơn Sepay</span>
+              <span className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{sepayOrders.length}</span>
+            </div>
           </div>
 
-          {loadingOrders ? (
-            <div className="flex min-h-[320px] items-center justify-center"><Spin size="large" tip="Đang tải đơn hàng..." /></div>
-          ) : sepayOrders.length === 0 ? (
-            <div className="py-12 text-center">
-              <Empty description="Chưa có đơn hàng Sepay nào." />
-              <Button type="primary" onClick={() => navigate("/cart")} className="mt-4 !rounded-xl !bg-orange-500 hover:!bg-orange-600">Quay lại giỏ hàng</Button>
+          <div className={`${cardClass} p-6 flex items-center gap-6 group`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform duration-500 group-hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-yellow-50 text-yellow-500'}`}>
+              <ClockCircleOutlined className="text-3xl" />
             </div>
-          ) : (
-            <Table rowKey="id" columns={columns} dataSource={sepayOrders} pagination={{ pageSize: 6 }} scroll={{ x: 1000 }} />
+            <div>
+              <span className={`text-sm font-semibold uppercase tracking-wider block mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Chờ thanh toán</span>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{pendingSepayOrders.length}</span>
+                {totalPendingAmount > 0 && (
+                   <span className="text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-full">{formatCurrency(totalPendingAmount)}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className={`${cardClass} p-6 flex items-center gap-6 group`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform duration-500 group-hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-50 text-emerald-500'}`}>
+              <CheckCircleOutlined className="text-3xl" />
+            </div>
+            <div>
+              <span className={`text-sm font-semibold uppercase tracking-wider block mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Đã thanh toán</span>
+              <span className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{paidSepayOrders.length}</span>
+            </div>
+          </div>
+        </section>
+
+        {/* FOCUSED ORDER SECTION */}
+        {focusedOrder && (
+          <div className={`${cardClass} mb-8 p-6 lg:p-8 relative overflow-hidden`}>
+            {/* Background Glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-white border border-slate-700' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}>
+                    Đang chọn #{getShortId(focusedOrder.id)}
+                  </span>
+                  {getPaymentStatusBadge(focusedOrder.paymentStatus, isDarkMode)}
+                  {getOrderStatusBadge(focusedOrder.status, isDarkMode)}
+                  <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                    {focusedOrder.paymentMethod || "N/A"}
+                  </span>
+                </div>
+                <h2 className={`text-2xl font-black mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Tổng: <span className="text-orange-500">{formatCurrency(focusedOrder.totalAmount)}</span>
+                </h2>
+                <Text className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Ngày tạo: {formatDateTime(focusedOrder.createdAt)}</Text>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button icon={<EyeOutlined />} onClick={() => handleViewOrder(focusedOrder.id)} className={`!rounded-xl !h-11 ${isDarkMode ? '!bg-slate-800 !text-white !border-slate-700 hover:!border-orange-500' : ''}`}>
+                  Xem chi tiết
+                </Button>
+                {isPayableSepayOrder(focusedOrder) && (
+                  <Button type="primary" icon={<CreditCardOutlined />} loading={creatingCheckoutId === String(focusedOrder.id)} onClick={() => handleCreateSepayCheckout(focusedOrder)} className="!rounded-xl !h-11 !bg-orange-500 hover:!bg-orange-600 font-bold border-0 shadow-lg shadow-orange-500/20">
+                    Tạo thanh toán
+                  </Button>
+                )}
+                <Button icon={<SyncOutlined />} loading={refreshingStatusId === String(focusedOrder.id)} onClick={() => handleRefreshPaymentStatus(focusedOrder)} className={`!rounded-xl !h-11 ${isDarkMode ? '!bg-slate-800 !text-white !border-slate-700 hover:!border-blue-500 hover:!text-blue-400' : ''}`}>
+                  Cập nhật
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PAYMENT RESULT SECTION */}
+        {paymentResult && (
+          <div className={`${cardClass} mb-8 overflow-hidden`}>
+            <div className={`p-5 border-b ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-orange-50/50 border-gray-100'} flex items-center gap-2`}>
+              <LinkOutlined className="text-orange-500 text-xl" />
+              <h3 className={`text-lg font-bold m-0 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Giao dịch vừa tạo</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div><span className={`block text-xs uppercase font-bold mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Order ID</span><span className={`font-mono ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{paymentResult.orderId || "N/A"}</span></div>
+                <div><span className={`block text-xs uppercase font-bold mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Transaction ID</span><span className={`font-mono ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{paymentResult.transactionId || "N/A"}</span></div>
+                <div><span className={`block text-xs uppercase font-bold mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Số tiền</span><span className="text-red-500 font-black text-lg">{formatCurrency(paymentResult.amount)}</span></div>
+                <div><span className={`block text-xs uppercase font-bold mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Trạng thái</span>{getPaymentStatusBadge(paymentResult.paymentStatus, isDarkMode)}</div>
+              </div>
+
+              {paymentResult.qrCodeUrl && (
+                <div className={`p-6 rounded-2xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-200'} flex flex-col md:flex-row gap-8 items-center md:items-start`}>
+                  <img src={paymentResult.qrCodeUrl} alt="QR Code" className={`w-40 h-40 object-contain p-2 rounded-xl bg-white shadow-sm border ${isDarkMode ? 'border-slate-600' : 'border-gray-200'}`} />
+                  <div className="space-y-4 w-full max-w-md">
+                    <div className="flex justify-between items-center"><span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Ngân hàng:</span><strong className={isDarkMode ? 'text-white' : 'text-gray-900'}>{paymentResult.bankName}</strong></div>
+                    <div className="flex justify-between items-center"><span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Số tài khoản:</span><div className="flex items-center gap-2"><strong className={`text-lg font-mono tracking-wider ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>{paymentResult.bankAccountNumber}</strong><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(paymentResult.bankAccountNumber, "số tài khoản")} className={isDarkMode ? 'text-gray-400 hover:text-white' : ''}/></div></div>
+                    <div className="flex justify-between items-center"><span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Nội dung:</span><div className="flex items-center gap-2"><strong className={`px-2 py-1 rounded-md font-mono ${isDarkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800'}`}>{paymentResult.transferContent}</strong><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(paymentResult.transferContent, "nội dung")} className={isDarkMode ? 'text-gray-400 hover:text-white' : ''}/></div></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOM TAILWIND TABLE SECTION (MATCHING HTML DESIGN) */}
+        <section className={`rounded-xl overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-xl' : 'bg-white border-gray-200 shadow-sm'}`}>
+          {/* Table Header Controls */}
+          <div className={`p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 ${isDarkMode ? 'border-slate-800' : 'border-gray-100'}`}>
+            <div>
+              <h2 className={`text-xl font-black mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Danh sách đơn hàng Sepay</h2>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Tổng tiền đang chờ: <span className="text-orange-500 font-bold">{formatCurrency(totalPendingAmount)}</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Select
+                value={sortOption}
+                onChange={setSortOption}
+                popupClassName={isDarkMode ? "!bg-slate-800 [&_.ant-select-item]:!text-gray-300 [&_.ant-select-item-option-selected]:!bg-orange-500/20 [&_.ant-select-item-option-active]:!bg-slate-700" : ""}
+                className={`w-[200px] ${isDarkMode ? '[&_.ant-select-selector]:!bg-slate-800 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-gray-300 [&_.ant-select-arrow]:!text-gray-400' : ''}`}
+                options={SORT_OPTIONS}
+              />
+              <button onClick={fetchOrders} disabled={loadingOrders} className={`p-2 rounded-lg transition-colors border flex items-center justify-center ${
+                isDarkMode ? 'bg-slate-800 border-slate-700 text-gray-300 hover:bg-slate-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}>
+                <SyncOutlined spin={loadingOrders} />
+              </button>
+            </div>
+          </div>
+
+          {/* Table Content */}
+          <div className="overflow-x-auto">
+            {loadingOrders ? (
+              <div className="flex justify-center items-center py-20"><Spin size="large" tip="Đang tải dữ liệu..." /></div>
+            ) : sepayOrders.length === 0 ? (
+              <div className="py-20 text-center">
+                <Empty description={<span className={isDarkMode ? 'text-gray-400' : ''}>Chưa có giao dịch Sepay nào.</span>} />
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className={`border-b ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-gray-50/50 border-gray-100'}`}>
+                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Mã đơn</th>
+                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Ngày tạo</th>
+                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Tổng tiền</th>
+                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Thanh toán</th>
+                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Đơn hàng</th>
+                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${isDarkMode ? 'divide-slate-800' : 'divide-gray-100'}`}>
+                  {paginatedOrders.map((order) => {
+                    const isPayable = isPayableSepayOrder(order);
+                    return (
+                      <tr key={order.id} className={`transition-colors group ${isDarkMode ? 'hover:bg-slate-800/50' : 'hover:bg-orange-50/30'}`}>
+                        <td className="px-6 py-5">
+                          <span className={`px-3 py-1 text-sm font-bold font-mono rounded-full border transition-colors ${
+                            isDarkMode 
+                              ? 'bg-slate-800 text-orange-400 border-slate-700 group-hover:border-orange-500/50' 
+                              : 'bg-white text-orange-600 border-gray-200 group-hover:border-orange-400'
+                          }`}>
+                            #{getShortId(order.id)}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-5 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {formatDateTime(order.createdAt)}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <span className={`text-base font-black tracking-tight ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                            {formatCurrency(order.totalAmount)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          {getPaymentStatusBadge(order.paymentStatus, isDarkMode)}
+                        </td>
+                        <td className="px-6 py-5">
+                          {getOrderStatusBadge(order.status, isDarkMode)}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => handleViewOrder(order.id)}
+                              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border transition-colors ${
+                                isDarkMode 
+                                  ? 'bg-slate-800 border-slate-700 text-gray-300 hover:bg-slate-700 hover:text-white' 
+                                  : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              }`}
+                            >
+                              <EyeOutlined /> Xem đơn
+                            </button>
+                            
+                            {isPayable ? (
+                              <button 
+                                onClick={() => handleCreateSepayCheckout(order)}
+                                disabled={creatingCheckoutId === String(order.id)}
+                                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg border-0 transition-all shadow-md ${
+                                  isDarkMode
+                                    ? 'bg-orange-500 text-white hover:bg-orange-400 shadow-orange-500/20'
+                                    : 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/30'
+                                }`}
+                              >
+                                {creatingCheckoutId === String(order.id) ? <SyncOutlined spin /> : <span className="material-symbols-outlined text-[14px]" style={{fontVariationSettings: "'FILL' 1"}}>payments</span>}
+                                Thanh toán
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleRefreshPaymentStatus(order)}
+                                disabled={refreshingStatusId === String(order.id)}
+                                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border transition-colors ${
+                                  isDarkMode 
+                                    ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700 hover:border-blue-500/50' 
+                                    : 'bg-blue-50 border-blue-100 text-blue-600 hover:bg-blue-100'
+                                }`}
+                              >
+                                <SyncOutlined spin={refreshingStatusId === String(order.id)} /> Cập nhật
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Table Pagination Footer */}
+          {sepayOrders.length > 0 && (
+            <div className={`p-4 md:p-6 border-t flex flex-col md:flex-row items-center justify-between gap-4 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-gray-50/50 border-gray-100'}`}>
+              <span className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Đang hiển thị {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sepayOrders.length)} trong {sepayOrders.length} giao dịch
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 ${
+                    isDarkMode ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <LeftOutlined className="text-xs" />
+                </button>
+                
+                {Array.from({ length: totalPages }).map((_, idx) => {
+                  const page = idx + 1;
+                  const isActive = page === currentPage;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                        isActive 
+                          ? 'bg-orange-500 text-white shadow-md' 
+                          : isDarkMode 
+                            ? 'text-gray-400 hover:bg-slate-800 hover:text-white' 
+                            : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 ${
+                    isDarkMode ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <RightOutlined className="text-xs" />
+                </button>
+              </div>
+            </div>
           )}
-        </Card>
+        </section>
+
       </div>
     </div>
   );

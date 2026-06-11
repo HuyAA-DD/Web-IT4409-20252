@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
-  Card,
   Checkbox,
-  Divider,
   Empty,
   Image,
   Input,
@@ -24,17 +22,16 @@ import {
   ReloadOutlined,
   ShoppingCartOutlined,
   TagsOutlined,
+  ShoppingTwoTone
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 import { notifyCartChanged } from "../../../Utils/CartEvents";
 
-import {useOutletContext} from "react-router-dom";
-
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const PLACEHOLDER_IMAGE =
   "https://via.placeholder.com/500x500?text=MEGAMART+PRODUCT";
@@ -48,7 +45,6 @@ const formatCurrency = (value) => {
 
 const formatDate = (value) => {
   if (!value) return "Không giới hạn";
-
   try {
     return new Date(value).toLocaleDateString("vi-VN");
   } catch {
@@ -86,7 +82,6 @@ const getItemLineTotal = (item) => {
   if (item?.lineTotal !== undefined && item?.lineTotal !== null) {
     return Number(item.lineTotal);
   }
-
   return Number(item?.price || 0) * Number(item?.quantity || 0);
 };
 
@@ -97,13 +92,11 @@ const getCouponDiscountText = (coupon) => {
   if (type === "PERCENT" || type === "PERCENTAGE") {
     return `Giảm ${value}%`;
   }
-
   return `Giảm ${formatCurrency(value)}`;
 };
 
 const isCouponInDateRange = (coupon) => {
   const now = new Date();
-
   const startDate = coupon?.startDate ? new Date(coupon.startDate) : null;
   const endDate = coupon?.endDate ? new Date(coupon.endDate) : null;
 
@@ -117,55 +110,31 @@ const isCouponUsageAvailable = (coupon) => {
   if (coupon?.usageLimit === null || coupon?.usageLimit === undefined) {
     return true;
   }
-
   return Number(coupon.currentUsage || 0) < Number(coupon.usageLimit || 0);
 };
 
 const getCouponEligibility = (coupon, subtotal) => {
   if (!coupon?.isActive) {
-    return {
-      disabled: true,
-      label: "Không hoạt động",
-      tagColor: "red",
-    };
+    return { disabled: true, label: "Không hoạt động", tagColor: "red" };
   }
-
   if (!isCouponInDateRange(coupon)) {
-    return {
-      disabled: true,
-      label: "Hết hạn hoặc chưa tới thời gian áp dụng",
-      tagColor: "red",
-    };
+    return { disabled: true, label: "Hết hạn/Chưa áp dụng", tagColor: "red" };
   }
-
   if (!isCouponUsageAvailable(coupon)) {
-    return {
-      disabled: true,
-      label: "Đã hết lượt sử dụng",
-      tagColor: "red",
-    };
+    return { disabled: true, label: "Hết lượt", tagColor: "red" };
   }
 
   const minOrderValue = Number(coupon?.minOrderValue || 0);
-
   if (subtotal < minOrderValue) {
-    return {
-      disabled: true,
-      label: `Cần mua thêm ${formatCurrency(minOrderValue - subtotal)}`,
-      tagColor: "gold",
-    };
+    return { disabled: true, label: `Cần mua thêm ${formatCurrency(minOrderValue - subtotal)}`, tagColor: "gold" };
   }
 
-  return {
-    disabled: false,
-    label: "Có thể áp dụng",
-    tagColor: "green",
-  };
+  return { disabled: false, label: "Khả dụng", tagColor: "green" };
 };
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const {isDarkMode} = useOutletContext() || {};
+  const { isDarkMode } = useOutletContext() || {};
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
@@ -202,18 +171,14 @@ const CartPage = () => {
     return cartItems.filter((item) => selectedItemIds.includes(String(item.id)));
   }, [cartItems, selectedItemIds]);
 
-  const isAllSelected =
-    cartItems.length > 0 && selectedItemIds.length === cartItems.length;
+  const isAllSelected = cartItems.length > 0 && selectedItemIds.length === cartItems.length;
 
   const subtotal = useMemo(() => {
     return selectedItems.reduce((sum, item) => sum + getItemLineTotal(item), 0);
   }, [selectedItems]);
 
   const selectedQuantity = useMemo(() => {
-    return selectedItems.reduce(
-      (sum, item) => sum + Number(item.quantity || 0),
-      0
-    );
+    return selectedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   }, [selectedItems]);
 
   const finalTotal = Math.max(0, subtotal - Number(discountAmount || 0));
@@ -227,76 +192,47 @@ const CartPage = () => {
 
   useEffect(() => {
     if (!appliedCoupon) return;
-
     const originalAmount = Number(appliedCoupon.originalAmount || 0);
-
     if (originalAmount > 0 && Number(subtotal) !== originalAmount) {
       setAppliedCoupon(null);
       setDiscountAmount(0);
-      message.info("Giỏ hàng đã thay đổi, vui lòng áp dụng lại mã giảm giá.");
+      message.info("Giỏ hàng thay đổi, vui lòng áp dụng lại mã giảm giá.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal]);
 
   const fetchProductDetailsForCart = async (items) => {
-    const productIds = [
-      ...new Set(
-        items
-          .map((item) => item.productId)
-          .filter((productId) => Boolean(productId))
-      ),
-    ];
-
+    const productIds = [...new Set(items.map((item) => item.productId).filter(Boolean))];
     if (productIds.length === 0) {
       setProductMap({});
       return;
     }
 
     const result = {};
-
     await Promise.all(
       productIds.map(async (productId) => {
         try {
           const response = await api.get(productEndpoint.byId(productId));
-          const productData = unwrapApiData(response);
-
-          result[String(productId)] = productData;
+          result[String(productId)] = unwrapApiData(response);
         } catch (error) {
-          console.error("Không tải được chi tiết sản phẩm:", productId, error);
+          console.error("Lỗi chi tiết SP:", productId, error);
         }
       })
     );
-
     setProductMap(result);
   };
 
   const applyCartData = async (cartData, keepSelected = false) => {
-    const safeCart = cartData || {
-      id: null,
-      userId,
-      totalItems: 0,
-      totalAmount: 0,
-      items: [],
-    };
-
+    const safeCart = cartData || { id: null, userId, totalItems: 0, totalAmount: 0, items: [] };
     const safeItems = Array.isArray(safeCart.items) ? safeCart.items : [];
+    
+    setCart({ ...safeCart, items: safeItems });
 
-    setCart({
-      ...safeCart,
-      items: safeItems,
-    });
-
-    setSelectedItemIds((prevSelectedIds) => {
-      if (!keepSelected) {
-        return safeItems.map((item) => String(item.id));
-      }
-
-      const currentItemIds = safeItems.map((item) => String(item.id));
-      const keptSelectedIds = prevSelectedIds.filter((id) =>
-        currentItemIds.includes(String(id))
-      );
-
-      return keptSelectedIds.length > 0 ? keptSelectedIds : currentItemIds;
+    setSelectedItemIds((prev) => {
+      if (!keepSelected) return safeItems.map((item) => String(item.id));
+      const currentIds = safeItems.map((item) => String(item.id));
+      const kept = prev.filter((id) => currentIds.includes(String(id)));
+      return kept.length > 0 ? kept : currentIds;
     });
 
     await fetchProductDetailsForCart(safeItems);
@@ -309,24 +245,13 @@ const CartPage = () => {
       setProductMap({});
       return;
     }
-
     setLoading(true);
-
     try {
       const response = await api.get(cartEndpoint.byUser(userId));
-      const cartData = unwrapApiData(response);
-
-      await applyCartData(cartData, false);
+      await applyCartData(unwrapApiData(response), false);
     } catch (error) {
-      console.error("Lỗi khi tải giỏ hàng:", error);
       message.error("Không thể tải giỏ hàng.");
-      setCart({
-        id: null,
-        userId,
-        totalItems: 0,
-        totalAmount: 0,
-        items: [],
-      });
+      setCart({ id: null, userId, totalItems: 0, totalAmount: 0, items: [] });
       setSelectedItemIds([]);
       setProductMap({});
     } finally {
@@ -336,15 +261,11 @@ const CartPage = () => {
 
   const fetchCoupons = async () => {
     setLoadingCoupons(true);
-
     try {
       const response = await api.get(couponEndpoint.list);
-      const couponData = unwrapApiData(response);
-
-      setCoupons(Array.isArray(couponData) ? couponData : []);
+      setCoupons(Array.isArray(unwrapApiData(response)) ? unwrapApiData(response) : []);
     } catch (error) {
-      console.error("Lỗi khi tải danh sách coupon:", error);
-      message.error("Không thể tải danh sách mã giảm giá.");
+      message.error("Không thể tải mã giảm giá.");
       setCoupons([]);
     } finally {
       setLoadingCoupons(false);
@@ -358,58 +279,39 @@ const CartPage = () => {
 
   const handleOpenCouponModal = () => {
     if (selectedItems.length === 0 || subtotal <= 0) {
-      message.warning("Vui lòng chọn sản phẩm trước khi chọn mã giảm giá.");
+      message.warning("Chọn sản phẩm trước khi chọn mã giảm giá.");
       return;
     }
-
     setCouponModalOpen(true);
     fetchCoupons();
   };
 
   const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelectedItemIds(cartItems.map((item) => String(item.id)));
-    } else {
-      setSelectedItemIds([]);
-    }
+    if (event.target.checked) setSelectedItemIds(cartItems.map((item) => String(item.id)));
+    else setSelectedItemIds([]);
   };
 
   const handleSelectItem = (itemId) => {
     const normalizedId = String(itemId);
-
     setSelectedItemIds((prevIds) => {
-      if (prevIds.includes(normalizedId)) {
-        return prevIds.filter((id) => id !== normalizedId);
-      }
-
+      if (prevIds.includes(normalizedId)) return prevIds.filter((id) => id !== normalizedId);
       return [...prevIds, normalizedId];
     });
   };
 
   const handleUpdateQuantity = async (item, newQuantity) => {
     if (!userId || !item?.id) return;
-
     const quantity = Math.max(1, Number(newQuantity || 1));
-
-    if (quantity === Number(item.quantity || 1)) {
-      return;
-    }
+    if (quantity === Number(item.quantity || 1)) return;
 
     setUpdatingItemId(String(item.id));
-
     try {
-      const response = await api.put(cartEndpoint.item(userId, item.id), {
-        quantity,
-      });
-
+      const response = await api.put(cartEndpoint.item(userId, item.id), { quantity });
       const updatedCart = unwrapApiData(response);
       await applyCartData(updatedCart, true);
       notifyCartChanged(updatedCart);
-
-      message.success("Đã cập nhật số lượng.");
     } catch (error) {
-      console.error("Lỗi cập nhật số lượng:", error);
-      message.error("Không thể cập nhật số lượng sản phẩm.");
+      message.error("Không thể cập nhật số lượng.");
     } finally {
       setUpdatingItemId(null);
     }
@@ -417,19 +319,15 @@ const CartPage = () => {
 
   const handleRemoveItem = async (item) => {
     if (!userId || !item?.id) return;
-
     setDeletingItemId(String(item.id));
-
     try {
       const response = await api.delete(cartEndpoint.item(userId, item.id));
       const updatedCart = unwrapApiData(response);
-
       await applyCartData(updatedCart, true);
       notifyCartChanged(updatedCart);
-      message.success("Đã xóa sản phẩm khỏi giỏ hàng.");
+      message.success("Đã xóa sản phẩm khỏi giỏ.");
     } catch (error) {
-      console.error("Lỗi xóa sản phẩm khỏi giỏ hàng:", error);
-      message.error("Không thể xóa sản phẩm khỏi giỏ hàng.");
+      message.error("Không thể xóa sản phẩm.");
     } finally {
       setDeletingItemId(null);
     }
@@ -437,87 +335,39 @@ const CartPage = () => {
 
   const handleRemoveSelectedItems = async () => {
     if (!userId) return;
-
     if (selectedItems.length === 0) {
-      message.warning("Vui lòng chọn sản phẩm cần xóa.");
+      message.warning("Chọn sản phẩm cần xóa.");
       return;
     }
-
     setDeletingSelected(true);
-
     try {
-      await Promise.all(
-        selectedItems.map((item) =>
-          api.delete(cartEndpoint.item(userId, item.id))
-        )
-      );
-
+      await Promise.all(selectedItems.map((item) => api.delete(cartEndpoint.item(userId, item.id))));
       await fetchCart();
       notifyCartChanged();
-      message.success("Đã xóa các sản phẩm đã chọn.");
+      message.success("Đã xóa các sản phẩm được chọn.");
     } catch (error) {
-      console.error("Lỗi xóa các sản phẩm đã chọn:", error);
-      message.error("Không thể xóa một số sản phẩm đã chọn.");
+      message.error("Lỗi khi xóa nhiều sản phẩm.");
       fetchCart();
     } finally {
       setDeletingSelected(false);
     }
   };
 
-  const handleClearCart = async () => {
-    if (!userId) return;
 
-    setClearingCart(true);
-
-    try {
-      const response = await api.delete(cartEndpoint.clear(userId));
-      const updatedCart = unwrapApiData(response);
-
-      await applyCartData(updatedCart, false);
-      notifyCartChanged(updatedCart);
-      setAppliedCoupon(null);
-      setDiscountAmount(0);
-      setVoucherCode("");
-
-      message.success("Đã xóa toàn bộ giỏ hàng.");
-    } catch (error) {
-      console.error("Lỗi xóa toàn bộ giỏ hàng:", error);
-      message.error("Không thể xóa toàn bộ giỏ hàng.");
-    } finally {
-      setClearingCart(false);
-    }
-  };
 
   const handleApplyCoupon = async (codeInput = voucherCode) => {
     const code = String(codeInput || "").trim();
-
-    if (!code) {
-      message.warning("Vui lòng nhập hoặc chọn mã giảm giá.");
-      return;
-    }
-
-    if (selectedItems.length === 0 || subtotal <= 0) {
-      message.warning("Vui lòng chọn sản phẩm trước khi áp dụng mã giảm giá.");
-      return;
-    }
+    if (!code) { message.warning("Nhập mã giảm giá."); return; }
+    if (selectedItems.length === 0 || subtotal <= 0) { message.warning("Chọn sản phẩm trước."); return; }
 
     setApplyingCoupon(true);
     setApplyingCouponCode(code);
-
     try {
-      const response = await api.post(couponEndpoint.apply, {
-        code,
-        orderAmount: subtotal,
-      });
-
-
+      const response = await api.post(couponEndpoint.apply, { code, orderAmount: subtotal });
       const result = unwrapApiData(response);
 
-
       if (response?.success === false || result?.isValid === false) {
-        message.warning(
-          getApiMessage(response, result?.message || "Mã giảm giá không hợp lệ.")
-        );
+        message.warning(getApiMessage(response, result?.message || "Mã không hợp lệ."));
         setAppliedCoupon(null);
         setDiscountAmount(0);
         return;
@@ -527,11 +377,9 @@ const CartPage = () => {
       setDiscountAmount(Number(result?.discountAmount || 0));
       setVoucherCode(result?.code || code);
       setCouponModalOpen(false);
-
-      message.success(result?.message || "Áp dụng mã giảm giá thành công.");
+      message.success("Áp dụng mã thành công.");
     } catch (error) {
-      console.error("Lỗi áp dụng coupon:", error);
-      message.error("Không thể áp dụng mã giảm giá.");
+      message.error("Lỗi áp dụng mã giảm giá.");
       setAppliedCoupon(null);
       setDiscountAmount(0);
     } finally {
@@ -556,7 +404,6 @@ const CartPage = () => {
     const checkoutDraft = {
       cartId: cart?.id,
       selectedItemIds: selectedItems.map((item) => item.id),
-
       selectedItems: selectedItems.map((item) => ({
         id: item.id,
         productId: item.productId,
@@ -568,7 +415,6 @@ const CartPage = () => {
         lineTotal: getItemLineTotal(item),
         attributes: item.attributes || {},
       })),
-
       subtotal,
       couponCode: appliedCoupon?.code || null,
       discountAmount,
@@ -576,37 +422,17 @@ const CartPage = () => {
     };
 
     sessionStorage.setItem("checkoutDraft", JSON.stringify(checkoutDraft));
-
-    navigate("/checkout", {
-      state: {
-        checkoutDraft,
-      },
-    });
-  };
-
-  const handleGoToProductDetail = (productId) => {
-    if (!productId) return;
-    navigate(`/products/${productId}`);
+    navigate("/checkout", { state: { checkoutDraft } });
   };
 
   if (!userId) {
     return (
-      <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 pb-10 pt-24 md:px-8 md:pt-28">
-        <div className="mx-auto max-w-6xl rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+      <div className={`min-h-[calc(100vh-80px)] px-4 pb-10 pt-24 md:px-8 md:pt-28 ${isDarkMode ? 'bg-slate-950' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'}`}>
+        <div className={`mx-auto max-w-5xl rounded-3xl px-6 py-16 text-center shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-100'}`}>
           <ShoppingCartOutlined className="mb-4 text-5xl text-orange-500" />
-
-          <Title level={2}>Bạn chưa đăng nhập</Title>
-
-          <Paragraph className="mx-auto max-w-xl text-gray-500">
-            Vui lòng đăng nhập để xem và quản lý giỏ hàng của bạn.
-          </Paragraph>
-
-          <Button
-            type="primary"
-            size="large"
-            onClick={() => navigate("/auth/login-register")}
-            className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
-          >
+          <h2 className={`text-3xl font-black mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Bạn chưa đăng nhập</h2>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Vui lòng đăng nhập để quản lý giỏ hàng.</p>
+          <Button type="primary" size="large" onClick={() => navigate("/auth/login-register")} className="mt-6 !rounded-xl !bg-orange-500 hover:!bg-orange-600 border-0 font-bold px-8">
             Đăng nhập ngay
           </Button>
         </div>
@@ -614,479 +440,324 @@ const CartPage = () => {
     );
   }
 
+  // Common Card Style
+  const cardClass = `rounded-2xl border transition-all duration-300 ${
+    isDarkMode 
+      ? 'bg-slate-900 border-slate-700 shadow-black/30 shadow-xl' 
+      : 'bg-white border-gray-100 shadow-xl shadow-gray-200/40'
+  }`;
+
   return (
-    <div className={`min-h-[calc(100vh-80px)] ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-orange-50 via-white to-amber-50'} px-4 pb-10 pt-24 md:px-8 md:pt-28`}>
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 rounded-3xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-8 text-white shadow-sm md:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-3 flex items-center gap-3">
-                <ShoppingCartOutlined className="text-3xl" />
-                <Title level={2} className="!mb-0 !text-white">
-                  Giỏ hàng của tôi
-                </Title>
+    <div className={`min-h-[calc(100vh-80px)] px-2 sm:px-4 py-8 md:px-8 w-full bg-transparent`}>
+      <div className="mx-auto w-full max-w-[1800px]">
+        
+        {/* COMPONENT: HERO BANNER */}
+        <section className={`relative overflow-hidden rounded-3xl mb-8 min-h-[180px] md:min-h-[220px] flex items-center border ${
+          isDarkMode ? 'border-slate-800 shadow-[0_8px_30px_rgba(0,0,0,0.6)]' : 'border-orange-400 shadow-xl shadow-orange-500/10'
+        }`}>
+          {/* Background Image liên quan đến Shopping Cart */}
+          <div className="absolute inset-0">
+            <img 
+              src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1920&auto=format&fit=crop" 
+              alt="Cart Background" 
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
+          {/* Gradient Overlay L to R che mờ hoàn toàn banner */}
+          <div className={`absolute inset-0 bg-gradient-to-r ${
+            isDarkMode 
+              ? 'from-slate-950 via-slate-950/80 to-slate-950/40' 
+              : 'from-orange-600 via-orange-500/90 to-orange-400/40'
+          }`}></div>
+          
+          <div className="relative z-10 p-6 md:p-10 w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`p-2 rounded-xl backdrop-blur-md ${isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-white/20 text-white'}`}>
+                  <ShoppingTwoTone twoToneColor={isDarkMode ? "#f97316" : "#ffffff"} className="text-3xl" />
+                </div>
+                <h1 className="m-0 text-3xl md:text-4xl font-black tracking-tight text-white">Giỏ hàng của tôi</h1>
               </div>
-
-              <Text className="text-white/90">
-                Kiểm tra sản phẩm, chọn mã giảm giá và chuẩn bị thanh toán.
-              </Text>
+              <p className="text-sm md:text-base text-white/90">
+                Kiểm tra sản phẩm, áp dụng khuyến mãi và tiến hành thanh toán.
+              </p>
             </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Tag className="rounded-full px-4 py-1 text-base">
-                {cartItems.length} sản phẩm
-              </Tag>
-
-              <Button
-                icon={<ReloadOutlined />}
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 shadow-sm">
+                <span className="font-bold text-white text-sm">{cartItems.length} sản phẩm</span>
+              </div>
+              <Button 
+                icon={<ReloadOutlined spin={loading} />} 
                 loading={loading}
-                onClick={fetchCart}
-                className="!rounded-xl"
+                onClick={fetchCart} 
+                className="!h-10 !px-5 !rounded-xl !font-bold border-0 shadow-lg !bg-white !text-orange-600 hover:!bg-gray-100 transition-all"
               >
                 Làm mới
               </Button>
             </div>
           </div>
-        </div>
+        </section>
 
         {loading ? (
-          <div className="flex min-h-[360px] items-center justify-center rounded-3xl bg-white shadow-sm">
+          <div className={`flex min-h-[360px] items-center justify-center rounded-3xl shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
             <Spin size="large" tip="Đang tải giỏ hàng..." />
           </div>
         ) : cartItems.length === 0 ? (
-          <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
-            <Empty
-              description={
-                <span className="text-gray-500">
-                  Giỏ hàng của bạn đang trống.
-                </span>
-              }
-            />
-
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => navigate("/supermarket")}
-              className="mt-5 !rounded-xl !bg-orange-500 hover:!bg-orange-600"
-            >
+          <div className={`rounded-3xl px-6 py-20 text-center shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`}>
+            <Empty description={<span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Giỏ hàng của bạn đang trống.</span>} />
+            <Button type="primary" size="large" onClick={() => navigate("/supermarket")} className="mt-6 !rounded-xl !bg-orange-500 hover:!bg-orange-600 border-0 font-bold px-8">
               Tiếp tục mua sắm
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-            <div className="space-y-5">
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <Checkbox
-                    checked={isAllSelected}
-                    indeterminate={
-                      selectedItemIds.length > 0 &&
-                      selectedItemIds.length < cartItems.length
-                    }
-                    onChange={handleSelectAll}
-                  >
-                    Chọn tất cả ({cartItems.length} sản phẩm)
-                  </Checkbox>
-
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Popconfirm
-                      title="Xóa các sản phẩm đã chọn?"
-                      description="Các sản phẩm này sẽ bị xóa khỏi giỏ hàng."
-                      okText="Xóa"
-                      cancelText="Hủy"
-                      onConfirm={handleRemoveSelectedItems}
-                      disabled={selectedItems.length === 0}
-                    >
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        disabled={selectedItems.length === 0}
-                        loading={deletingSelected}
-                        className="!rounded-xl"
-                      >
-                        Xóa mục chọn
-                      </Button>
-                    </Popconfirm>
-
-                    <Popconfirm
-                      title="Xóa toàn bộ giỏ hàng?"
-                      description="Tất cả sản phẩm trong giỏ hàng sẽ bị xóa."
-                      okText="Xóa tất cả"
-                      cancelText="Hủy"
-                      onConfirm={handleClearCart}
-                    >
-                      <Button
-                        danger
-                        type="primary"
-                        loading={clearingCart}
-                        className="!rounded-xl"
-                      >
-                        Xóa tất cả
-                      </Button>
-                    </Popconfirm>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 xl:gap-8">
+            
+            {/* CỘT TRÁI: DANH SÁCH ITEM */}
+            <div className="space-y-6">
+              
+              {/* Action Bar / Select All */}
+              <div className={`p-4 md:p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 border backdrop-blur-xl sticky top-20 z-40 transition-colors ${
+                isDarkMode ? 'bg-slate-900/80 border-slate-700 shadow-md' : 'bg-white/80 border-gray-200 shadow-sm'
+              }`}>
+                <Checkbox
+                  checked={isAllSelected}
+                  indeterminate={selectedItemIds.length > 0 && selectedItemIds.length < cartItems.length}
+                  onChange={handleSelectAll}
+                  className={isDarkMode ? '[&_.ant-checkbox-inner]:border-slate-500 [&_.ant-checkbox-checked_.ant-checkbox-inner]:!bg-orange-500' : ''}
+                >
+                  <span className={`font-bold text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Chọn tất cả ({cartItems.length})
+                  </span>
+                </Checkbox>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <Popconfirm title={<span className={isDarkMode?'text-white':''}>Xóa sản phẩm đã chọn?</span>} okText="Xóa" cancelText="Hủy" onConfirm={handleRemoveSelectedItems} disabled={selectedItems.length === 0}>
+                    <Button danger icon={<DeleteOutlined />} disabled={selectedItems.length === 0} loading={deletingSelected} className={`flex-1 md:flex-none !rounded-xl ${isDarkMode ? 'hover:!bg-red-500/20' : ''}`}>
+                      Xóa mục chọn
+                    </Button>
+                  </Popconfirm>
                 </div>
-              </Card>
+              </div>
 
-              {cartItems.map((item) => {
-                const product = productMap[String(item.productId)];
-                const isSelected = selectedItemIds.includes(String(item.id));
-                const isUpdating = updatingItemId === String(item.id);
-                const isDeleting = deletingItemId === String(item.id);
+              {/* Items List */}
+              <div className="space-y-4">
+                {cartItems.map((item) => {
+                  const product = productMap[String(item.productId)];
+                  const isSelected = selectedItemIds.includes(String(item.id));
+                  const isUpdating = updatingItemId === String(item.id);
 
-                return (
-                  <Card
-                    key={item.id}
-                    className="overflow-hidden rounded-3xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md !mt-6"
-                    styles={{
-                      body: {
-                        padding: 0,
-                      },
-                    }}
-                  >
-                    <div className="grid grid-cols-[130px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[180px_minmax(0,1fr)] mt-6">
-                      <div className="relative overflow-hidden rounded-2xl bg-orange-50">
-                        <button
-                          type="button"
-                          onClick={() => handleGoToProductDetail(item.productId)}
-                          className="block h-full w-full"
-                        >
-                          <Image
-                            src={getProductImage(product)}
-                            alt={item.productName}
-                            fallback={PLACEHOLDER_IMAGE}
-                            preview={false}
-                            className="!h-36 !w-full !object-cover sm:!h-44"
-                          />
-                        </button>
-
-                        <div className="absolute left-3 top-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => handleSelectItem(item.id)}
-                          />
-                        </div>
+                  return (
+                    <div key={item.id} className={`relative flex flex-col sm:flex-row gap-4 md:gap-6 p-4 md:p-5 rounded-2xl border transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-slate-800/80 border-slate-700 hover:border-orange-500 hover:bg-slate-800 shadow-black/20' 
+                        : 'bg-white border-gray-100 hover:border-orange-300 shadow-sm hover:shadow-md'
+                    }`}>
+                      {/* Checkbox (Absolute on mobile, relative on desktop) */}
+                      <div className="absolute top-4 left-4 sm:relative sm:top-0 sm:left-0 flex items-center h-24">
+                        <Checkbox checked={isSelected} onChange={() => handleSelectItem(item.id)} className={`z-10 bg-white/50 dark:bg-slate-800/50 p-1 rounded backdrop-blur-sm sm:bg-transparent sm:backdrop-blur-none ${isDarkMode ? '[&_.ant-checkbox-inner]:border-slate-500 [&_.ant-checkbox-checked_.ant-checkbox-inner]:!bg-orange-500' : ''}`} />
                       </div>
 
-                      <div className="flex min-w-0 flex-col">
-                        <div className="mb-2 flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <Tag color="orange">
-                              {product?.categoryName || "Sản phẩm"}
-                            </Tag>
+                      {/* Image */}
+                      <div 
+                        onClick={() => navigate(`/products/${item.productId}`)} 
+                        className={`w-full sm:w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden border cursor-pointer group ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-100'}`}
+                      >
+                        <img src={getProductImage(product)} alt={item.productName} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={(e) => e.currentTarget.src = PLACEHOLDER_IMAGE} />
+                      </div>
 
-                            <Title
-                              level={4}
-                              className="!mb-1 !mt-2 !text-lg"
-                              style={{
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                              }}
-                            >
-                              {item.productName}
-                            </Title>
-                          </div>
-
-                          <Popconfirm
-                            title="Xóa sản phẩm này?"
-                            description="Sản phẩm sẽ bị xóa khỏi giỏ hàng."
-                            okText="Xóa"
-                            cancelText="Hủy"
-                            onConfirm={() => handleRemoveItem(item)}
+                      {/* Content */}
+                      <div className="flex-1 flex flex-col min-w-0 py-1">
+                        <div className="flex justify-between items-start gap-4 mb-1 pr-8">
+                          <h3 
+                            onClick={() => navigate(`/products/${item.productId}`)} 
+                            className={`font-bold text-base md:text-lg line-clamp-2 leading-tight cursor-pointer transition-colors hover:text-orange-500 m-0 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}
                           >
-                            <Button
-                              danger
-                              type="text"
-                              icon={<DeleteOutlined />}
-                              loading={isDeleting}
-                            />
-                          </Popconfirm>
+                            {item.productName}
+                          </h3>
+                        </div>
+                        
+                        <div className={`text-xs md:text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          Phân loại: <span className="font-medium">{getVariantLabel(item)}</span>
+                          <span className="mx-2">•</span>
+                          SKU: <span className="font-mono">{item.sku || "N/A"}</span>
                         </div>
 
-                        <div className="mb-2 text-sm text-gray-500">
-                          Phân loại: {getVariantLabel(item)}
-                        </div>
-
-                        {item.sku && (
-                          <div className="mb-3 text-xs text-gray-500">
-                            SKU: {item.sku}
-                          </div>
-                        )}
-
-                        <div className="mb-4">
-                          <Text className="text-xl font-bold !text-orange-600">
-                            {formatCurrency(item.price)}
-                          </Text>
-                        </div>
-
-                        <div className="mt-auto flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                          <div className="flex w-fit items-center rounded-xl border border-gray-200 bg-white">
-                            <Button
-                              type="text"
-                              icon={<MinusOutlined />}
-                              disabled={Number(item.quantity || 1) <= 1}
-                              loading={isUpdating}
-                              onClick={() =>
-                                handleUpdateQuantity(
-                                  item,
-                                  Number(item.quantity || 1) - 1
-                                )
-                              }
-                            />
-
-                            <InputNumber
-                              min={1}
-                              value={Number(item.quantity || 1)}
-                              controls={false}
-                              onChange={(value) =>
-                                handleUpdateQuantity(item, value)
-                              }
-                              className="!w-16 text-center"
-                              disabled={isUpdating}
-                            />
-
-                            <Button
-                              type="text"
-                              icon={<PlusOutlined />}
-                              loading={isUpdating}
-                              onClick={() =>
-                                handleUpdateQuantity(
-                                  item,
-                                  Number(item.quantity || 1) + 1
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500">
-                              Thành tiền
+                        {/* Bottom Row: Price & Quantity */}
+                        <div className="mt-auto flex flex-wrap items-end justify-between gap-4">
+                          <div className={`flex items-center h-9 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+                            <button 
+                              disabled={Number(item.quantity || 1) <= 1 || isUpdating}
+                              onClick={() => handleUpdateQuantity(item, Number(item.quantity || 1) - 1)}
+                              className={`w-9 h-full flex items-center justify-center transition-colors disabled:opacity-30 ${isDarkMode ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-200'}`}
+                            >
+                              <MinusOutlined className="text-xs" />
+                            </button>
+                            <div className={`w-12 h-full flex items-center justify-center font-bold text-sm border-x ${isDarkMode ? 'border-slate-700 text-white' : 'border-gray-200 text-gray-900'}`}>
+                              {isUpdating ? <Spin size="small" /> : item.quantity}
                             </div>
-
-                            <Text className="text-lg font-bold !text-orange-600">
-                              {formatCurrency(getItemLineTotal(item))}
-                            </Text>
+                            <button 
+                              disabled={isUpdating}
+                              onClick={() => handleUpdateQuantity(item, Number(item.quantity || 1) + 1)}
+                              className={`w-9 h-full flex items-center justify-center transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-200'}`}
+                            >
+                              <PlusOutlined className="text-xs" />
+                            </button>
+                          </div>
+                          
+                          <div className="text-lg md:text-xl font-black text-orange-500 tracking-tight">
+                            {formatCurrency(getItemLineTotal(item))}
                           </div>
                         </div>
                       </div>
+
+                      {/* Delete Button (Absolute Top Right) */}
+                      <Popconfirm title={<span className={isDarkMode?'text-white':''}>Xóa sản phẩm này?</span>} okText="Xóa" cancelText="Hủy" onConfirm={() => handleRemoveItem(item)}>
+                        <button className={`absolute top-4 right-4 p-2 rounded-full transition-all flex items-center justify-center ${
+                          isDarkMode ? 'text-gray-500 hover:bg-red-500/20 hover:text-red-400' : 'text-gray-400 hover:bg-red-50 hover:text-red-500'
+                        }`}>
+                          <DeleteOutlined className="text-base" />
+                        </button>
+                      </Popconfirm>
                     </div>
-                  </Card>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="xl:sticky xl:top-28 xl:h-fit">
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <Title level={3}>Tóm tắt đơn hàng</Title>
+            {/* CỘT PHẢI: ORDER SUMMARY */}
+            <div className="lg:sticky lg:top-24 h-fit">
+              <div className={`${cardClass} p-6 relative overflow-hidden`}>
+                {/* Decorative background blur */}
+                {isDarkMode && <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/5 blur-3xl rounded-full pointer-events-none"></div>}
+                
+                <h2 className={`text-xl font-black mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Order summary</h2>
 
-                <div className="mt-5 rounded-2xl bg-orange-50 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <Text strong>
-                      <TagsOutlined className="mr-2 text-orange-500" />
-                      Mã giảm giá
-                    </Text>
-
-                    <Button
-                      type="link"
-                      onClick={handleOpenCouponModal}
-                      className="!px-0 !text-orange-600"
-                    >
-                      Xem mã giảm giá
-                    </Button>
+                {/* Coupon Section */}
+                <div className={`p-4 rounded-xl mb-6 backdrop-blur-md border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
+                  <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <TagsOutlined className="mr-1" /> Mã giảm giá
                   </div>
-
                   <div className="flex gap-2">
                     <Input
                       value={voucherCode}
-                      onChange={(event) => setVoucherCode(event.target.value)}
+                      onChange={(e) => setVoucherCode(e.target.value)}
                       placeholder="Nhập mã coupon"
-                      className="!rounded-xl"
                       disabled={applyingCoupon}
+                      className={`!rounded-lg flex-1 ${isDarkMode ? '!bg-slate-800 !border-slate-600 !text-white placeholder:!text-gray-500' : ''}`}
                     />
-
                     <Button
+                      type="primary"
                       onClick={() => handleApplyCoupon(voucherCode)}
                       loading={applyingCoupon && !applyingCouponCode}
-                      className="!rounded-xl"
+                      className="!rounded-lg !bg-gray-800 hover:!bg-black border-0 font-bold"
                     >
                       Áp dụng
                     </Button>
                   </div>
-
-                  {appliedCoupon ? (
-                    <div className="mt-3 rounded-xl bg-white p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <Text strong className="!text-orange-600">
-                            {appliedCoupon.code}
-                          </Text>
-
-                          <div className="text-xs text-gray-500">
-                            Đã giảm {formatCurrency(discountAmount)}
-                          </div>
-                        </div>
-
-                        <Button
-                          size="small"
-                          danger
-                          type="text"
-                          onClick={handleRemoveCoupon}
-                        >
-                          Bỏ mã
-                        </Button>
+                  
+                  {appliedCoupon && (
+                    <div className={`mt-3 p-3 rounded-lg border flex items-center justify-between ${isDarkMode ? 'bg-slate-800 border-orange-500/30' : 'bg-white border-orange-200 shadow-sm'}`}>
+                      <div>
+                        <div className="font-bold text-orange-500 text-sm">{appliedCoupon.code}</div>
+                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Đã giảm {formatCurrency(discountAmount)}</div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-xs text-gray-500">
-                      Có thể nhập tay hoặc chọn từ danh sách mã còn hạn.
+                      <Button size="small" type="text" danger onClick={handleRemoveCoupon} className="text-xs">Bỏ mã</Button>
                     </div>
                   )}
-                </div>
-
-                <Divider />
-
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <Text type="secondary">Sản phẩm đã chọn</Text>
-                    <Text>{selectedItems.length}</Text>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <Text type="secondary">Tổng số lượng</Text>
-                    <Text>{selectedQuantity}</Text>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <Text type="secondary">Tạm tính</Text>
-                    <Text>{formatCurrency(subtotal)}</Text>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <Text type="secondary">Giảm giá</Text>
-                    <Text className="!text-green-600">
-                      -{formatCurrency(discountAmount)}
-                    </Text>
+                  <div className="mt-2 text-right">
+                    <Button type="link" size="small" onClick={handleOpenCouponModal} className="!text-orange-500 !p-0 text-xs">
+                      Xem danh sách mã khả dụng
+                    </Button>
                   </div>
                 </div>
 
-                <Divider />
+                {/* Calculation Breakdown */}
+                <div className="space-y-4 mb-6">
+                  <div className={`flex justify-between items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <span>Tạm tính ({selectedQuantity} SP)</span>
+                    <span className="font-bold">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className={`flex justify-between items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <span>Giảm giá</span>
+                    <span className="font-bold text-emerald-500">-{formatCurrency(discountAmount)}</span>
+                  </div>
+                </div>
 
-                <div className="mb-5 flex items-center justify-between">
-                  <Text strong>Tổng thanh toán</Text>
+                <div className={`h-px w-full my-4 ${isDarkMode ? 'bg-slate-700' : 'bg-gray-200'}`}></div>
 
-                  <Text className="text-2xl font-bold !text-orange-600">
-                    {formatCurrency(finalTotal)}
-                  </Text>
+                <div className="flex justify-between items-end mb-6">
+                  <span className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tổng cộng</span>
+                  <div className="text-right">
+                    <span className="block text-2xl font-black text-orange-500 tracking-tight">{formatCurrency(finalTotal)}</span>
+                    <span className={`text-[10px] ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>(Đã bao gồm VAT nếu có)</span>
+                  </div>
                 </div>
 
                 <Button
                   type="primary"
                   size="large"
                   block
-                  icon={<ArrowRightOutlined />}
                   disabled={selectedItems.length === 0}
                   onClick={handleCheckout}
-                  className="!h-12 !rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                  className="!h-12 !rounded-xl !bg-orange-500 hover:!bg-orange-600 border-0 font-bold text-base shadow-lg shadow-orange-500/30"
                 >
-                  Tiến hành thanh toán
+                  Tiến hành thanh toán <ArrowRightOutlined />
                 </Button>
-
-                <Button
-                  block
-                  size="large"
-                  onClick={() => navigate("/supermarket")}
-                  className="mt-3 !h-12 !rounded-xl"
-                >
-                  Tiếp tục mua sắm
-                </Button>
-              </Card>
+              </div>
             </div>
+
           </div>
         )}
       </div>
 
+      {/* COUPON MODAL: SỬA STYLE ĐỂ CHỮ MÀU ĐEN TRÊN NỀN SÁNG Ở CẢ 2 CHẾ ĐỘ */}
       <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <GiftOutlined className="text-orange-500" />
-            <span>Chọn mã giảm giá</span>
-          </div>
-        }
+        title={<div className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}><GiftOutlined className="text-orange-500" /> Chọn mã giảm giá</div>}
         open={couponModalOpen}
         onCancel={() => setCouponModalOpen(false)}
         footer={null}
-        width={760}
+        width={600}
+        className={isDarkMode ? 'dark-modal' : ''}
+        styles={{ content: { backgroundColor: isDarkMode ? '#0f172a' : '#ffffff' }, header: { backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderBottom: isDarkMode ? '1px solid #334155' : '1px solid #f0f0f0' } }}
       >
-        <div className="mb-4 rounded-2xl bg-orange-50 p-4 text-sm">
-          <div className="flex justify-between">
-            <Text type="secondary">Tạm tính sản phẩm đã chọn</Text>
-            <Text strong>{formatCurrency(subtotal)}</Text>
-          </div>
+        <div className={`mb-4 rounded-xl p-4 text-sm flex justify-between items-center ${isDarkMode ? 'bg-slate-800 text-gray-300' : 'bg-orange-50 text-gray-700'}`}>
+          <span>Tạm tính sản phẩm đã chọn</span>
+          <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(subtotal)}</span>
         </div>
 
         {loadingCoupons ? (
-          <div className="flex min-h-[260px] items-center justify-center">
-            <Spin tip="Đang tải mã giảm giá..." />
-          </div>
+          <div className="flex min-h-[260px] items-center justify-center"><Spin /></div>
         ) : visibleCoupons.length === 0 ? (
-          <Empty description="Hiện chưa có mã giảm giá khả dụng." />
+          <Empty description={<span className={isDarkMode ? 'text-gray-500' : ''}>Hiện chưa có mã giảm giá khả dụng.</span>} />
         ) : (
-          <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+          <div className="max-h-[400px] space-y-3 overflow-y-auto pr-2 custom-scrollbar">
             {visibleCoupons.map((coupon) => {
               const eligibility = getCouponEligibility(coupon, subtotal);
-              const isApplyingThis =
-                applyingCoupon && applyingCouponCode === coupon.code;
+              const isApplyingThis = applyingCoupon && applyingCouponCode === coupon.code;
 
               return (
-                <div
-                  key={coupon.id || coupon.code}
-                  className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="min-w-0">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <Tag color="orange" className="rounded-full px-3 py-1">
-                          {coupon.code}
-                        </Tag>
-
-                        <Tag color={eligibility.tagColor}>
-                          {eligibility.label}
-                        </Tag>
-                      </div>
-
-                      <Title level={5} className="!mb-1">
-                        {getCouponDiscountText(coupon)}
-                        {coupon.maxDiscount
-                          ? `, tối đa ${formatCurrency(coupon.maxDiscount)}`
-                          : ""}
-                      </Title>
-
-                      <div className="text-sm text-gray-500">
-                        Đơn tối thiểu:{" "}
-                        {formatCurrency(coupon.minOrderValue || 0)}
-                      </div>
-
-                      <div className="text-sm text-gray-500">
-                        Hạn dùng: {formatDate(coupon.endDate)}
-                      </div>
-
-                      {coupon.usageLimit !== null &&
-                        coupon.usageLimit !== undefined && (
-                          <div className="text-sm text-gray-500">
-                            Đã dùng: {coupon.currentUsage || 0}/
-                            {coupon.usageLimit}
-                          </div>
+                <div key={coupon.id || coupon.code} className="rounded-xl border p-4 transition-all bg-white border-gray-200 hover:border-orange-500 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Tag color="orange" className="!m-0 font-bold px-2 py-0.5 border-0 bg-orange-500/10 text-orange-500">{coupon.code}</Tag>
+                        {eligibility.disabled ? (
+                          <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded font-bold">{eligibility.label}</span>
+                        ) : (
+                          <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded font-bold">Khả dụng</span>
                         )}
+                      </div>
+                      <h4 className="text-base font-black m-0 text-black">
+                        {getCouponDiscountText(coupon)} {coupon.maxDiscount ? `(Tối đa ${formatCurrency(coupon.maxDiscount)})` : ""}
+                      </h4>
+                      <div className="text-xs mt-1 text-gray-800 font-medium">Đơn tối thiểu: {formatCurrency(coupon.minOrderValue || 0)}</div>
+                      <div className="text-xs mt-0.5 text-gray-800 font-medium">HSD: {formatDate(coupon.endDate)}</div>
                     </div>
-
                     <Button
                       type="primary"
                       disabled={eligibility.disabled}
                       loading={isApplyingThis}
                       onClick={() => handleApplyCoupon(coupon.code)}
-                      className="!rounded-xl !bg-orange-500 hover:!bg-orange-600"
+                      className="!rounded-lg !bg-gray-800 hover:!bg-black border-0 font-bold"
                     >
                       Áp dụng
                     </Button>

@@ -2,13 +2,12 @@ import React, { useEffect, useState, Suspense, useRef} from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
-import { Input, Badge, FloatButton, Button, Avatar, message, Dropdown } from "antd";
+import { Badge, FloatButton, Button, Avatar, message, Dropdown } from "antd";
 import USER_ROUTE from '../../Routes/User.routes';
 import {
   ShoppingCartOutlined,
   BellOutlined,
   UserOutlined,
-  SearchOutlined,
   ThunderboltOutlined,
   CompassOutlined,
   ShopOutlined,
@@ -46,8 +45,6 @@ import Footer from '../../Components/Footer/Footer';
 import Loading from '../../Components/Loading/Loading';
 import DarkModeStars from '../../Components/DarkModeStar/DarkModeStars';
 import Global3DModel from '../../Components/Global3DModel/Global3DModel';
-
-const { Search } = Input;
 
 // Preload 3D Models
 import { useGLTF } from '@react-three/drei';
@@ -164,10 +161,6 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
     };
   }, []);
 
-  const handleSearch = (value) => {
-    console.log("Searching:", value);
-  };
-
   const handleLogin = () => {
     navigate("/auth/login-register");
     setActiveIndex(-1);
@@ -217,7 +210,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 h-20 z-40 flex items-center justify-between px-4 md:px-8 transition-colors duration-300 ${
+      className={`fixed top-0 left-0 right-0 h-20 z-50 flex items-center justify-between px-4 md:px-8 transition-colors duration-300 ${
         isDarkMode
           ? "bg-black/30 backdrop-blur-md border-b border-white/10"
           : "bg-[#fff7ed]/80 backdrop-blur-md border-b border-orange-100"
@@ -271,16 +264,6 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
             MegA MaRt
           </h1>
         </div>
-      </div>
-
-      <div className="hidden md:flex flex-1 max-w-xl mx-8">
-        <Search
-          placeholder="Tìm kiếm sản phẩm..."
-          allowClear
-          enterButton={<SearchOutlined />}
-          size="large"
-          onSearch={handleSearch}
-        />
       </div>
 
       <div className="flex items-center gap-3">
@@ -341,7 +324,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
 };
 
 // --- COMPONENT: SIDEBAR ---
-const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActiveIndex, activeIndex }) => {
+const Sidebar = ({ onMenuOpen,isDesktopMenuOpen, isMobileOpen, onCloseMobile, isDarkMode, setActiveIndex, activeIndex }) => {
   const navigate = useNavigate();
   const menuItems = [
     { icon: <ThunderboltOutlined />, label: 'Flash Sale', path: USER_ROUTE.Home },
@@ -352,35 +335,32 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
     { icon: <FileTextOutlined />, label: 'Đơn hàng', path: USER_ROUTE.Orders },
   ];
 
-  const renderNavLinks = (isDesktopCollapsed) => (
+  const renderNavLinks = () => (
     <nav className="space-y-2 w-full px-2 flex flex-col items-center ">
       {menuItems.map((item, idx) => (
         <a
           key={idx}
           href="#"
-          title={isDesktopCollapsed ? item.label : ''}
           className={`flex items-center transition-all overflow-hidden w-full rounded-lg ${
               activeIndex === idx 
                 ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md' 
                 : `${isDarkMode ? 'text-gray-300 hover:bg-slate-700 hover:text-orange-400' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'}`
-            } px-4 py-3 gap-3 ${isDesktopCollapsed ? 'lg:justify-center lg:p-3 lg:w-12 lg:h-12 lg:gap-0' : ''}
-          `}
+            } px-4 py-3 gap-3`}
           onClick={(e) => {
             e.preventDefault();
             navigate(item.path);
             setActiveIndex(idx);
+            onMenuOpen();
             onCloseMobile(); 
           }}
         >
           <span className="text-xl flex-shrink-0">{item.icon}</span>
-          <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ${isDesktopCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>{item.label}</span>
+          <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
         </a>
       ))}
     </nav>
   );
 
-
-  // Tạo hàm render Model 3D dùng chung cho cả 2 chế độ (Desktop/Mobile)
   const renderSidebarModel = () => (
     <div className={`absolute w-40 h-40 lg:top-0 bottom-16 right-4 flex justify-center items-center pointer-events-none `}>
       <Canvas camera={{ position: [0, 0, 8], fov: 40 }}>
@@ -394,7 +374,7 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
             rotationSpeed={0.01} 
             floatSpeed={1} 
             scale={1.1} 
-            position={[0, -2, 0]} 
+            position={[-0.8, -2, 0]} // Đã đổi trục X từ 0 sang -0.8 để đẩy lệch sang trái, tạo cảm giác vào tâm
             rotation={[0, -Math.PI / 4 , 0]}
           />
         </Suspense>
@@ -404,42 +384,38 @@ const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActive
 
   return (
     <>
-      {/* Background mờ khi mở Menu Mobile */}
-      {/* <div className={`fixed inset-0 bg-black/60 z-[100] lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={onCloseMobile} /> */}
-      
       {/* KHUNG MENU MOBILE (Trượt từ trái sang) */}
-      <div className={`fixed top-0 left-0 h-full w-72 shadow-2xl z-[101] lg:hidden transform transition-transform duration-300 ease-in-out flex flex-col py-4 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed top-0 left-0 h-full w-72 shadow-2xl border z-[101] lg:hidden transform transition-transform duration-300 ease-in-out flex flex-col py-4 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className={`flex items-center justify-between px-6 mb-6 border-b pb-4 ${isDarkMode ? 'border-slate-700' : 'border-gray-100'}`}>
           <h1 className="text-2xl font-black text-orange-600 m-0">MegA<span className="italic text-transparent [-webkit-text-stroke:1px_#ea580c]">MaRt</span></h1>
           <Button type="text" icon={<CloseOutlined className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`} />} onClick={onCloseMobile} />
         </div>
         
-        {/* Vùng cuộn linh hoạt chứa Menu và Model */}
         <div className="flex-1 overflow-y-auto flex flex-col px-2">
           <div className="px-4 mb-2"><h2 className={`text-sm font-bold m-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Danh mục</h2></div>
-          {renderNavLinks(false)}
+          {renderNavLinks()}
           
-          {/* Đưa mô hình 3D vào CUỐI menu trượt nhờ margin-top: auto */}
-          <div className="mt-auto pt-8 pb-4">
+          <div className="mt-auto pt-8 pb-4 relative">
             {renderSidebarModel()}
           </div>
         </div>
       </div>
 
-      {/* KHUNG MENU DESKTOP (Đứng im bên trái) */}
-      <aside className={`hidden lg:flex flex-col gap-2 py-4 h-fit border rounded-xl sticky top-28 shadow-sm transition-all duration-300 ease-in-out z-20 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} ${collapsed ? 'w-[80px] items-center' : 'w-64'}`}>
-        
-        {/* Đưa mô hình 3D vào ĐẦU Sidebar Desktop */}
-        <div className={`w-full overflow-hidden transition-all duration-300 ${collapsed ? 'h-0 opacity-0 mb-0' : 'h-32 opacity-100 mb-2'}`}>
-          {!collapsed && renderSidebarModel("h-full")}
-        </div>
+      {/* KHUNG MENU DESKTOP (Dạng Fixed Overlay - Trượt nổi đè lên trên Main Content) */}
+      <aside className={`hidden lg:block fixed top-24 left-4 lg:left-8 h-fit transition-all duration-400 ease-in-out z-[101]  overflow-hidden ${isDesktopMenuOpen ? 'w-64 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-4 pointer-events-none'}`}>
+        <div className={`relative flex flex-col gap-2 py-4 border rounded-xl shadow-2xl w-64 backdrop-blur-xl ${isDarkMode ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-100'}`}>
+          
+          <div className="w-full h-32 mb-2 relative">
+             {renderSidebarModel()}
+          </div>
 
-        <div className={`mb-2 overflow-hidden whitespace-nowrap transition-all duration-300 ${collapsed ? 'w-0 opacity-0 px-0' : 'w-full opacity-100 px-4'}`}>
-          <h2 className={`text-lg font-bold m-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Danh mục</h2>
-          <p className="text-xs text-gray-500 m-0">Truy cập nhanh</p>
+          <div className="mb-2 px-4">
+            <h2 className={`text-lg font-bold m-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Danh mục</h2>
+            <p className="text-xs text-gray-500 m-0">Truy cập nhanh</p>
+          </div>
+          
+          {renderNavLinks()}
         </div>
-        
-        {renderNavLinks(collapsed)}
       </aside>
     </>
   );
@@ -463,7 +439,7 @@ const ResponsiveModelGroup = () => {
 
 // --- MAIN LAYOUT ---
 export default function UserMainLayout() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false); // Trạng thái Sidebar Desktop
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -484,7 +460,6 @@ export default function UserMainLayout() {
   }, [isDarkMode]);
 
   const location = useLocation();
-  const isDetailsPage = location.pathname.startsWith('/product') || location.pathname.startsWith('/cart');
   const isPaymentStatusPage = location.pathname.startsWith('/payment-success') || location.pathname.startsWith('/payment-failure');
 
   useEffect(() => {
@@ -493,8 +468,9 @@ export default function UserMainLayout() {
   }, []);
 
   const handleMenuAction = () => {
+    console.log("click menu");
     if (window.innerWidth >= 1024) {
-      setIsSidebarCollapsed(!isSidebarCollapsed);
+      setIsDesktopMenuOpen(!isDesktopMenuOpen); // Bật/Tắt Menu PC dạng Fixed
     } else {
       setIsMobileMenuOpen(true); 
     }
@@ -508,7 +484,8 @@ export default function UserMainLayout() {
   return (
     <div className={`min-h-screen font-sans flex flex-col relative overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 text-gray-200' : 'bg-gray-50 text-gray-800'}`}>
       
-      <div className="relative z-50 pointer-events-auto">
+      {/* NavBar nâng z-index lên để luôn đứng trên cùng, kể cả Sidebar Fixed */}
+      <div className="relative z-[60] pointer-events-auto">
         <TopNavBar 
           onMenuClick={handleMenuAction} 
           isDarkMode={isDarkMode} 
@@ -543,14 +520,13 @@ export default function UserMainLayout() {
         </Canvas>
       </div>
 
-      <main className="relative z-20 max-w-7xl mx-auto px-4 py-8 flex-grow w-full pointer-events-auto">
-        <div className="flex flex-col lg:flex-row gap-6 h-full">
-          {!isDetailsPage && !isPaymentStatusPage && (
-            <Sidebar collapsed={isSidebarCollapsed} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} isDarkMode={isDarkMode} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
-          )}
-          <div className="flex-grow w-full overflow-hidden transition-all duration-300">
-            {isLoading ? <Loading /> : <Outlet context={{ isDarkMode, updateSharedAvatarRef }} />}
-          </div>
+      {/* Main Content luôn chiếm 100% diện tích không bị giật lùi khi mở Sidebar */}
+      <main className="relative z-20 w-full max-w-[1800px] mx-auto px-4 lg:px-8 py-8 pt-28 flex-grow pointer-events-auto">
+        {!isPaymentStatusPage && (
+          <Sidebar onMenuOpen={handleMenuAction} isDesktopMenuOpen={isDesktopMenuOpen} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} isDarkMode={isDarkMode} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
+        )}
+        <div className="w-full overflow-hidden transition-all duration-300">
+          {isLoading ? <Loading /> : <Outlet context={{ isDarkMode, updateSharedAvatarRef }} />}
         </div>
       </main>
 
@@ -558,13 +534,13 @@ export default function UserMainLayout() {
         <Footer isDarkMode={isDarkMode} />
       </div>
 
-      {!isDetailsPage && (
+
         <nav className={`md:hidden fixed bottom-0 left-0 right-0 border-t flex justify-around py-3 z-40 shadow-inner pointer-events-auto transition-colors duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'}`}>
           <a className="flex flex-col items-center gap-1 text-orange-600" href="#"><HomeOutlined className="text-xl" /><span className="text-[10px] font-bold">Trang chủ</span></a>
           <a className={`flex flex-col items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} href="#"><CompassOutlined className="text-xl" /><span className="text-[10px]">Khám phá</span></a>
           <a className={`flex flex-col items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} href="#"><UserOutlined className="text-xl" /><span className="text-[10px]">Tôi</span></a>
         </nav>
-      )}
+
 
       <FloatButton.BackTop visibilityHeight={300} style={{ right: 24, bottom: 100 }} />
     </div>

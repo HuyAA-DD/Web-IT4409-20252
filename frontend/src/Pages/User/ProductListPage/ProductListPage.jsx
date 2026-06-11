@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
   Button,
-  Card,
   Empty,
   Input,
   Select,
@@ -12,24 +11,29 @@ import {
   Typography,
   message,
   Spin,
+  Carousel,
 } from "antd";
 import {
-  AppstoreOutlined,
-  EyeOutlined,
-  FilterOutlined,
+  FilterTwoTone,
+  AppstoreTwoTone,
+  LayoutTwoTone,
+  ProjectTwoTone,
+  DatabaseTwoTone,
   SearchOutlined,
   ShoppingCartOutlined,
+  ReloadOutlined,
+  ClearOutlined,
+  EyeOutlined,
+  StarFilled
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-
-import { useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 
 import api from "../../../Apis/apiConfig";
 import API_ENDPOINTS from "../../../Apis/apiEndpoints";
 import { getAuthUser } from "../../../Utils/Auth";
 import { notifyCartChanged } from "../../../Utils/CartEvents";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const DEFAULT_PRICE_RANGE = [0, 10000000];
 
@@ -114,7 +118,7 @@ const normalizeSort = (sortType) => {
 
 const ProductListPage = () => {
   const navigate = useNavigate();
-  const {isDarkMode} = useOutletContext();
+  const { isDarkMode } = useOutletContext();
   const authUser = getAuthUser();
   const userId = authUser?.id;
 
@@ -319,87 +323,172 @@ const ProductListPage = () => {
     setStockFilter("ALL");
   };
 
+  const banners = [
+    {
+      id: 1,
+      image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920",
+      badge: "Siêu Thị Khuyến Mãi",
+      title: "Thực Phẩm Tươi Sống",
+      subtitle: "Giảm tới 30% cho các sản phẩm rau củ quả trong ngày.",
+    },
+    {
+      id: 2,
+      image: "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&q=80&w=1920",
+      badge: "Hàng Nhập Khẩu",
+      title: "Chất Lượng Quốc Tế",
+      subtitle: "Thực phẩm đóng gói nhập khẩu trực tiếp, đảm bảo vệ sinh an toàn.",
+    },
+    {
+      id: 3,
+      image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=1920",
+      badge: "Đồ Dùng Thú Cưng",
+      title: "Siêu Sale Phụ Kiện",
+      subtitle: "Tất cả những gì thú cưng của bạn cần đều có ở đây.",
+    }
+  ];
+
+  const popupDarkClass = isDarkMode 
+    ? "!bg-slate-800 [&_.ant-select-item]:!text-gray-200 [&_.ant-select-item-option-selected]:!bg-orange-500/20 [&_.ant-select-item-option-selected]:!text-orange-400 [&_.ant-select-item-option-active]:!bg-slate-700" 
+    : "";
+
   return (
-    <div className={`min-h-[calc(100vh-80px)] px-4 py-8 md:px-8 ${isDarkMode ? "bg-transparent" : "bg-gradient-to-br from-orange-50 via-white to-amber-50"}`}>
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 rounded-3xl bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 p-8 text-white shadow-lg">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <Text className="!text-white/80 font-semibold tracking-[0.3em]">
-                MEGAMART SUPERMARKET
-              </Text>
-
-              <Title level={1} className="!mt-3 !mb-2 !text-white">
-                Khám phá sản phẩm
-              </Title>
-
-
-            </div>
-
-            <Button
-              onClick={fetchProducts}
-              loading={loadingProducts}
-              className="!h-11 !rounded-xl"
-            >
-              Làm mới
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-          <Card className="h-fit rounded-3xl border-0 shadow-sm">
-            <div className="mb-6 flex items-center gap-2">
-              <FilterOutlined className="text-orange-500" />
-              <Title level={4} className="!mb-0">
-                Bộ lọc sản phẩm
-              </Title>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <Text strong>Tìm kiếm</Text>
-
-                <Input
-                  className="mt-2"
-                  size="large"
-                  placeholder="Tên sản phẩm, danh mục..."
-                  prefix={<SearchOutlined />}
-                  value={keyword}
-                  onChange={(event) => setKeyword(event.target.value)}
-                  allowClear
+    <div className={`min-h-[calc(100vh-80px)] px-2 sm:px-4 py-8 md:px-8 bg-transparent`}>
+      <div className="mx-auto w-full">
+        
+        {/* COMPONENT: BANNER ĐỘNG TRÀN VIỀN */}
+        <section className={`relative overflow-hidden rounded-3xl mb-8 h-[200px] md:h-[300px] lg:h-[400px] group transition-all duration-300 ${
+          isDarkMode ? 'shadow-[0_4px_30px_rgba(0,0,0,0.8)] border border-slate-700' : 'shadow-xl shadow-gray-200/50 border border-gray-100'
+        }`}>
+          <Carousel autoplay effect="fade" autoplaySpeed={4000} className="w-full h-full">
+            {banners.map(banner => (
+              <div key={banner.id} className="relative h-[200px] md:h-[300px] lg:h-[400px] w-full outline-none">
+                <img
+                  className="w-full h-full object-cover"
+                  alt={banner.title}
+                  src={banner.image}
                 />
-              </div>
-
-              <div>
-                <Text strong>Danh mục</Text>
-
-                <div className="mt-3 space-y-2">
-                  {loadingCategories ? (
-                    <div className="flex justify-center py-4">
-                      <Spin />
-                    </div>
-                  ) : (
-                    categories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => setSelectedCategoryId(category.id)}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${
-                          selectedCategoryId === category.id
-                            ? "bg-orange-50 font-semibold text-orange-600"
-                            : "bg-gray-50 text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))
-                  )}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent flex items-center p-8 md:p-12 lg:p-16">
+                  <div className="max-w-2xl space-y-3 md:space-y-4 animate-fade-in-up">
+                    <span className="bg-orange-500 text-white px-3 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest shadow-md">
+                      {banner.badge}
+                    </span>
+                    <Title level={1} className="!text-white !m-0 drop-shadow-lg !text-3xl md:!text-5xl lg:!text-6xl">
+                      {banner.title}
+                    </Title>
+                    <p className="text-gray-200 text-sm md:text-lg italic drop-shadow-md">
+                      {banner.subtitle}
+                    </p>
+                  </div>
                 </div>
               </div>
+            ))}
+          </Carousel>
+        </section>
 
-              <div>
-                <Text strong>Khoảng giá</Text>
+        {/* COMPONENT: BỘ LỌC ĐÃ ĐƯỢC CUSTOM BẰNG DIV THUẦN */}
+        <div className={`mb-8 p-5 md:p-6 rounded-2xl border transition-all duration-300 ${
+          isDarkMode ? '!bg-slate-800 !border-slate-700 shadow-xl' : 'bg-white border-white shadow-xl shadow-gray-200/50'
+        }`}>
+          <div className={`mb-5 flex items-center gap-2 border-b pb-3 ${isDarkMode ? 'border-slate-700' : 'border-gray-100'}`}>
+            <FilterTwoTone twoToneColor="#f97316" className="text-xl" />
+            <Title level={4} className={`!mb-0 ${isDarkMode ? '!text-white' : '!text-slate-800'}`}>
+              Bộ lọc sản phẩm
+            </Title>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 items-end">
+            <div className="flex flex-col gap-1.5">
+              <Text strong className={`flex items-center gap-2 ${isDarkMode ? '!text-gray-300' : '!text-gray-700'}`}>
+                <SearchOutlined className="text-blue-500" /> Tìm kiếm
+              </Text>
+              <Input
+                size="large"
+                placeholder="Nhập tên sản phẩm..."
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                allowClear
+                className={isDarkMode ? '!bg-slate-700 !border-slate-600 !text-white placeholder:!text-gray-400 hover:!border-orange-500 focus:!border-orange-500' : ''}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Text strong className={`flex items-center gap-2 ${isDarkMode ? '!text-gray-300' : '!text-gray-700'}`}>
+                <AppstoreTwoTone twoToneColor="#10b981" /> Danh mục
+              </Text>
+              <Select
+                size="large"
+                value={selectedCategoryId}
+                onChange={setSelectedCategoryId}
+                loading={loadingCategories}
+                popupClassName={popupDarkClass}
+                options={categories.map(c => ({ value: c.id, label: c.name }))}
+                className={`w-full ${isDarkMode ? '[&_.ant-select-selector]:!bg-slate-700 [&_.ant-select-selector]:!border-slate-600 [&_.ant-select-selection-item]:!text-white [&_.ant-select-arrow]:!text-gray-400 hover:[&_.ant-select-selector]:!border-orange-500' : ''}`}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Text strong className={`flex items-center gap-2 ${isDarkMode ? '!text-gray-300' : '!text-gray-700'}`}>
+                <DatabaseTwoTone twoToneColor="#8b5cf6" /> Tồn kho
+              </Text>
+              <Select
+                size="large"
+                value={stockFilter}
+                onChange={setStockFilter}
+                popupClassName={popupDarkClass}
+                options={[
+                  { value: "ALL", label: "Tất cả" },
+                  { value: "IN_STOCK", label: "Còn hàng" },
+                  { value: "OUT_OF_STOCK", label: "Hết hàng" },
+                ]}
+                className={`w-full ${isDarkMode ? '[&_.ant-select-selector]:!bg-slate-700 [&_.ant-select-selector]:!border-slate-600 [&_.ant-select-selection-item]:!text-white [&_.ant-select-arrow]:!text-gray-400 hover:[&_.ant-select-selector]:!border-orange-500' : ''}`}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Text strong className={`flex items-center gap-2 ${isDarkMode ? '!text-gray-300' : '!text-gray-700'}`}>
+                <ProjectTwoTone twoToneColor="#f43f5e" /> Sắp xếp theo
+              </Text>
+              <Select
+                size="large"
+                value={sortType}
+                onChange={setSortType}
+                popupClassName={popupDarkClass}
+                options={[
+                  { value: "DEFAULT", label: "Mới nhất" },
+                  { value: "NAME_ASC", label: "Tên A-Z" },
+                  { value: "PRICE_ASC", label: "Giá tăng dần" },
+                  { value: "PRICE_DESC", label: "Giá giảm dần" },
+                ]}
+                className={`w-full ${isDarkMode ? '[&_.ant-select-selector]:!bg-slate-700 [&_.ant-select-selector]:!border-slate-600 [&_.ant-select-selection-item]:!text-white [&_.ant-select-arrow]:!text-gray-400 hover:[&_.ant-select-selector]:!border-orange-500' : ''}`}
+              />
+            </div>
+
+            <div className="flex gap-2 h-10">
+              <Button 
+                type="primary" 
+                icon={<ReloadOutlined />} 
+                onClick={fetchProducts} 
+                loading={loadingProducts}
+                className="flex-1 !bg-orange-500 hover:!bg-orange-600 !h-full border-0 shadow-md"
+              >
+                Lọc
+              </Button>
+              <Tooltip title="Xóa bộ lọc">
+                <Button 
+                  icon={<ClearOutlined />} 
+                  onClick={resetFilters} 
+                  className={`!h-full transition-colors ${isDarkMode ? '!bg-slate-700 !text-gray-300 !border-slate-600 hover:!text-orange-400 hover:!border-orange-500' : ''}`}
+                />
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className={`mt-5 pt-4 border-t border-dashed ${isDarkMode ? 'border-slate-600' : 'border-gray-200'}`}>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <Text strong className={`whitespace-nowrap flex items-center gap-2 ${isDarkMode ? '!text-gray-300' : '!text-gray-700'}`}>
+                <LayoutTwoTone twoToneColor="#0ea5e9" /> Khoảng giá:
+              </Text>
+              <div className="flex-1 px-2 md:px-4">
                 <Slider
                   range
                   min={0}
@@ -407,201 +496,145 @@ const ProductListPage = () => {
                   step={100000}
                   value={priceRange}
                   onChange={setPriceRange}
-                />
-
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>{formatCurrency(priceRange[0])}</span>
-                  <span>{formatCurrency(priceRange[1])}</span>
-                </div>
-              </div>
-
-              <div>
-                <Text strong>Tồn kho</Text>
-
-                <Select
-                  className="mt-2 w-full"
-                  size="large"
-                  value={stockFilter}
-                  onChange={setStockFilter}
-                  options={[
-                    {
-                      value: "ALL",
-                      label: "Tất cả",
-                    },
-                    {
-                      value: "IN_STOCK",
-                      label: "Còn hàng",
-                    },
-                    {
-                      value: "OUT_OF_STOCK",
-                      label: "Hết hàng",
-                    },
-                  ]}
+                  trackStyle={[{ backgroundColor: '#f97316' }]}
+                  handleStyle={[{ borderColor: '#f97316' }, { borderColor: '#f97316' }]}
                 />
               </div>
-
-              <div>
-                <Text strong>Sắp xếp</Text>
-
-                <Select
-                  className="mt-2 w-full"
-                  size="large"
-                  value={sortType}
-                  onChange={setSortType}
-                  options={[
-                    {
-                      value: "DEFAULT",
-                      label: "Mới nhất",
-                    },
-                    {
-                      value: "NAME_ASC",
-                      label: "Tên A-Z",
-                    },
-                    {
-                      value: "PRICE_ASC",
-                      label: "Giá tăng dần",
-                    },
-                    {
-                      value: "PRICE_DESC",
-                      label: "Giá giảm dần",
-                    },
-                  ]}
-                />
+              <div className={`text-sm font-semibold whitespace-nowrap px-3 py-1.5 rounded-lg ${
+                isDarkMode ? 'bg-slate-700 text-orange-400' : 'bg-orange-50 text-orange-600'
+              }`}>
+                {formatCurrency(priceRange[0])} - {formatCurrency(priceRange[1])}
               </div>
-
-              <Button block onClick={resetFilters}>
-                Xóa bộ lọc
-              </Button>
             </div>
-          </Card>
-
-          <div>
-            <div className={`${!isDarkMode ? "text-slate-800" : "text-white"} mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
-              <div>
-                <Title level={3} className="!mb-1">
-                  Tìm thấy {filteredProducts.length} sản phẩm
-                </Title>
-
-                <Text type="secondary">
-                  Bấm vào sản phẩm để xem chi tiết và chọn phiên bản.
-                </Text>
-              </div>
-
-              <Tag
-                icon={<AppstoreOutlined />}
-                color="orange"
-                className="w-fit rounded-full px-4 py-1 text-sm"
-              >
-                Product API
-              </Tag>
-            </div>
-
-            {loadingProducts ? (
-              <div className="flex min-h-[360px] items-center justify-center rounded-3xl bg-white shadow-sm">
-                <Spin size="large" tip="Đang tải sản phẩm..." />
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="rounded-3xl bg-white py-16 shadow-sm">
-                <Empty description="Không tìm thấy sản phẩm phù hợp." />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredProducts.map((product) => {
-                  const mainVariant = getMainVariant(product);
-                  const isOutOfStock = Number(mainVariant.stock || 0) <= 0;
-                  const reviewSummary = reviewSummaries[product.id];
-                  const hasReviews = Number(reviewSummary?.reviewCount || 0) > 0;
-
-                  return (
-                    <Card
-                      key={product.id}
-                      hoverable
-                      onClick={() => navigate(`/products/${product.id}`)}
-                      className="overflow-hidden rounded-2xl border-0 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                      cover={
-                        <div className="relative h-56 overflow-hidden bg-orange-50">
-                          <img
-                            src={getMainImage(product)}
-                            alt={product.name}
-                            className="h-full w-full object-cover transition duration-300 hover:scale-105"
-                          />
-
-                          <div className="absolute left-3 top-3">
-                            <Tag color={isOutOfStock ? "red" : "green"}>
-                              {isOutOfStock ? "Hết hàng" : "Còn hàng"}
-                            </Tag>
-                          </div>
-                        </div>
-                      }
-                    >
-                      <Space direction="vertical" size={8} className="w-full">
-                        <div className="flex items-center justify-between gap-2">
-                          <Tag color="orange">
-                            {product.categoryName || "Chưa phân loại"}
-                          </Tag>
-
-                          <Text type="secondary" className="text-xs">
-                            {reviewSummary
-                              ? hasReviews
-                                ? `⭐ ${reviewSummary.averageRating} (${reviewSummary.reviewCount})`
-                                : "Chưa có đánh giá"
-                              : "Đang tải đánh giá"}
-                          </Text>
-                        </div>
-
-                        <Title level={5} className="!mb-0 line-clamp-2">
-                          {product.name}
-                        </Title>
-
-                        <Paragraph
-                          type="secondary"
-                          className="!mb-0 line-clamp-2 min-h-[44px]"
-                        >
-                          {product.description || "Chưa có mô tả sản phẩm."}
-                        </Paragraph>
-
-                        <div className="flex items-center justify-between gap-3">
-                            <Text className="text-xl font-bold !text-orange-600">
-                              {formatCurrency(mainVariant.price)}
-                            </Text>
-
-                            <div className="flex items-center gap-2">
-                              <Tooltip title="Thêm vào giỏ hàng">
-                                <Button
-                                  type="primary"
-                                  shape="circle"
-                                  icon={<ShoppingCartOutlined />}
-                                  disabled={isOutOfStock}
-                                  onClick={(event) => handleAddToCart(event, product)}
-                                  className="!bg-orange-500 hover:!bg-orange-600"
-                                />
-                              </Tooltip>
-
-                              <Tooltip title="Xem chi tiết">
-                                <Button
-                                  shape="circle"
-                                  icon={<EyeOutlined />}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    navigate(`/products/${product.id}`);
-                                  }}
-                                />
-                              </Tooltip>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                            {mainVariant.sku && <span>SKU: {mainVariant.sku}</span>}
-                            <span>Đã bán {product.soldCount || 0}</span>
-                            <span>Tồn kho {mainVariant.stock || 0}</span>
-                          </div>
-                      </Space>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* KẾT QUẢ & LƯỚI SẢN PHẨM */}
+        <div className="w-full">
+          <div className={`mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${isDarkMode ? 'text-gray-100' : 'text-slate-800'}`}>
+            <div>
+              <Title level={3} className={`!mb-1 ${isDarkMode ? '!text-white' : '!text-black'}`}>
+                Tìm thấy {filteredProducts.length} sản phẩm
+              </Title>
+              <Text type="secondary" className={isDarkMode ? '!text-gray-400' : ''}>
+                Bấm vào sản phẩm để xem chi tiết và chọn phiên bản.
+              </Text>
+            </div>
+          </div>
+
+          {loadingProducts ? (
+            <div className={`flex min-h-[360px] items-center justify-center rounded-3xl shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]'}`}>
+              <Spin size="large" tip="Đang tải sản phẩm..." />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className={`rounded-3xl py-16 shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]'}`}>
+              <Empty 
+                description={<span className={isDarkMode ? 'text-gray-400' : ''}>Không tìm thấy sản phẩm phù hợp.</span>} 
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product) => {
+                const mainVariant = getMainVariant(product);
+                const isOutOfStock = Number(mainVariant.stock || 0) <= 0;
+                const reviewSummary = reviewSummaries[product.id];
+                const hasReviews = Number(reviewSummary?.reviewCount || 0) > 0;
+
+                return (
+                  /* HIGH-END PRODUCT CARD DESIGN WITH PREMIUM SHADOWS */
+                  <div
+                    key={product.id}
+                    onClick={() => navigate(`/products/${product.id}`)}
+                    className={`relative group rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border ${
+                      isDarkMode 
+                        ? 'bg-slate-800 border-slate-700 hover:border-orange-500 shadow-black/30 hover:shadow-2xl' 
+                        : 'bg-white border-gray-100 hover:border-orange-300 shadow-lg shadow-gray-200/40 hover:shadow-2xl hover:shadow-orange-500/20'
+                    }`}
+                  >
+                    {/* Hình ảnh */}
+                    <div className="aspect-square w-full relative overflow-hidden bg-gray-100 dark:bg-slate-900">
+                      <img
+                        src={getMainImage(product)}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      />
+                      
+                      {/* Badge Glassmorphism */}
+                      <div className="absolute top-4 left-4">
+                        <span className={`backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm border ${
+                          isDarkMode ? 'bg-black/50 border-gray-600 text-gray-200' : 'bg-white/85 border-white/50 text-gray-800'
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full animate-pulse ${isOutOfStock ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+                          {isOutOfStock ? "Hết hàng" : "Còn hàng"}
+                        </span>
+                      </div>
+
+                      {/* Hover Overlay: Quick View */}
+                      <div className="absolute inset-0 bg-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button className={`px-6 py-2.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 ${
+                          isDarkMode ? 'bg-slate-800 text-white hover:bg-orange-500' : 'bg-white text-gray-800 hover:bg-orange-500 hover:text-white'
+                        }`}>
+                          <EyeOutlined className="text-lg" /> Xem chi tiết
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Nội dung chi tiết */}
+                    <div className="p-6 relative">
+                      {/* FAB (Floating Action Button) Thêm giỏ hàng */}
+                      <button
+                        onClick={(event) => handleAddToCart(event, product)}
+                        disabled={isOutOfStock}
+                        className={`absolute -top-7 right-5 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all group/btn ring-4 ${
+                          isDarkMode 
+                            ? 'bg-orange-500 text-white ring-slate-800 disabled:bg-gray-600 disabled:ring-slate-800' 
+                            : 'bg-orange-500 text-white ring-white disabled:bg-gray-300 disabled:ring-white'
+                        }`}
+                      >
+                        <ShoppingCartOutlined className="text-2xl group-hover/btn:rotate-12 transition-transform" />
+                      </button>
+
+                      <div className="flex justify-between items-start mb-3 pr-14">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md tracking-wide uppercase ${
+                          isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-50 text-orange-600'
+                        }`}>
+                          {product.categoryName || "Khác"}
+                        </span>
+                        <div className={`flex items-center gap-1 text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <StarFilled className="text-amber-500" />
+                          <span>{reviewSummary ? (hasReviews ? reviewSummary.averageRating : "Chưa ĐG") : "..."}</span>
+                        </div>
+                      </div>
+
+                      {/* Tên sản phẩm: Đen ở Light mode, Trắng tinh ở Dark mode */}
+                      <h2 className={`font-bold text-lg mb-4 line-clamp-2 leading-tight transition-colors group-hover:text-orange-500 min-h-[56px] ${
+                        isDarkMode ? 'text-white' : 'text-black'
+                      }`}>
+                        {product.name}
+                      </h2>
+
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-black text-orange-500 tracking-tight">
+                            {formatCurrency(mainVariant.price)}
+                          </span>
+                        </div>
+                        <div className={`flex items-center gap-2 text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <ShoppingCartOutlined />
+                          <span>Đã bán {product.soldCount || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar ảo bên dưới */}
+                    <div className={`h-1 w-full ${isDarkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
+                      <div className="h-full bg-orange-500/40 w-3/4"></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

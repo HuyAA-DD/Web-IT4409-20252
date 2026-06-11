@@ -436,42 +436,8 @@ const AuthPage = () => {
                   <div className="w-full border-t border-gray-200"></div>
                 </div>
 
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-4 font-semibold text-gray-400 tracking-wider">
-                    Hoặc tiếp tục với
-                  </span>
-                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  className="h-12 flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-200 transition-all active:scale-95 shadow-sm"
-                  type="button"
-                >
-                  <img
-                    alt="Google"
-                    className="w-5 h-5"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaILOg5XACnvZdBwIJus-GED00TAIm-OhIxVcbFRsMKbthzixb51arDN3tUw5ssBvBeg-Qzz8KLsOqPNfoGlGddgMrnjKmNeW8E_DpT5n6bkFIzPqsY9l8GaAf_H8XAYIzHmyHkc3bSdvzpU2eO5M_yzPiRqjSNWz8YxbJ4u6Q4UEQLP3bNpSeLl8YBGF7zYe3Z8Wzm-LnC6PG0Eyj6FYanDRLw03ldg6BBlef46vlyGzBUB5WKEaUOcwbKp-jwW-fxoD9KOHe9t17"
-                  />
-
-                  <span>Google</span>
-                </button>
-
-                <button
-                  className="h-12 flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-200 transition-all active:scale-95 shadow-sm"
-                  type="button"
-                >
-                  <svg
-                    className="w-5 h-5 text-[#1877F2]"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-
-                  <span>Facebook</span>
-                </button>
-              </div>
 
               <p className="mt-8 text-center text-xs text-gray-500">
                 Bằng việc tiếp tục, bạn đồng ý với{' '}
