@@ -164,9 +164,9 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
     };
   }, []);
 
-  const handleSearch = (value) => {
-    console.log("Searching:", value);
-  };
+  // const handleSearch = (value) => {
+  //   console.log("Searching:", value);
+  // };
 
   const handleLogin = () => {
     navigate("/auth/login-register");
@@ -273,7 +273,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
         </div>
       </div>
 
-      <div className="hidden md:flex flex-1 max-w-xl mx-8">
+      {/* <div className="hidden md:flex flex-1 max-w-xl mx-8">
         <Search
           placeholder="Tìm kiếm sản phẩm..."
           allowClear
@@ -281,7 +281,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
           size="large"
           onSearch={handleSearch}
         />
-      </div>
+      </div> */}
 
       <div className="flex items-center gap-3">
         <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
