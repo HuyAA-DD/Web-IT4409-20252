@@ -360,16 +360,16 @@ const ProductListPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-          <Card className="h-fit rounded-3xl border-0 shadow-sm">
-            <div className="mb-6 flex items-center gap-2">
+        <div className="space-y-6">
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <div className="mb-5 flex items-center gap-2">
               <FilterOutlined className="text-orange-500" />
               <Title level={4} className="!mb-0">
                 Bộ lọc sản phẩm
               </Title>
             </div>
 
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_1.35fr_0.8fr_0.9fr_auto] xl:items-end">
               <div>
                 <Text strong>Tìm kiếm</Text>
 
@@ -408,14 +408,16 @@ const ProductListPage = () => {
               <div>
                 <Text strong>Khoảng giá</Text>
 
-                <Slider
-                  range
-                  min={0}
-                  max={DEFAULT_PRICE_RANGE[1]}
-                  step={100000}
-                  value={priceRange}
-                  onChange={setPriceRange}
-                />
+                <div className="mt-2">
+                  <Slider
+                    range
+                    min={0}
+                    max={DEFAULT_PRICE_RANGE[1]}
+                    step={100000}
+                    value={priceRange}
+                    onChange={setPriceRange}
+                  />
+                </div>
 
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>{formatCurrency(priceRange[0])}</span>
@@ -477,9 +479,11 @@ const ProductListPage = () => {
                 />
               </div>
 
-              <Button block onClick={resetFilters}>
-                Xóa bộ lọc
-              </Button>
+              <div className="flex md:col-span-2 xl:col-span-1">
+                <Button block className="mt-2 !h-10 xl:mt-0" onClick={resetFilters}>
+                  Xóa bộ lọc
+                </Button>
+              </div>
             </div>
           </Card>
 
@@ -513,7 +517,7 @@ const ProductListPage = () => {
                 <Empty description="Không tìm thấy sản phẩm phù hợp." />
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredProducts.map((product) => {
                   const mainVariant = getMainVariant(product);
                   const isOutOfStock = Number(mainVariant.stock || 0) <= 0;
