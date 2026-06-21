@@ -344,7 +344,7 @@ const TopNavBar = ({ onMenuClick, isDarkMode, toggleDarkMode, setActiveIndex }) 
 const Sidebar = ({ collapsed, isMobileOpen, onCloseMobile, isDarkMode, setActiveIndex, activeIndex }) => {
   const navigate = useNavigate();
   const menuItems = [
-    { icon: <ThunderboltOutlined />, label: 'Flash Sale', path: USER_ROUTE.Home },
+    { icon: <ThunderboltOutlined />, label: 'Trang chủ', path: USER_ROUTE.Home },
     { icon: <ShopOutlined />, label: 'Siêu thị', path: USER_ROUTE.Supermarket },
     { icon: <RiseOutlined />, label: 'Top Sản phẩm', path: USER_ROUTE.TopProduct },
     { icon: <WalletOutlined />, label: 'Ví thanh toán', path: USER_ROUTE.Seapay },

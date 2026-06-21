@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import api from '../../../Apis/apiConfig';
 import API_ENDPOINTS from '../../../Apis/apiEndpoints';
+import USER_ROUTE from '../../../Routes/User.routes';
 
 import { useOutletContext } from 'react-router-dom';
 
@@ -66,6 +67,8 @@ const getProductName = (product) => {
 
 // --- COMPONENT: HERO BANNER ---
 const HeroBanner = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative overflow-hidden rounded-xl h-[300px] md:h-[400px] shadow-sm group">
       <img
@@ -75,10 +78,15 @@ const HeroBanner = () => {
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-center p-8">
         <div className="max-w-md space-y-4">
-          <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Mega Deals</span>
-          <h2 className="text-white text-4xl font-bold leading-tight m-0">Lễ hội Điện tử & Công nghệ</h2>
-          <p className="text-white/90 text-sm italic">Giảm giá lên tới 80% cho các tín đồ MegaMart</p>
-          <button className="bg-orange-600 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:bg-orange-500 transition-all shadow-lg active:scale-95 uppercase">Mua Ngay</button>
+          <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Mega Marts</span>
+          <h2 className="text-white text-4xl font-bold leading-tight m-0">Trải nghiệm mua sắm không giới hạn</h2>
+          <p className="text-white/90 text-sm italic">Tiện lợi - Nhanh chóng - Tiết kiệm</p>
+          <button
+            className="bg-orange-600 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:bg-orange-500 transition-all shadow-lg active:scale-95 uppercase"
+            onClick={() => navigate(USER_ROUTE.Supermarket)}
+          >
+            Mua Ngay
+          </button>
         </div>
       </div>
     </section>
@@ -111,7 +119,7 @@ const TextCategories = () => {
     <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mt-6">
       <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
         <ShoppingOutlined className="text-orange-600 text-xl" />
-        <h3 className="text-lg font-bold text-gray-800 m-0">Danh Mục Mua Sắm</h3>
+        <h3 className="text-lg font-bold text-gray-800 m-0">Danh Mục Mua Sắm Phổ Biến</h3>
       </div>
 
       {loading ? (

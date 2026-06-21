@@ -488,13 +488,13 @@ const ProductListPage = () => {
           </Card>
 
           <div>
-            <div className={`${!isDarkMode ? "text-slate-800" : "text-white"} mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
+            <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-orange-100 bg-white/95 px-5 py-4 shadow-sm md:flex-row md:items-center md:justify-between">
               <div>
-                <Title level={3} className="!mb-1">
+                <Title level={3} className="!mb-1 !text-slate-900">
                   Tìm thấy {filteredProducts.length} sản phẩm
                 </Title>
 
-                <Text type="secondary">
+                <Text className="!text-slate-600">
                   Bấm vào sản phẩm để xem chi tiết và chọn phiên bản.
                 </Text>
               </div>
