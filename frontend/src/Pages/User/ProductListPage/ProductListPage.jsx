@@ -112,6 +112,13 @@ const normalizeSort = (sortType) => {
   }
 };
 
+const normalizeSearchText = (value = "") => {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
+
 const ProductListPage = () => {
   const navigate = useNavigate();
   const {isDarkMode} = useOutletContext();
@@ -277,6 +284,13 @@ const ProductListPage = () => {
     return result;
   }, [products, stockFilter]);
 
+  const categoryOptions = useMemo(() => {
+    return categories.map((category) => ({
+      value: category.id,
+      label: category.name || "Chưa phân loại",
+    }));
+  }, [categories]);
+
   const handleAddToCart = async (event, product) => {
     event.stopPropagation();
 
@@ -373,28 +387,22 @@ const ProductListPage = () => {
               <div>
                 <Text strong>Danh mục</Text>
 
-                <div className="mt-3 space-y-2">
-                  {loadingCategories ? (
-                    <div className="flex justify-center py-4">
-                      <Spin />
-                    </div>
-                  ) : (
-                    categories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => setSelectedCategoryId(category.id)}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${
-                          selectedCategoryId === category.id
-                            ? "bg-orange-50 font-semibold text-orange-600"
-                            : "bg-gray-50 text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))
-                  )}
-                </div>
+                <Select
+                  className="mt-2 w-full"
+                  size="large"
+                  showSearch
+                  value={selectedCategoryId}
+                  loading={loadingCategories}
+                  placeholder="Chọn hoặc tìm danh mục"
+                  optionFilterProp="label"
+                  filterOption={(input, option) =>
+                    normalizeSearchText(option?.label).includes(
+                      normalizeSearchText(input)
+                    )
+                  }
+                  onChange={setSelectedCategoryId}
+                  options={categoryOptions}
+                />
               </div>
 
               <div>
@@ -592,7 +600,6 @@ const ProductListPage = () => {
 
                           <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                             {mainVariant.sku && <span>SKU: {mainVariant.sku}</span>}
-                            <span>Đã bán {product.soldCount || 0}</span>
                             <span>Tồn kho {mainVariant.stock || 0}</span>
                           </div>
                       </Space>
