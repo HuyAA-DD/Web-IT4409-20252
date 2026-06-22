@@ -39,7 +39,9 @@ public class SecurityConfig {
             "http://localhost:5174",
             "http://localhost:3000",
             "https://web-it4409-20252.web.app",
-            "https://web-it4409-20252.firebaseapp.com"
+            "https://web-it4409-20252.firebaseapp.com",
+            "https://web-it4409-master.web.app",
+            "https://web-it4409-master.firebaseapp.com"
         ));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
